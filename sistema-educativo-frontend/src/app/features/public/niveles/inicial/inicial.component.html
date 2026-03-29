@@ -1,0 +1,120 @@
+<div class="min-h-screen bg-gray-50">
+  
+  <section class="relative bg-blue-900 text-white py-32 md:py-32 overflow-hidden">
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20">
+      <div class="absolute top-10 left-10 w-40 h-40 bg-yellow-400 rounded-full blur-[60px] animate-pulse"></div>
+      <div class="absolute bottom-10 right-10 w-40 h-40 bg-red-600 rounded-full blur-[60px]"></div>
+    </div>
+
+    <div class="container-custom relative z-10 px-4">
+      <div class="max-w-4xl mx-auto text-center flex flex-col items-center">
+        <div class="text-7xl mb-8 transform hover:scale-110 transition-transform duration-300 cursor-default">
+          🎨
+        </div>
+        
+        <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight leading-tight">
+          Educación <span class="text-yellow-400">Inicial</span>
+        </h1>
+        
+        <div class="inline-flex items-center px-6 py-2.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-8 shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-yellow-400 mr-3 animate-pulse"></span>
+          <p class="text-xl font-medium text-white tracking-wide">
+            {{ levelData?.ages }}
+          </p>
+        </div>
+
+        <p class="text-lg md:text-xl text-blue-100 max-w-2xl leading-relaxed">
+          {{ levelData?.description }}
+        </p>
+      </div>
+    </div>
+    
+    <div class="absolute bottom-0 w-full h-2 bg-gradient-to-r from-red-600 via-yellow-400 to-blue-600"></div>
+  </section>
+
+  <section class="py-20 md:py-24 bg-white">
+    <div class="container-custom px-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="bg-blue-50/50 rounded-3xl p-10 md:p-14 border-l-8 border-yellow-400 shadow-sm">
+          <h2 class="text-2xl md:text-3xl font-bold text-blue-900 mb-6">Propuesta Pedagógica</h2>
+          <p class="text-lg md:text-xl text-gray-700 leading-8 text-justify md:text-left">
+            {{ levelData?.longDescription }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 md:py-24 bg-gray-50">
+    <div class="container-custom px-4">
+      <div class="text-center mb-16">
+        <span class="text-blue-600 font-bold tracking-wider uppercase text-sm mb-2 block">Beneficios</span>
+        <h2 class="text-3xl md:text-5xl font-bold text-gray-900">¿Qué Ofrecemos?</h2>
+        <div class="w-24 h-1.5 bg-yellow-400 mx-auto mt-6 rounded-full"></div>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div *ngFor="let feature of levelData?.features" class="group h-full">
+          <div class="bg-white rounded-2xl p-8 h-full shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-yellow-200 flex items-start gap-5">
+            <div class="w-12 h-12 bg-yellow-50 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <svg class="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span class="text-gray-700 font-medium text-lg pt-2 group-hover:text-blue-900 transition-colors">
+              {{ feature }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 md:py-24 bg-white overflow-hidden relative">
+    <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#000 1px, transparent 1px); background-size: 24px 24px;"></div>
+
+    <div class="container-custom px-4 relative z-10">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-5xl font-bold text-gray-900 mb-4">Talleres y Actividades</h2>
+        <p class="text-xl text-gray-500 max-w-2xl mx-auto">Aprendizaje lúdico para desarrollar todas sus habilidades.</p>
+      </div>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+        <div *ngFor="let workshop of levelData?.workshops; let i = index" 
+             class="group relative rounded-2xl p-8 text-center transition-all duration-300 hover:-translate-y-2 border-2 border-dashed h-full flex flex-col items-center justify-center"
+             [ngClass]="{
+               'bg-blue-50 border-blue-200 text-blue-900 hover:bg-blue-100': i % 3 === 0,
+               'bg-yellow-50 border-yellow-300 text-yellow-900 hover:bg-yellow-100': i % 3 === 1,
+               'bg-red-50 border-red-200 text-red-900 hover:bg-red-100': i % 3 === 2
+             }">
+          
+          <div class="text-4xl mb-4 group-hover:scale-125 transition-transform duration-300">
+             <span *ngIf="i % 3 === 0">🧩</span>
+             <span *ngIf="i % 3 === 1">🎨</span>
+             <span *ngIf="i % 3 === 2">🤸</span>
+          </div>
+          
+          <p class="font-bold text-lg tracking-wide">{{ workshop }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-24 bg-blue-900 relative">
+    <div class="container-custom px-4 text-center">
+      <h2 class="text-3xl md:text-5xl font-bold mb-8 text-white tracking-tight">
+        ¿Listo para inscribir a tu hijo?
+      </h2>
+      <p class="text-blue-200 text-lg md:text-xl mb-10 max-w-2xl mx-auto">
+        Forma parte de nuestra familia y brinda a tu pequeño una educación de calidad desde sus primeros pasos.
+      </p>
+      
+      <a routerLink="/admision" class="inline-flex items-center gap-3 px-10 py-5 bg-red-600 text-white text-lg rounded-xl font-bold hover:bg-red-700 hover:shadow-2xl hover:shadow-red-900/50 transform hover:-translate-y-1 transition-all duration-300">
+        <span>Iniciar Proceso de Admisión</span>
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+        </svg>
+      </a>
+    </div>
+  </section>
+</div>

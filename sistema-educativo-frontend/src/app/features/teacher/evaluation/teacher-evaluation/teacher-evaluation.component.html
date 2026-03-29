@@ -1,0 +1,244 @@
+<!-- //src/app/features/teacher/evaluation/teacher-evaluation/teacher-evaluation.component.html -->
+<div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+  <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-cermat-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 flex items-center gap-4">
+      <div class="w-14 h-14 bg-cermat-blue-50 rounded-2xl flex items-center justify-center border border-cermat-blue-100 shadow-sm shrink-0">
+        <i data-lucide="award" class="w-7 h-7 text-cermat-blue-600"></i>
+      </div>
+      <div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Registro de Evaluaciones</h1>
+        <p class="text-slate-500 mt-1 font-medium">
+          Gestiona tus calificaciones con la misma logica del backend academico.
+        </p>
+        <p class="text-sm text-slate-400 mt-2" *ngIf="teacher || activeAcademicYearLabel">
+          <span *ngIf="teacher">{{ teacher.first_name }} {{ teacher.last_name }}</span>
+          <span *ngIf="teacher && activeAcademicYearLabel"> · </span>
+          <span *ngIf="activeAcademicYearLabel">Ano academico {{ activeAcademicYearLabel }}</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="relative z-10 flex gap-3 flex-wrap w-full lg:w-auto">
+      <ng-container *ngIf="!isPeriodClosed; else closedPeriod">
+        <button
+          (click)="handleSaveDraft()"
+          [disabled]="saving || !canSaveDraft()"
+          class="flex-1 lg:flex-none inline-flex justify-center items-center gap-2 px-5 py-2.5 bg-white text-slate-700 border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl transition-all duration-300 font-bold disabled:opacity-50"
+        >
+          <i data-lucide="save" class="w-5 h-5"></i>
+          Guardar borrador
+        </button>
+        <button
+          (click)="handlePublish()"
+          [disabled]="saving || !canPublish()"
+          class="flex-1 lg:flex-none inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl transition-all duration-300 shadow-lg shadow-emerald-500/30 font-bold hover:shadow-emerald-500/50 hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none"
+        >
+          <i *ngIf="!saving" data-lucide="send" class="w-5 h-5"></i>
+          <i *ngIf="saving" data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+          {{ saving ? 'Procesando...' : 'Publicar calificaciones' }}
+        </button>
+      </ng-container>
+      <ng-template #closedPeriod>
+        <span class="inline-flex items-center px-5 py-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-bold w-full lg:w-auto justify-center">
+          <i data-lucide="lock" class="w-5 h-5 mr-2"></i>
+          Periodo cerrado
+        </span>
+      </ng-template>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex items-center gap-3 animate-fade-in-up">
+    <i data-lucide="alert-circle" class="w-5 h-5"></i>
+    <p class="font-bold">{{ error }}</p>
+  </div>
+
+  <div *ngIf="success" class="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl flex items-center gap-3 animate-fade-in-up">
+    <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+    <p class="font-bold">{{ success }}</p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 relative overflow-hidden">
+    <div class="grid md:grid-cols-3 gap-6 relative z-10">
+      <div>
+        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Curso / Seccion</label>
+        <div class="relative">
+          <select
+            [(ngModel)]="selectedAssignmentId"
+            (ngModelChange)="onAssignmentChange()"
+            class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300"
+          >
+            <option value="">Seleccionar asignacion</option>
+            <option *ngFor="let assignment of assignments" [value]="assignment.id">
+              {{ formatAssignmentLabel(assignment) }}
+            </option>
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Periodo</label>
+        <div class="relative">
+          <select
+            [(ngModel)]="selectedPeriodId"
+            (ngModelChange)="onPeriodChange()"
+            class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300"
+          >
+            <option value="">Seleccionar periodo</option>
+            <option *ngFor="let period of periods" [value]="period.id">
+              {{ period.name }} <ng-container *ngIf="period.is_closed">(Cerrado)</ng-container>
+            </option>
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-end gap-3 justify-end">
+        <span *ngIf="isPlanillaPublished" class="inline-flex items-center px-5 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl font-bold shadow-sm">
+          <i data-lucide="check-circle-2" class="w-5 h-5 mr-2"></i>
+          Planilla publicada
+        </span>
+        <span *ngIf="!isPlanillaPublished && !isPeriodClosed" class="inline-flex items-center px-5 py-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl font-bold shadow-sm">
+          <i data-lucide="book-open" class="w-5 h-5 mr-2"></i>
+          Modo borrador
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-3 gap-4" *ngIf="hasGradebook">
+    <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+      <p class="text-xs uppercase tracking-wide text-slate-400 font-bold">Estudiantes</p>
+      <p class="text-3xl font-extrabold text-slate-900 mt-2">{{ students.length }}</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+      <p class="text-xs uppercase tracking-wide text-slate-400 font-bold">Notas registradas</p>
+      <p class="text-3xl font-extrabold text-slate-900 mt-2">{{ gradedCellsCount }}</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+      <p class="text-xs uppercase tracking-wide text-slate-400 font-bold">Notas publicadas</p>
+      <p class="text-3xl font-extrabold text-slate-900 mt-2">{{ publishedCellsCount }}</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden" *ngIf="hasGradebook">
+    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center gap-4 flex-wrap">
+      <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+        <i data-lucide="clipboard-list" class="w-5 h-5 text-cermat-blue-600"></i>
+        Planilla de calificaciones
+      </h2>
+      <p class="text-sm text-slate-500 font-medium">
+        {{ selectedAssignment?.course?.name }} · {{ selectedAssignment?.section?.grade_level?.name }} {{ selectedAssignment?.section?.section_letter }}
+      </p>
+    </div>
+
+    <div class="overflow-x-auto relative scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="bg-white border-b-2 border-slate-200">
+            <th class="py-4 px-4 text-center font-bold text-slate-500 text-xs uppercase tracking-wider sticky left-0 bg-white z-20 border-r border-slate-100 w-16">#</th>
+            <th class="py-4 px-4 text-left font-bold text-slate-500 text-xs uppercase tracking-wider sticky left-16 bg-white z-20 min-w-[250px] border-r border-slate-200 shadow-[4px_0_10px_rgba(0,0,0,0.02)]">Estudiante</th>
+
+            <th *ngFor="let competency of competencies" class="py-4 px-6 text-center align-top min-w-[220px] border-r border-slate-100 bg-slate-50/30">
+              <div class="mb-2">
+                <span class="px-3 py-1 bg-cermat-blue-50 border border-cermat-blue-100 text-cermat-blue-700 rounded-lg text-xs font-bold shadow-sm block w-fit mx-auto">
+                  {{ competency.code || 'COMP' }}
+                </span>
+              </div>
+              <div class="text-xs text-slate-600 font-medium leading-relaxed max-w-[180px] mx-auto" [title]="competency.name || competency.description">
+                {{ (competency.name || competency.description || '').length > 60
+                  ? (competency.name || competency.description || '').substring(0, 60) + '...'
+                  : (competency.name || competency.description) }}
+              </div>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-slate-100">
+          <tr *ngFor="let student of students; let index = index" class="group">
+            <td class="py-4 px-4 text-slate-400 font-bold text-center sticky left-0 bg-white z-10 group-hover:bg-slate-50 border-r border-slate-100 transition-colors">
+              {{ index + 1 }}
+            </td>
+
+            <td class="py-4 px-4 sticky left-16 bg-white z-10 group-hover:bg-slate-50 border-r border-slate-200 shadow-[4px_0_10px_rgba(0,0,0,0.02)] transition-colors">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center shadow-sm shrink-0">
+                  <span class="text-cermat-blue-700 font-extrabold">
+                    {{ student.initials }}
+                  </span>
+                </div>
+                <div>
+                  <p class="font-bold text-slate-900 leading-tight group-hover:text-cermat-blue-700 transition-colors">
+                    {{ student.last_name }}, {{ student.first_name }}
+                  </p>
+                  <p class="text-xs font-semibold text-slate-400 mt-0.5">Cod: {{ student.student_code || 'SIN CODIGO' }}</p>
+                </div>
+              </div>
+            </td>
+
+            <td *ngFor="let competency of competencies" class="py-4 px-5 align-top border-r border-slate-100 bg-white group-hover:bg-slate-50/50 transition-colors">
+              <div class="flex flex-col gap-3">
+                <div class="flex justify-center gap-1.5 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/50 shadow-inner">
+                  <button
+                    *ngFor="let grade of grades"
+                    (click)="updateEvaluation(student.id, competency.id, 'grade', grade)"
+                    [disabled]="isCellLocked(recordFor(student.id, competency.id))"
+                    [ngClass]="[
+                      'w-9 h-9 rounded-lg text-sm font-bold transition-all duration-300 focus:outline-none flex items-center justify-center',
+                      isCellLocked(recordFor(student.id, competency.id)) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105',
+                      recordFor(student.id, competency.id).grade === grade
+                        ? (grade === 'AD' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-md shadow-emerald-500/30'
+                          : grade === 'A' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-md shadow-blue-500/30'
+                          : grade === 'B' ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md shadow-amber-500/30'
+                          : 'bg-gradient-to-br from-rose-400 to-rose-600 text-white shadow-md shadow-rose-500/30')
+                        : 'bg-transparent text-slate-500 hover:bg-white hover:shadow-sm hover:text-slate-800'
+                    ]"
+                  >
+                    {{ grade }}
+                  </button>
+                </div>
+
+                <input
+                  *ngIf="recordFor(student.id, competency.id).grade"
+                  type="text"
+                  placeholder="Anadir observacion..."
+                  [disabled]="isCellLocked(recordFor(student.id, competency.id))"
+                  [value]="recordFor(student.id, competency.id).observations"
+                  (input)="updateEvaluation(student.id, competency.id, 'observations', $any($event.target).value)"
+                  class="w-full px-3 py-2 border-2 border-slate-200 rounded-lg text-sm font-medium focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 focus:outline-none placeholder:text-slate-400 placeholder:font-normal bg-white disabled:bg-slate-50/50 disabled:cursor-not-allowed transition-all"
+                />
+
+                <div *ngIf="recordFor(student.id, competency.id).grade" class="flex items-center justify-between text-xs gap-2">
+                  <span
+                    class="inline-flex items-center px-2.5 py-1 rounded-lg border font-bold"
+                    [ngClass]="recordFor(student.id, competency.id).status === 'publicada' || recordFor(student.id, competency.id).status === 'cerrada'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'"
+                  >
+                    {{ recordFor(student.id, competency.id).status === 'publicada' || recordFor(student.id, competency.id).status === 'cerrada'
+                      ? 'Publicada'
+                      : 'Borrador' }}
+                  </span>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !hasGradebook && selectedAssignmentId && selectedPeriodId && !error" class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-10 text-center">
+    <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center border border-slate-200">
+      <i data-lucide="clipboard-x" class="w-8 h-8 text-slate-400"></i>
+    </div>
+    <h3 class="mt-5 text-xl font-bold text-slate-800">No hay datos para mostrar</h3>
+    <p class="mt-2 text-slate-500">Revisa si el curso tiene estudiantes activos y competencias registradas.</p>
+  </div>
+</div>

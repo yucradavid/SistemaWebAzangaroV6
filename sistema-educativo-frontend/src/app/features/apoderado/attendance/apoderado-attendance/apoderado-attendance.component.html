@@ -1,0 +1,415 @@
+<div class="min-h-[calc(100vh-80px)] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+  <a routerLink="/app/dashboard/apoderado" class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm font-medium group">
+    <div class="p-1.5 bg-white border border-slate-200 rounded-lg group-hover:bg-slate-50 transition-colors shadow-sm">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </div>
+    Volver al panel
+  </a>
+
+  <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Asistencia del Estudiante</h1>
+      <p class="text-slate-500 mt-1">Consulta por hijo, revisa el calendario y envia justificaciones desde el mismo modulo.</p>
+      <div *ngIf="selectedStudent" class="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+        <span class="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-700">
+          {{ selectedStudent.full_name }}
+        </span>
+        <span *ngIf="selectedStudent.section?.grade_level" class="px-3 py-2 rounded-2xl bg-slate-100 text-slate-600">
+          {{ selectedStudent.section?.grade_level?.grade }}&deg; {{ selectedStudent.section?.grade_level?.level }}
+          {{ selectedStudent.section?.section_letter ? '- ' + selectedStudent.section?.section_letter : '' }}
+        </span>
+      </div>
+    </div>
+
+    <div *ngIf="actionableRecords.length > 0 && !loading" class="rounded-3xl border border-blue-100 bg-blue-50 px-5 py-4 shadow-sm max-w-md">
+      <p class="text-[10px] font-black uppercase tracking-widest text-blue-500">Acciones pendientes</p>
+      <p class="mt-2 text-sm font-semibold text-blue-900">
+        Tienes {{ actionableRecords.length }} registros listos para justificar en el filtro actual.
+      </p>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-2xl text-sm font-medium">
+    {{ error }}
+  </div>
+
+  <div *ngIf="successMessage" class="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-2xl text-sm font-medium">
+    {{ successMessage }}
+  </div>
+
+  <div *ngIf="riskAlert && !loading" [class]="'rounded-3xl border px-5 py-4 shadow-sm ' + riskAlert.containerClass">
+    <div class="flex items-start gap-3">
+      <div class="w-10 h-10 rounded-2xl flex items-center justify-center bg-white/70 shadow-sm">
+        <div [innerHTML]="getSafeIcon(riskAlert.icon)" class="w-5 h-5"></div>
+      </div>
+      <div>
+        <p class="font-black text-sm uppercase tracking-wider">{{ riskAlert.title }}</p>
+        <p class="text-sm mt-1 font-medium">{{ riskAlert.message }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+    <div class="grid xl:grid-cols-3 gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-cyan-50 text-cyan-600 rounded-xl flex items-center justify-center">
+          <div [innerHTML]="getSafeIcon('users')" class="w-5 h-5"></div>
+        </div>
+        <div class="flex-1">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estudiante</p>
+          <select [(ngModel)]="selectedStudentId" (change)="onStudentChange()" class="mt-2 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 transition-all cursor-pointer">
+            <option *ngFor="let student of students" [value]="student.id">{{ student.full_name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+          <div [innerHTML]="getSafeIcon('calendar')" class="w-5 h-5"></div>
+        </div>
+        <div class="flex-1">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Periodo de consulta</p>
+          <select [(ngModel)]="selectedMonth" (change)="loadAttendance()" class="mt-2 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer">
+            <option *ngFor="let m of months" [value]="m.value">{{ m.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+          <div [innerHTML]="getSafeIcon('bookOpen')" class="w-5 h-5"></div>
+        </div>
+        <div class="flex-1">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Curso</p>
+          <select [(ngModel)]="selectedCourseId" (change)="onCourseChange()" class="mt-2 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all cursor-pointer">
+            <option value="all">Todos los cursos</option>
+            <option *ngFor="let course of availableCourses" [value]="course.id">
+              {{ course.code || 'CURSO' }} - {{ course.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div *ngFor="let stat of statCards" class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300">
+      <div [class]="'absolute top-0 left-0 w-1.5 h-full ' + stat.color"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex flex-col">
+          <span class="text-3xl font-black text-slate-900">{{ stat.value }}</span>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ stat.label }}</p>
+          <p class="text-xs font-semibold text-slate-500 mt-2">{{ stat.helper }}</p>
+        </div>
+        <div [class]="'p-3 rounded-2xl ' + stat.bgColor">
+          <div [innerHTML]="getSafeIcon(stat.icon)" [class]="'w-6 h-6 ' + stat.textColor"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && actionableRecords.length > 0" class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+      <h3 class="text-lg font-bold text-slate-900">Registros por justificar</h3>
+      <p class="text-xs text-slate-500 font-medium mt-1">Faltas y tardanzas sin sustento aprobado en el filtro actual.</p>
+    </div>
+
+    <div class="p-5 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div *ngFor="let record of actionableRecords" class="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-sm font-black text-slate-900">{{ record.date | date:'dd/MM/yyyy' }}</p>
+            <p class="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500">{{ record.course.code || 'CURSO' }}</p>
+          </div>
+          <span [class]="'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white ' + getStatusStyles(record.status).badgeColor">
+            {{ getStatusLabel(record.status) }}
+          </span>
+        </div>
+
+        <p class="mt-3 text-sm font-semibold text-slate-700">{{ record.course.name }}</p>
+        <p *ngIf="record.justification_data?.review_notes" class="mt-3 text-xs text-rose-700 bg-rose-50 border border-rose-100 rounded-xl p-3 font-bold">
+          Observacion previa: {{ record.justification_data?.review_notes }}
+        </p>
+
+        <button
+          type="button"
+          (click)="openJustificationModal(record)"
+          class="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors w-full">
+          <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4"></div>
+          {{ getJustificationActionLabel(record) }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid xl:grid-cols-[1.2fr,1fr] gap-6">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Calendario del mes</h3>
+          <p class="text-xs text-slate-500 font-medium mt-1">
+            {{ monthLabel }} · {{ filteredAttendance.length }} registros filtrados
+          </p>
+        </div>
+        <span class="px-3 py-1 bg-white border border-slate-200 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-wider shadow-sm">
+          {{ effectiveAttendanceRate }}% asistencia
+        </span>
+      </div>
+
+      <div class="p-4 sm:p-6">
+        <div class="grid grid-cols-7 gap-2 mb-3">
+          <div *ngFor="let dayLabel of dayLabels" class="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 py-2">
+            {{ dayLabel }}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-7 gap-2">
+          <button
+            type="button"
+            *ngFor="let day of calendarDays"
+            (click)="selectCalendarDate(day)"
+            [disabled]="!day.inCurrentMonth"
+            [class]="getCalendarDayClass(day)"
+            class="min-h-[88px] rounded-2xl border p-2 text-left transition-all duration-200 disabled:opacity-45 disabled:cursor-default">
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-xs font-black">{{ day.dayNumber }}</span>
+              <span *ngIf="day.records.length > 0" class="text-[10px] font-black px-2 py-1 rounded-full bg-white/70 border border-white/70">
+                {{ day.records.length }}
+              </span>
+            </div>
+            <div class="mt-4">
+              <span *ngIf="day.dominantStatus" [class]="'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ' + getCalendarBadgeClass(day.dominantStatus)">
+                {{ getStatusLabel(day.dominantStatus) }}
+              </span>
+            </div>
+          </button>
+        </div>
+
+        <div class="mt-5 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+          <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">Presente</span>
+          <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">Tarde</span>
+          <span class="px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-100">Falta</span>
+          <span class="px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">Justificado</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+        <h3 class="text-lg font-bold text-slate-900">Detalle del dia</h3>
+        <p class="text-xs text-slate-500 font-medium mt-1">
+          {{ selectedCalendarDate ? (selectedCalendarDate | date:'dd/MM/yyyy') : 'Selecciona una fecha del calendario' }}
+        </p>
+      </div>
+
+      <div class="p-5">
+        <div *ngIf="!selectedCalendarDate" class="text-sm text-slate-500 font-medium">
+          Selecciona un dia para ver los registros.
+        </div>
+
+        <div *ngIf="selectedCalendarDate && selectedDateRecords.length === 0" class="text-sm text-slate-500 font-medium">
+          No hay registros en esa fecha con el filtro actual.
+        </div>
+
+        <div *ngIf="selectedDateRecords.length > 0" class="space-y-3">
+          <div *ngFor="let record of selectedDateRecords" class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="text-sm font-black text-slate-800">{{ record.course.name }}</p>
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">{{ record.course.code || 'CURSO' }}</p>
+              </div>
+              <span [class]="'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white ' + getStatusStyles(record.status).badgeColor">
+                {{ getStatusLabel(record.status) }}
+              </span>
+            </div>
+
+            <p *ngIf="record.justification" class="mt-3 text-sm text-slate-600 italic font-medium">
+              Nota interna: {{ record.justification }}
+            </p>
+
+            <div *ngIf="record.justification_data" class="mt-3 rounded-2xl bg-white border border-slate-200 p-3">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span [class]="'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ' + getJustificationStyles(record.justification_data.status)">
+                  {{ record.justification_data.status }}
+                </span>
+                <span *ngIf="record.justification_data.reviewed_at" class="text-[10px] text-slate-500 font-bold">
+                  {{ record.justification_data.reviewed_at | date:'dd/MM/yyyy HH:mm' }}
+                </span>
+              </div>
+              <p class="mt-2 text-sm font-semibold text-slate-700">{{ record.justification_data.reason }}</p>
+              <p *ngIf="record.justification_data.review_notes" class="mt-2 text-xs text-blue-700 bg-blue-50 p-3 rounded-xl border border-blue-100 font-bold">
+                Revision: {{ record.justification_data.review_notes }}
+              </p>
+            </div>
+
+            <button
+              *ngIf="canJustify(record)"
+              type="button"
+              (click)="openJustificationModal(record)"
+              class="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors w-full">
+              <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4"></div>
+              {{ getJustificationActionLabel(record) }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div>
+        <h3 class="text-lg font-bold text-slate-900">Historial de registros</h3>
+        <p class="text-xs text-slate-500 font-medium mt-1" *ngIf="lastSummary">
+          {{ lastSummary.filters.date_from }} a {{ lastSummary.filters.date_to }}
+        </p>
+      </div>
+      <span class="px-3 py-1 bg-white border border-slate-200 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-wider shadow-sm">
+        {{ filteredAttendance.length }} visibles
+      </span>
+    </div>
+
+    <div class="p-4 sm:p-8">
+      <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-4">
+        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-sm font-bold text-slate-400 animate-pulse">CARGANDO HISTORIAL...</p>
+      </div>
+
+      <div *ngIf="!loading && filteredAttendance.length === 0" class="text-center py-24">
+        <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div [innerHTML]="getSafeIcon('calendar')" class="w-12 h-12 text-slate-200"></div>
+        </div>
+        <h3 class="text-xl font-bold text-slate-900 mb-2">Sin registros este mes</h3>
+        <p class="text-slate-400 max-w-sm mx-auto font-medium">No se encontraron registros para el estudiante, periodo o curso seleccionado.</p>
+      </div>
+
+      <div *ngIf="!loading && filteredAttendance.length > 0" class="space-y-4">
+        <div *ngFor="let record of filteredAttendance"
+             [class]="'p-5 rounded-2xl border-2 transition-all hover:shadow-xl hover:-translate-y-1 duration-300 ' + getStatusStyles(record.status).border">
+          <div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
+            <div class="flex items-start gap-5">
+              <div [class]="'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ' + getStatusStyles(record.status).bg">
+                <div [innerHTML]="getSafeIcon(getStatusStyles(record.status).icon)" [class]="'w-6 h-6 ' + getStatusStyles(record.status).text"></div>
+              </div>
+              <div>
+                <div class="flex items-center gap-3 mb-1.5 flex-wrap">
+                  <span class="text-lg font-bold text-slate-900 leading-none">
+                    {{ record.date | date:'EEEE, d MMMM yyyy':'':'es-PE' | titlecase }}
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="px-2 py-0.5 bg-white border border-slate-200 text-slate-500 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
+                    {{ record.course.code || 'CURSO' }}
+                  </span>
+                  <span class="text-sm font-bold text-slate-600">{{ record.course.name || 'Curso' }}</span>
+                </div>
+
+                <div *ngIf="record.justification" class="flex items-start gap-2 p-3 bg-white/60 rounded-xl border border-white/50 shadow-inner">
+                  <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4 text-slate-400 mt-0.5"></div>
+                  <p class="text-sm text-slate-600 italic font-medium">Nota interna: {{ record.justification }}</p>
+                </div>
+
+                <div *ngIf="record.justification_data" class="mt-4 p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <div class="flex items-center gap-3 mb-3 flex-wrap">
+                    <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
+                      <div [innerHTML]="getSafeIcon('fileText')" class="w-4 h-4 text-slate-400"></div>
+                    </div>
+                    <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Justificacion formal</span>
+                    <span [class]="'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ml-auto ' + getJustificationStyles(record.justification_data.status)">
+                      {{ record.justification_data.status }}
+                    </span>
+                  </div>
+                  <p class="text-sm text-slate-800 font-bold mb-2">{{ record.justification_data.reason }}</p>
+                  <p *ngIf="record.justification_data.reviewed_at" class="text-xs text-slate-500 font-semibold">
+                    Revisada el {{ record.justification_data.reviewed_at | date:'dd/MM/yyyy HH:mm' }}
+                  </p>
+                  <div *ngIf="record.justification_data.review_notes" class="mt-3 text-xs text-blue-600 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-500 font-bold italic">
+                    REVISION: {{ record.justification_data.review_notes }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="md:text-right shrink-0 space-y-3">
+              <span [class]="'px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg inline-block text-white ' + getStatusStyles(record.status).badgeColor">
+                {{ getStatusLabel(record.status) }}
+              </span>
+
+              <button
+                *ngIf="canJustify(record)"
+                type="button"
+                (click)="openJustificationModal(record)"
+                class="block w-full md:w-auto px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors">
+                {{ getJustificationActionLabel(record) }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="isModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" (click)="closeModal()"></div>
+
+  <div class="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/60 flex items-start justify-between gap-4">
+      <div>
+        <h3 class="text-xl font-black text-slate-900">Enviar justificacion</h3>
+        <p class="text-sm text-slate-500 mt-1">Se registrara para el estudiante y el control de asistencia seleccionado.</p>
+      </div>
+      <button type="button" (click)="closeModal()" class="w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors">
+        x
+      </button>
+    </div>
+
+    <div class="p-6 space-y-5">
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Fecha</p>
+          <p class="mt-2 text-sm font-bold text-slate-900">{{ justificationDraft.date | date:'dd/MM/yyyy' }}</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Curso</p>
+          <p class="mt-2 text-sm font-bold text-slate-900">{{ justificationDraft.courseCode || 'CURSO' }}</p>
+          <p class="text-xs text-slate-500 mt-1">{{ justificationDraft.courseName }}</p>
+        </div>
+      </div>
+
+      <div *ngIf="justificationDraft.rejectedReviewNote" class="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-700 font-medium">
+        Observacion previa del revisor: {{ justificationDraft.rejectedReviewNote }}
+      </div>
+
+      <div *ngIf="modalError" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 font-medium">
+        {{ modalError }}
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Motivo detallado</label>
+        <textarea
+          [(ngModel)]="justificationDraft.reason"
+          rows="5"
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 font-medium resize-none focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500"
+          placeholder="Describe el motivo de la falta o tardanza, por ejemplo cita medica, enfermedad o una situacion familiar."></textarea>
+      </div>
+    </div>
+
+    <div class="px-6 py-5 border-t border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row gap-3">
+      <button
+        type="button"
+        (click)="closeModal()"
+        class="flex-1 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors">
+        Cancelar
+      </button>
+      <button
+        type="button"
+        (click)="submitJustification()"
+        [disabled]="isSubmittingJustification"
+        class="flex-1 px-5 py-3 rounded-2xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+        {{ isSubmittingJustification ? 'Enviando...' : 'Enviar justificacion' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,149 @@
+<section class="section-padding bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+      <!-- Background Pattern -->
+      <div class="absolute inset-0 opacity-5">
+        <div class="absolute inset-0" style="background-image: radial-gradient(circle, #2563eb 1px, transparent 1px); background-size: 30px 30px;"></div>
+      </div>
+
+      <div class="container-cermat relative z-10">
+        <!-- Section Header -->
+        <div class="text-center mb-20">
+          <span class="inline-block px-4 py-2 bg-cermat-blue-50 text-cermat-blue-600 rounded-full text-sm font-bold mb-6">
+          </span>
+          <h2 class="text-4xl md:text-6xl font-black text-gray-900 mb-6">
+            Acompañamos tu <span class="gradient-cermat-text">Crecimiento</span>
+          </h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Desde los primeros pasos hasta la preparación universitaria, te formamos con excelencia
+          </p>
+        </div>
+
+        <!-- Levels Grid -->
+        <div class="grid lg:grid-cols-3 gap-8 mb-16">
+          <div *ngFor="let level of levels(); let i = index" 
+               class="group relative"
+               [style.animation-delay.ms]="i * 100">
+            
+            <!-- Card Background Gradient -->
+            <div class="absolute inset-0 rounded-3xl transform group-hover:scale-105 transition-all duration-500"
+                 [ngClass]="{
+                   'bg-gradient-to-br from-pink-400 to-rose-500': level.id === 'inicial',
+                   'bg-gradient-to-br from-cermat-blue-500 to-cyan-500': level.id === 'primaria',
+                   'bg-gradient-to-br from-cermat-red-500 to-orange-500': level.id === 'secundaria'
+                 }"></div>
+            
+            <!-- Card Content -->
+            <div class="relative bg-white rounded-3xl p-8 m-1 shadow-xl group-hover:shadow-2xl transition-all duration-500">
+              
+              <!-- Icon & Badge -->
+              <div class="flex items-center justify-between mb-6">
+                <div class="text-7xl transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
+                  {{ level.icon }}
+                </div>
+                <div class="px-4 py-2 rounded-full text-xs font-bold"
+                     [ngClass]="{
+                       'bg-pink-50 text-pink-700': level.id === 'inicial',
+                       'bg-cermat-blue-50 text-cermat-blue-700': level.id === 'primaria',
+                       'bg-cermat-red-50 text-cermat-red-700': level.id === 'secundaria'
+                     }">
+                  {{ level.ages }}
+                </div>
+              </div>
+
+              <!-- Title -->
+              <h3 class="text-3xl font-black text-gray-900 mb-3">{{ level.name }}</h3>
+              
+              <!-- Description -->
+              <p class="text-gray-600 mb-6 leading-relaxed">{{ level.description }}</p>
+
+              <!-- Features -->
+              <div class="space-y-3 mb-8">
+                <div *ngFor="let feature of level.features.slice(0, 4)" 
+                     class="flex items-start gap-3 group/item">
+                  <div class="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                       [ngClass]="{
+                         'bg-pink-100': level.id === 'inicial',
+                         'bg-cermat-blue-100': level.id === 'primaria',
+                         'bg-cermat-red-100': level.id === 'secundaria'
+                       }">
+                    <svg class="w-4 h-4"
+                         [ngClass]="{
+                           'text-pink-600': level.id === 'inicial',
+                           'text-cermat-blue-600': level.id === 'primaria',
+                           'text-cermat-red-600': level.id === 'secundaria'
+                         }"
+                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span class="text-gray-700 font-medium group-hover/item:text-gray-900 transition-colors">{{ feature }}</span>
+                </div>
+              </div>
+
+              <!-- CTA Button -->
+              <a [routerLink]="'/niveles/' + level.id"
+                 class="group/btn flex items-center justify-between w-full px-6 py-4 rounded-2xl font-bold text-white transition-all duration-300 transform hover:scale-105"
+                 [ngClass]="{
+                   'bg-gradient-to-r from-pink-500 to-rose-600 hover:shadow-lg hover:shadow-pink-500/50': level.id === 'inicial',
+                   'bg-gradient-to-r from-cermat-blue-500 to-cyan-600 hover:shadow-lg hover:shadow-cermat-blue-500/50': level.id === 'primaria',
+                   'bg-gradient-to-r from-cermat-red-500 to-orange-600 hover:shadow-lg hover:shadow-cermat-red-500/50': level.id === 'secundaria'
+                 }">
+                <span>Conocer más</span>
+                <svg class="w-5 h-5 transform group-hover/btn:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Info Cards -->
+        <div class="grid md:grid-cols-3 gap-6 mb-12">
+          <div class="bg-gradient-to-br from-cermat-blue-50 to-cyan-50 rounded-2xl p-6 border-2 border-cermat-blue-100">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-14 h-14 bg-cermat-blue-500 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <div>
+                <div class="text-2xl font-black text-cermat-blue-900">Bilingüe</div>
+                <div class="text-sm text-cermat-blue-700">Español - Inglés</div>
+              </div>
+            </div>
+            <p class="text-cermat-blue-800 text-sm">Educación bilingüe desde nivel inicial con certificaciones internacionales</p>
+          </div>
+
+          <div class="bg-gradient-to-br from-cermat-yellow-50 to-orange-50 rounded-2xl p-6 border-2 border-cermat-yellow-100">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-14 h-14 bg-cermat-yellow-500 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <div class="text-2xl font-black text-cermat-yellow-900">Tecnología</div>
+                <div class="text-sm text-cermat-yellow-700">Última generación</div>
+              </div>
+            </div>
+            <p class="text-cermat-yellow-800 text-sm">Robótica, programación y herramientas digitales integradas al currículo</p>
+          </div>
+
+          <div class="bg-gradient-to-br from-cermat-red-50 to-pink-50 rounded-2xl p-6 border-2 border-cermat-red-100">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-14 h-14 bg-cermat-red-500 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </div>
+              <div>
+                <div class="text-2xl font-black text-cermat-red-900">Valores</div>
+                <div class="text-sm text-cermat-red-700">Formación integral</div>
+              </div>
+            </div>
+            <p class="text-cermat-red-800 text-sm">Educación en valores, liderazgo y responsabilidad social en todos los niveles</p>
+          </div>
+        </div>
+
+    
+      </div>
+    </section>

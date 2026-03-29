@@ -1,0 +1,26 @@
+<!-- Background image wrapper – matching admin/student views -->
+<div
+  class="relative min-h-[calc(100vh-80px)] bg-cover bg-center bg-no-repeat"
+  style="background-image: url('assets/images/fondo-dashboards-colegio.jpg');">
+
+  <!-- Dark overlay for contrast -->
+  <div class="absolute inset-0 bg-black/45 pointer-events-none"></div>
+
+  <!-- MAIN MODULE GRID -->
+  <div class="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] py-12">
+    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <app-module-square
+          *ngFor="let module of modules; let i = index"
+          [title]="module.title"
+          [description]="module.description"
+          [icon]="module.icon"
+          [path]="module.path"
+          [color]="module.color"
+          customClass="animate-slide-up"
+          [customStyle]="{ 'animation-delay': (i * 0.05) + 's', 'animation-fill-mode': 'forwards', 'opacity': '0' }"
+        ></app-module-square>
+      </div>
+    </div>
+  </div>
+</div>

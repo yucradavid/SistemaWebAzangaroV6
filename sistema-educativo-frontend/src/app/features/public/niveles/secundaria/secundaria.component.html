@@ -1,0 +1,128 @@
+<div class="min-h-screen bg-gray-50">
+  
+  <section class="relative bg-blue-950 text-white py-32 md:py-32 overflow-hidden">
+    <div class="absolute inset-0 opacity-20">
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-500/20 via-transparent to-transparent"></div>
+      <div class="absolute inset-0" style="background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 30px 30px;"></div>
+    </div>
+
+    <div class="absolute top-20 right-20 w-32 h-32 border border-yellow-400/30 rounded-full blur-[2px]"></div>
+    <div class="absolute bottom-20 left-20 w-24 h-24 border border-blue-400/30 rotate-45"></div>
+
+    <div class="container-custom relative z-10 px-4">
+      <div class="max-w-4xl mx-auto text-center flex flex-col items-center">
+        <div class="text-7xl mb-8 transform hover:-translate-y-2 transition-transform duration-300 cursor-default drop-shadow-2xl">
+          🎓
+        </div>
+        
+        <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight leading-tight">
+          Educación <span class="text-yellow-400">Secundaria</span>
+        </h1>
+        
+        <div class="inline-flex items-center px-6 py-2.5 bg-blue-900/50 backdrop-blur-md rounded-lg border border-blue-700 mb-8 shadow-sm">
+          <span class="text-yellow-400 font-bold tracking-widest uppercase text-sm mr-3">Nivel Avanzado</span>
+          <div class="h-4 w-px bg-blue-700 mr-3"></div>
+          <p class="text-xl font-medium text-white tracking-wide">
+            {{ levelData?.ages }}
+          </p>
+        </div>
+
+        <p class="text-lg md:text-xl text-gray-300 max-w-2xl leading-relaxed">
+          {{ levelData?.description }}
+        </p>
+      </div>
+    </div>
+    
+    <div class="absolute bottom-0 w-full h-1 bg-gradient-to-r from-blue-900 via-blue-500 to-yellow-400"></div>
+  </section>
+
+  <section class="py-20 md:py-24 bg-white">
+    <div class="container-custom px-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="bg-white p-10 md:p-14 border-t-4 border-yellow-500 shadow-2xl shadow-gray-200/50 rounded-b-3xl">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6 uppercase tracking-wide">
+            Preparación para el Futuro
+          </h2>
+          <p class="text-lg md:text-xl text-gray-700 leading-8 text-justify md:text-left">
+            {{ levelData?.longDescription }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 md:py-24 bg-gray-50">
+    <div class="container-custom px-4">
+      <div class="text-center mb-16">
+        <span class="text-blue-600 font-bold tracking-wider uppercase text-sm mb-2 block">Competencias</span>
+        <h2 class="text-3xl md:text-5xl font-bold text-gray-900">¿Qué Ofrecemos?</h2>
+        <div class="w-24 h-1.5 bg-yellow-500 mx-auto mt-6"></div>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div *ngFor="let feature of levelData?.features" class="group h-full">
+          <div class="bg-white p-8 h-full shadow-md hover:shadow-2xl transition-all duration-300 border-l-4 border-blue-900 hover:border-yellow-400 flex flex-col justify-center group-hover:-translate-y-1">
+            <div class="flex items-start gap-5">
+              <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors duration-300">
+                <svg class="w-6 h-6 text-blue-900 group-hover:text-yellow-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span class="text-gray-800 font-bold text-lg pt-2 group-hover:text-blue-900 transition-colors">
+                {{ feature }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 md:py-24 bg-white relative">
+    <div class="container-custom px-4">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-5xl font-bold text-gray-900 mb-4">Proyectos y Talleres</h2>
+        <p class="text-xl text-gray-500 max-w-2xl mx-auto">Desarrollo de habilidades científicas, artísticas y de liderazgo.</p>
+      </div>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+        <div *ngFor="let workshop of levelData?.workshops; let i = index" 
+             class="group relative bg-gray-50 rounded-lg p-6 text-center transition-all duration-300 hover:bg-white hover:shadow-xl border border-gray-100 overflow-hidden">
+             
+             <div class="absolute top-0 right-0 w-12 h-12 -mr-6 -mt-6 rotate-45 transition-colors duration-300"
+                [ngClass]="{
+                  'bg-blue-600': i % 3 === 0,
+                  'bg-yellow-400': i % 3 === 1,
+                  'bg-red-600': i % 3 === 2
+                }"></div>
+
+          <h3 class="font-bold text-gray-800 text-lg relative z-10 group-hover:text-blue-900 transition-colors">
+            {{ workshop }}
+          </h3>
+          
+          <div class="absolute bottom-0 left-0 w-0 h-1 bg-blue-900 group-hover:w-full transition-all duration-500"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-24 bg-blue-950 relative overflow-hidden">
+    <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+    
+    <div class="container-custom text-center relative z-10">
+      <h2 class="text-3xl md:text-5xl font-bold mb-8 text-white tracking-tight">
+        Formando los líderes del mañana
+      </h2>
+      <p class="text-gray-300 text-lg md:text-xl mb-10 max-w-2xl mx-auto">
+        El futuro de tu hijo comienza con la mejor preparación hoy.
+      </p>
+      
+      <a routerLink="/admision" class="inline-flex items-center gap-3 px-10 py-5 bg-red-600 text-white text-lg rounded-lg font-bold hover:bg-red-700 hover:shadow-2xl hover:shadow-red-900/40 transform hover:-translate-y-1 transition-all duration-300 uppercase tracking-wide">
+        <span>Postular ahora</span>
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+        </svg>
+      </a>
+    </div>
+  </section>
+</div>

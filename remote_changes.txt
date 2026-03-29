@@ -1,0 +1,6 @@
+﻿M	bakendcermat/app/Http/Controllers/Api/CompetencyController.php
+M	bakendcermat/app/Http/Requests/StoreCompetencyRequest.php
+M	bakendcermat/app/Http/Requests/UpdateCompetencyRequest.php
+M	bakendcermat/app/Models/Competency.php
+M	sistema-educativo-frontend/src/app/core/services/academic.service.ts
+M	sistema-educativo-frontend/src/app/features/admin/settings/competencies.component.ts

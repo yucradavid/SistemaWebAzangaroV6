@@ -1,0 +1,122 @@
+<section class="relative py-20 bg-white overflow-hidden">
+      <!-- Background Pattern -->
+      <div class="absolute inset-0 opacity-5">
+        <div class="absolute inset-0" style="background-image: radial-gradient(circle, #2563eb 1px, transparent 1px); background-size: 40px 40px;"></div>
+      </div>
+
+      <!-- Decorative Shapes -->
+      <div class="absolute top-10 left-10 w-32 h-32 bg-cermat-blue-400/10 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-10 right-10 w-40 h-40 bg-cermat-yellow-400/10 rounded-full blur-3xl"></div>
+
+      <div class="container-cermat relative z-10">
+        <!-- Section Title -->
+        <div class="text-center mb-16">
+          <h2 class="text-4xl md:text-5xl font-black text-gray-900 mb-4">
+            Más de 25 Años de 
+            <span class="gradient-cermat-text">Excelencia</span>
+          </h2>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <!-- Stat 1 -->
+          <div class="group relative">
+            <div class="absolute inset-0 bg-gradient-to-br from-cermat-blue-500 to-cermat-blue-700 rounded-3xl transform group-hover:scale-105 transition-transform duration-300"></div>
+            <div class="relative bg-white rounded-3xl p-8 m-1 shadow-lg group-hover:shadow-2xl transition-shadow">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-cermat-blue-400 to-cermat-blue-600 rounded-2xl flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <div class="text-cermat-blue-600">
+                  <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+              <div class="text-5xl font-black text-gray-900 mb-2">{{ schoolInfo().students }}+</div>
+              <div class="text-gray-600 font-semibold">Estudiantes Matriculados</div>
+              <div class="mt-4 pt-4 border-t border-gray-100 text-sm text-cermat-blue-600 font-medium">
+                +12% este año
+              </div>
+            </div>
+          </div>
+
+          <!-- Stat 2 -->
+          <div class="group relative">
+            <div class="absolute inset-0 bg-gradient-to-br from-cermat-yellow-400 to-cermat-yellow-600 rounded-3xl transform group-hover:scale-105 transition-transform duration-300"></div>
+            <div class="relative bg-white rounded-3xl p-8 m-1 shadow-lg group-hover:shadow-2xl transition-shadow">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-cermat-yellow-400 to-cermat-yellow-600 rounded-2xl flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path d="M12 14l9-5-9-5-9 5 9 5z" />
+                    <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                  </svg>
+                </div>
+                <div class="text-cermat-yellow-600">
+                  <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+              <div class="text-5xl font-black text-gray-900 mb-2">{{ schoolInfo().teachers }}+</div>
+              <div class="text-gray-600 font-semibold">Docentes Especializados</div>
+              <div class="mt-4 pt-4 border-t border-gray-100 text-sm text-cermat-yellow-700 font-medium">
+                100% Certificados
+              </div>
+            </div>
+          </div>
+
+          <!-- Stat 3 -->
+          <div class="group relative">
+            <div class="absolute inset-0 bg-gradient-to-br from-cermat-red-500 to-cermat-red-700 rounded-3xl transform group-hover:scale-105 transition-transform duration-300"></div>
+            <div class="relative bg-white rounded-3xl p-8 m-1 shadow-lg group-hover:shadow-2xl transition-shadow">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-cermat-red-500 to-cermat-red-700 rounded-2xl flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                </div>
+                <div class="text-cermat-red-600">
+                  <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                  </svg>
+                </div>
+              </div>
+              <div class="text-5xl font-black text-gray-900 mb-2">{{ yearsOfExperience() }}</div>
+              <div class="text-gray-600 font-semibold">Años de Trayectoria</div>
+              <div class="mt-4 pt-4 border-t border-gray-100 text-sm text-cermat-red-600 font-medium">
+                Desde 1999
+              </div>
+            </div>
+          </div>
+
+          <!-- Stat 4 -->
+          <div class="group relative">
+            <div class="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-700 rounded-3xl transform group-hover:scale-105 transition-transform duration-300"></div>
+            <div class="relative bg-white rounded-3xl p-8 m-1 shadow-lg group-hover:shadow-2xl transition-shadow">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-700 rounded-2xl flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div class="text-green-600">
+                  <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+              <div class="text-5xl font-black text-gray-900 mb-2">{{ schoolInfo().satisfaction }}%</div>
+              <div class="text-gray-600 font-semibold">Satisfacción Familiar</div>
+              <div class="mt-4 pt-4 border-t border-gray-100 text-sm text-green-600 font-medium">
+                Encuesta 2025
+              </div>
+            </div>
+          </div>
+        </div>
+
+    
+      </div>
+    </section>

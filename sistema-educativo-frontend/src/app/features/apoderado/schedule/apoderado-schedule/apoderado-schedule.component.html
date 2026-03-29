@@ -1,0 +1,128 @@
+<div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+  <div class="relative overflow-hidden rounded-[2rem] border border-slate-200/70 bg-[radial-gradient(circle_at_top_left,_rgba(30,64,175,0.14),_transparent_35%),linear-gradient(135deg,#ffffff_0%,#f8fafc_48%,#eff6ff_100%)] p-6 sm:p-8 shadow-sm">
+    <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-cermat-blue-500/10 blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="text-[11px] font-black uppercase tracking-[0.35em] text-cermat-blue-700">Portal Familiar</p>
+        <h1 class="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Horario Academico</h1>
+        <p class="text-slate-500 mt-2 font-medium">Cronograma oficial de clases y actividades del estudiante conectado al backend.</p>
+      </div>
+
+      <button (click)="printSchedule()" class="inline-flex items-center gap-2 px-6 py-2.5 bg-cermat-blue-800 hover:bg-cermat-blue-900 text-white rounded-xl transition-all duration-300 shadow-lg shadow-cermat-blue-500/30 hover:-translate-y-0.5 font-bold">
+        <i data-lucide="printer" class="w-5 h-5"></i>
+        Imprimir Horario
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-4">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
+      <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Estudiante</p>
+      <div class="mt-3 space-y-3">
+        <select
+          class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 focus:outline-none focus:border-cermat-blue-500"
+          [value]="selectedStudentId"
+          (change)="onStudentChange(($any($event.target)).value)">
+          <option *ngFor="let student of students" [value]="student.id">
+            {{ student.full_name }}
+          </option>
+        </select>
+
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p class="text-lg font-bold text-slate-900">{{ selectedStudentName }}</p>
+          <p class="text-sm text-slate-500 mt-1">{{ selectedStudentSectionLabel || 'Seccion no disponible' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
+        <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Bloques</p>
+        <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ totalBlocks }}</p>
+        <p class="text-sm text-slate-500 mt-2">Sesiones registradas</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
+        <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Horas</p>
+        <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ totalHoursLabel }}</p>
+        <p class="text-sm text-slate-500 mt-2">Carga semanal</p>
+      </div>
+
+      <div class="col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
+        <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Contexto</p>
+        <p class="mt-3 text-base font-bold text-slate-900">{{ activeAcademicYearLabel }}</p>
+        <p class="text-sm text-slate-500 mt-1">La vista se arma desde el contexto academico del apoderado y la seccion del estudiante.</p>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loadingContext || loading" class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-10 text-center">
+    <div class="mx-auto w-10 h-10 border-4 border-cermat-blue-600 border-t-transparent rounded-full animate-spin"></div>
+    <p class="mt-4 text-sm font-semibold text-slate-500">Cargando horario desde el backend...</p>
+  </div>
+
+  <div *ngIf="!loadingContext && errorMessage" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!loadingContext && !loading && !errorMessage && rows.length === 0" class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-10 text-center">
+    <p class="text-lg font-bold text-slate-900">No hay bloques registrados</p>
+    <p class="text-sm text-slate-500 mt-2">Todavia no se ha publicado un horario para la seccion del estudiante seleccionado.</p>
+  </div>
+
+  <div *ngIf="!loadingContext && !loading && !errorMessage && rows.length > 0" class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4 sm:p-6 overflow-hidden">
+    <div class="overflow-x-auto w-full pb-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+      <table class="w-full text-center border-collapse whitespace-nowrap min-w-[980px]">
+        <thead>
+          <tr>
+            <th class="border-b-2 border-r-2 border-slate-200 py-4 px-4 bg-slate-100 text-slate-700 font-bold uppercase tracking-widest text-xs w-36 rounded-tl-xl">
+              <div class="flex items-center justify-center gap-2">
+                <i data-lucide="clock" class="w-4 h-4"></i>
+                Hora
+              </div>
+            </th>
+            <th *ngFor="let day of days; let last = last" class="border-b-2 border-slate-200 py-4 px-4 bg-slate-50 text-slate-700 font-bold uppercase tracking-widest text-xs" [ngClass]="{'border-r-2': !last, 'rounded-tr-xl': last}">
+              <div class="flex flex-col gap-1 items-center">
+                <span>{{ day.name }}</span>
+                <div class="w-4 h-1 bg-cermat-blue-500 rounded-full mt-1"></div>
+              </div>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-slate-200 border-x border-b border-slate-200 rounded-b-xl">
+          <tr *ngFor="let row of rows" class="hover:bg-slate-50/50 transition-colors group">
+            <td class="border-r-2 border-slate-200 py-5 px-4 font-bold text-slate-500 bg-slate-50 group-hover:bg-slate-100/70 transition-colors">
+              {{ row.timeLabel }}
+            </td>
+
+            <td *ngFor="let day of days; let last = last" class="p-2 align-top h-full" [ngClass]="{'border-r border-slate-200': !last}">
+              <ng-container *ngIf="row.slots[day.id] as block; else emptyCell">
+                <div class="h-full min-h-[118px] flex flex-col justify-between p-3 rounded-2xl border border-cermat-blue-200 bg-cermat-blue-50 text-left shadow-sm transition-all duration-300 group-hover:-translate-y-0.5">
+                  <div>
+                    <p class="text-sm font-black text-cermat-blue-900 leading-tight">{{ block.course?.name || 'Curso' }}</p>
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-cermat-blue-700 mt-1">
+                      {{ formatTime(block.start_time) }} - {{ formatTime(block.end_time) }}
+                    </p>
+                  </div>
+
+                  <div class="mt-3 space-y-1">
+                    <p class="text-xs font-semibold text-slate-600">{{ getTeacherName(block) }}</p>
+                    <p *ngIf="block.room_number" class="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                      Aula {{ block.room_number }}
+                    </p>
+                  </div>
+                </div>
+              </ng-container>
+
+              <ng-template #emptyCell>
+                <div class="h-full min-h-[118px] rounded-2xl border border-dashed border-slate-200 bg-slate-50/60"></div>
+              </ng-template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

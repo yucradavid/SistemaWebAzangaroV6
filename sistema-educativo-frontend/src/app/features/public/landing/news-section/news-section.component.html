@@ -1,0 +1,111 @@
+ <section class="section-padding bg-white relative overflow-hidden">
+      <!-- Decorative Background -->
+      <div class="absolute top-0 right-0 w-96 h-96 bg-cermat-blue-400/5 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-0 left-0 w-96 h-96 bg-cermat-yellow-400/5 rounded-full blur-3xl"></div>
+
+      <div class="container-cermat relative z-10">
+        <!-- Section Header -->
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between mb-16">
+          <div>
+            <span class="inline-block px-4 py-2 bg-cermat-blue-50 text-cermat-blue-600 rounded-full text-sm font-bold mb-4">
+              📰 Actualidad
+            </span>
+            <h2 class="text-4xl md:text-5xl font-black text-gray-900 mb-4">
+              Noticias y <span class="gradient-cermat-text">Eventos</span>
+            </h2>
+            <p class="text-xl text-gray-600">Lo más destacado de nuestra comunidad educativa</p>
+          </div>
+          <a routerLink="/noticias" class="hidden md:inline-flex items-center gap-2 text-cermat-blue-600 font-bold hover:gap-4 transition-all group">
+            <span>Ver todas</span>
+            <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </a>
+        </div>
+
+        <!-- News Grid -->
+        <div class="grid lg:grid-cols-3 gap-8 mb-12">
+          <article *ngFor="let item of featuredNews(); let i = index"
+                   class="group relative bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
+                   [style.animation-delay.ms]="i * 100">
+            
+            <!-- Image Container -->
+            <div class="relative h-64 overflow-hidden">
+              <img [src]="item.image" [alt]="item.title" 
+                   class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"/>
+              
+              <!-- Gradient Overlay -->
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
+              
+              <!-- Category Badge -->
+              <div class="absolute top-4 left-4">
+                <span class="px-4 py-2 bg-white/95 backdrop-blur-sm text-cermat-blue-900 text-xs font-bold rounded-full shadow-lg">
+                  {{ item.category }}
+                </span>
+              </div>
+
+              <!-- Featured Badge -->
+              <div *ngIf="item.featured" class="absolute top-4 right-4">
+                <div class="w-10 h-10 bg-cermat-yellow-400 rounded-full flex items-center justify-center shadow-lg">
+                  <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Date on Image -->
+              <div class="absolute bottom-4 left-4 flex items-center gap-2 text-white">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span class="text-sm font-semibold">{{ formatDate(item.date) }}</span>
+              </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-8">
+              <!-- Title -->
+              <h3 class="text-2xl font-bold text-gray-900 mb-4 leading-tight group-hover:text-cermat-blue-600 transition-colors line-clamp-2">
+                {{ item.title }}
+              </h3>
+
+              <!-- Excerpt -->
+              <p class="text-gray-600 mb-6 leading-relaxed line-clamp-2">
+                {{ item.excerpt }}
+              </p>
+
+              <!-- Footer -->
+              <div class="flex items-center justify-between pt-6 border-t border-gray-100">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-gradient-to-br from-cermat-blue-500 to-cermat-blue-700 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                    {{ item.author.charAt(0) }}
+                  </div>
+                  <div>
+                    <div class="text-sm font-semibold text-gray-900">{{ item.author }}</div>
+                    <div class="text-xs text-gray-500">Autor</div>
+                  </div>
+                </div>
+                
+                <a [routerLink]="['/noticias', item.id]" 
+                   class="flex items-center gap-2 text-cermat-blue-600 font-bold hover:gap-3 transition-all group/link">
+                  <span class="text-sm">Leer más</span>
+                  <svg class="w-4 h-4 transform group-hover/link:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <!-- Mobile View All Button -->
+        <div class="text-center md:hidden">
+          <a routerLink="/noticias" class="inline-flex items-center gap-2 px-8 py-4 bg-cermat-blue-600 text-white rounded-2xl font-bold hover:bg-cermat-blue-700 transition-colors">
+            <span>Ver todas las noticias</span>
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>

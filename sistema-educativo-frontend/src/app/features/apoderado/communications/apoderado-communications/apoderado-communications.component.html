@@ -1,0 +1,176 @@
+<div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-cermat-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10">
+      <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Comunicados Oficiales</h1>
+      <p class="text-slate-500 mt-1 font-medium">Consulta anuncios institucionales publicados para tu familia y las secciones de tus hijos.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+      <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Publicados</p>
+      <p class="mt-2 text-2xl font-extrabold text-slate-900">{{ filteredCommunications.length }}</p>
+    </div>
+    <div class="rounded-2xl border border-cermat-blue-100 bg-cermat-blue-50/70 px-5 py-4 shadow-sm">
+      <p class="text-[11px] font-bold uppercase tracking-widest text-cermat-blue-600">Recientes</p>
+      <p class="mt-2 text-2xl font-extrabold text-cermat-blue-900">{{ newCount }}</p>
+    </div>
+    <div class="rounded-2xl border border-amber-100 bg-amber-50/70 px-5 py-4 shadow-sm">
+      <p class="text-[11px] font-bold uppercase tracking-widest text-amber-600">Por seccion</p>
+      <p class="mt-2 text-2xl font-extrabold text-amber-900">{{ sectionCount }}</p>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-700">
+    {{ error }}
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+    <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/70 grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Buscar</label>
+        <input
+          [(ngModel)]="searchTerm"
+          type="text"
+          placeholder="Titulo, contenido o remitente..."
+          class="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 focus:ring-4 focus:ring-cermat-blue-500/20 focus:border-cermat-blue-500 outline-none">
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Hijo</label>
+        <select
+          [(ngModel)]="selectedStudentId"
+          class="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 focus:ring-4 focus:ring-cermat-blue-500/20 focus:border-cermat-blue-500 outline-none">
+          <option value="">Todos mis hijos</option>
+          <option *ngFor="let student of students" [value]="student.id">{{ student.full_name }}</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Audiencia</label>
+        <select
+          [(ngModel)]="selectedAudience"
+          class="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 focus:ring-4 focus:ring-cermat-blue-500/20 focus:border-cermat-blue-500 outline-none">
+          <option *ngFor="let option of audienceOptions" [value]="option.value">{{ option.label }}</option>
+        </select>
+      </div>
+
+      <div class="lg:col-span-3 flex flex-wrap items-center gap-3">
+        <button
+          (click)="resetFilters()"
+          class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-wider hover:border-slate-300 hover:text-slate-900 transition-colors">
+          Limpiar filtros
+        </button>
+        <span class="text-xs font-medium text-slate-400">
+          {{ students.length ? (selectedStudent?.full_name || 'Mostrando informacion familiar') : 'Sin estudiantes vinculados en contexto' }}
+        </span>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="p-10 text-center text-slate-400 font-medium">
+      Cargando comunicados...
+    </div>
+
+    <div *ngIf="!loading && !filteredCommunications.length" class="p-12 text-center">
+      <div class="w-20 h-20 bg-slate-50 rounded-full mx-auto mb-5 flex items-center justify-center border border-slate-100">
+        <i data-lucide="inbox" class="w-10 h-10 text-slate-300"></i>
+      </div>
+      <h3 class="text-xl font-extrabold text-slate-900 mb-2">Sin comunicados disponibles</h3>
+      <p class="text-slate-500 font-medium max-w-md mx-auto">No se encontraron comunicados publicados con los filtros actuales para tu familia.</p>
+    </div>
+
+    <div *ngIf="!loading && filteredCommunications.length" class="p-4 sm:p-6 space-y-4">
+      <div
+        *ngFor="let communication of filteredCommunications; trackBy: trackByAnnouncement"
+        (click)="openAnnouncement(communication)"
+        class="p-5 rounded-xl border border-slate-200 hover:border-cermat-blue-400 hover:shadow-lg hover:shadow-cermat-blue-500/10 transition-all duration-300 flex items-center justify-between group cursor-pointer"
+        [ngClass]="isNew(communication) ? 'bg-cermat-blue-50/40 relative overflow-hidden' : 'bg-white'">
+        <div *ngIf="isNew(communication)" class="absolute left-0 top-0 bottom-0 w-1.5 bg-cermat-blue-500"></div>
+
+        <div class="flex items-start gap-4" [ngClass]="{'pl-2': isNew(communication)}">
+          <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-cermat-blue-100 group-hover:text-cermat-blue-600 transition-colors shrink-0">
+            <i data-lucide="bell" class="w-6 h-6"></i>
+          </div>
+
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-3 mb-1">
+              <h3 class="font-extrabold text-lg text-slate-900 group-hover:text-cermat-blue-700 transition-colors">
+                {{ communication.title }}
+              </h3>
+              <span *ngIf="isNew(communication)" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-cermat-blue-600 text-white uppercase tracking-wider">Nuevo</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 uppercase tracking-wider">
+                {{ getAudienceLabel(communication) }}
+              </span>
+            </div>
+            <p class="text-sm text-slate-600 whitespace-pre-line line-clamp-2">{{ communication.content }}</p>
+            <p class="text-sm font-medium text-slate-500 flex flex-wrap items-center gap-2 mt-3">
+              <i data-lucide="user" class="w-4 h-4 text-slate-400"></i> {{ getCreatorLabel(communication) }}
+              <span class="text-slate-300">•</span>
+              <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> {{ getDateLabel(communication) }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0">
+          <button class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-50 border border-slate-100 text-slate-400 group-hover:bg-cermat-blue-50 group-hover:text-cermat-blue-600 group-hover:border-cermat-blue-200 transition-all duration-300 hover:scale-110">
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="selectedAnnouncement" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" (click)="closeAnnouncement()"></div>
+  <div class="relative w-full max-w-3xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-slide-up">
+    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50 flex items-start justify-between gap-4">
+      <div>
+        <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Comunicado publicado</p>
+        <h3 class="mt-2 text-2xl font-bold text-slate-900">{{ selectedAnnouncement.title }}</h3>
+        <p class="mt-2 text-sm font-medium text-slate-500">{{ getAudienceLabel(selectedAnnouncement) }}</p>
+      </div>
+      <button (click)="closeAnnouncement()" class="rounded-full border border-slate-200 p-2 text-slate-400 hover:text-slate-700 hover:border-slate-300 transition-colors">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <div class="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Remitente</p>
+          <p class="mt-2 text-sm font-semibold text-slate-900">{{ getCreatorLabel(selectedAnnouncement) }}</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Publicado</p>
+          <p class="mt-2 text-sm font-semibold text-slate-900">{{ getDateLabel(selectedAnnouncement) }}</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Aplica para</p>
+          <p class="mt-2 text-sm font-semibold text-slate-900">{{ getMatchedStudentsLabel(selectedAnnouncement) }}</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Caducidad</p>
+          <p class="mt-2 text-sm font-semibold text-slate-900">
+            {{ selectedAnnouncement.expires_at ? (selectedAnnouncement.expires_at | date:'dd/MM/yyyy HH:mm') : 'Sin vencimiento' }}
+          </p>
+        </div>
+      </div>
+
+      <div class="rounded-3xl border border-slate-200 bg-white p-5">
+        <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Contenido</p>
+        <div class="mt-4 whitespace-pre-line text-sm leading-7 text-slate-700">{{ selectedAnnouncement.content }}</div>
+      </div>
+
+      <div *ngIf="selectedAnnouncement.attachment_url" class="rounded-2xl border border-cermat-blue-100 bg-cermat-blue-50/60 px-4 py-4">
+        <p class="text-[11px] font-bold uppercase tracking-widest text-cermat-blue-600">Adjunto</p>
+        <a [href]="selectedAnnouncement.attachment_url" target="_blank" rel="noopener noreferrer" class="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-cermat-blue-700 hover:text-cermat-blue-900 break-all">
+          <i data-lucide="paperclip" class="w-4 h-4"></i>
+          {{ selectedAnnouncement.attachment_url }}
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

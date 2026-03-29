@@ -1,0 +1,77 @@
+<div class="min-h-screen bg-gray-50">
+  <section class="relative bg-gradient-to-r from-blue-900 to-blue-700 text-white py-32 overflow-hidden">
+    <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+    <div class="absolute bottom-0 left-0 w-32 h-32 bg-yellow-400/10 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+    
+    <div class="container-custom relative z-10 text-center px-4">
+      <span class="inline-block py-1 px-3 rounded-full bg-blue-800 border border-blue-600 text-sm font-semibold mb-4 text-blue-100">
+        Gestión 2024
+      </span>
+      <h1 class="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
+        Transparencia <span class="text-yellow-400">Institucional</span>
+      </h1>
+      <p class="text-xl text-blue-100 max-w-2xl mx-auto">
+        Acceso público a los documentos, normativas y resoluciones oficiales de nuestra institución educativa.
+      </p>
+    </div>
+    <div class="absolute bottom-0 w-full h-2 bg-gradient-to-r from-red-600 via-yellow-400 to-blue-600"></div>
+  </section>
+
+  <section class="py-20 -mt-10">
+    <div class="container-custom px-4">
+      <div class="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+        
+        <div *ngFor="let doc of documents()" class="group bg-white rounded-2xl p-8 shadow-md hover:shadow-xl transition-all duration-300 border-t-4 border-yellow-400 relative overflow-hidden">
+          
+          <div class="flex items-start gap-5 relative z-10">
+            <div class="w-16 h-16 bg-yellow-50 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-100 transition-colors border border-yellow-100">
+              <svg class="w-8 h-8 text-blue-800 group-hover:scale-110 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+
+            <div class="flex-1">
+              <h3 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-800 transition-colors">
+                {{ doc.title }}
+              </h3>
+              <p class="text-gray-600 text-sm mb-4 line-clamp-2">
+                {{ doc.description }}
+              </p>
+              
+              <div class="flex flex-wrap items-center gap-4 text-xs font-medium text-gray-500 mb-5">
+                <span class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  {{ formatDate(doc.date) }}
+                </span>
+                <span class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                  {{ doc.fileSize }}
+                </span>
+              </div>
+
+              <a [href]="doc.fileUrl" target="_blank" class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 hover:shadow-lg transition-all text-sm group-hover:translate-x-1">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Descargar PDF
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 bg-white border-t border-gray-100">
+    <div class="container-custom max-w-4xl text-center px-4">
+      <div class="inline-flex p-3 bg-blue-50 text-blue-600 rounded-full mb-4">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+      </div>
+      <h2 class="text-3xl font-bold text-gray-900 mb-4">¿Necesitas más información?</h2>
+      <p class="text-lg text-gray-600 mb-8">Si requieres documentación adicional o tienes dudas específicas, comunícate con secretaría.</p>
+      
+      <a href="mailto:informes@cermatschool.edu.pe" class="inline-flex items-center gap-2 px-8 py-3 bg-blue-800 text-white rounded-xl font-bold hover:bg-blue-900 transition-colors shadow-lg shadow-blue-900/20">
+        Contactar Secretaría
+      </a>
+    </div>
+  </section>
+</div>  

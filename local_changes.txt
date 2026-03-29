@@ -1,0 +1,17 @@
+﻿ M sistema-educativo-frontend/src/app/core/services/academic.service.ts
+ M sistema-educativo-frontend/src/app/core/services/user.service.ts
+ M sistema-educativo-frontend/src/app/features/admin/settings/academic-years.component.ts
+ M sistema-educativo-frontend/src/app/features/admin/settings/admin-users.component.ts
+ M sistema-educativo-frontend/src/app/features/admin/settings/competencies.component.ts
+ M sistema-educativo-frontend/src/app/features/admin/settings/courses.component.ts
+ M sistema-educativo-frontend/src/app/features/admin/settings/enrollment-config.component.ts
+ M sistema-educativo-frontend/src/app/features/admin/settings/grades-levels.component.ts
+ M sistema-educativo-frontend/src/app/features/admin/settings/periods.component.ts
+ M sistema-educativo-frontend/src/app/features/admin/settings/sections.component.ts
+ M sistema-educativo-frontend/src/app/features/admin/settings/students.component.ts
+ M sistema-educativo-frontend/src/app/features/admin/settings/teacher-assignments.component.ts
+?? bakendcermat/delete_seed.php
+?? bakendcermat/seed_periods.php
+?? local_changes.txt
+?? sistema-educativo-frontend/src/app/shared/components/setting-filter-dropdown/
+?? sistema-educativo-frontend/src/app/shared/components/setting-metric-card/

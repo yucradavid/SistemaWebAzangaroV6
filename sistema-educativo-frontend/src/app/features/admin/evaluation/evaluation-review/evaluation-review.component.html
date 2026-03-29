@@ -1,0 +1,276 @@
+<div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 text-slate-700">
+  <app-back-button></app-back-button>
+
+  <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+    <div class="space-y-2">
+      <h1 class="text-3xl font-semibold text-slate-900 tracking-tight">Gestion de Evaluaciones</h1>
+      <p class="text-slate-500 text-sm font-medium">
+        Supervisa cierre de periodo, publicacion de notas y efecto anual de la nueva logica.
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="px-4 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ano activo</p>
+        <p class="text-sm font-bold text-slate-900 mt-1">{{ activeAcademicYearLabel || 'Sin definir' }}</p>
+      </div>
+      <button
+        (click)="closePeriod()"
+        [disabled]="!readyToClose || closing"
+        class="px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
+        [class]="readyToClose && !closing ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-slate-100 text-slate-400 cursor-not-allowed'"
+      >
+        <div *ngIf="closing" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        <svg *ngIf="!closing" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        Cerrar periodo
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 text-sm font-medium">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="successMessage" class="bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-4 text-sm font-medium">
+    {{ successMessage }}
+  </div>
+
+  <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-6">
+    <div class="flex flex-col lg:flex-row gap-6 lg:items-end">
+      <div class="flex-1 space-y-2">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Periodo academico</label>
+        <select
+          [(ngModel)]="selectedPeriodId"
+          (change)="onPeriodChange()"
+          class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
+        >
+          <option value="">Seleccionar periodo</option>
+          <option *ngFor="let period of periods" [value]="period.id">
+            {{ period.name }} ({{ period.start_date | date:'dd/MM/yyyy' }} - {{ period.end_date | date:'dd/MM/yyyy' }})
+          </option>
+        </select>
+      </div>
+
+      <div class="lg:w-[340px] rounded-2xl border p-4"
+           [class]="selectedPeriod?.is_closed ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'">
+        <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">Estado del periodo</p>
+        <p class="text-lg font-black mt-2">
+          {{ selectedPeriod?.is_closed ? 'Cerrado' : 'Abierto' }}
+        </p>
+        <p class="text-sm mt-1 opacity-80">{{ currentPeriodLabel }}</p>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="flex justify-center py-10">
+      <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <div *ngIf="!loading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div *ngFor="let kpi of kpis" class="rounded-2xl border border-slate-100 p-5 shadow-sm bg-white">
+        <div class="flex items-start justify-between gap-4">
+          <div class="w-11 h-11 rounded-xl flex items-center justify-center border border-slate-100" [class]="getKpiToneClasses(kpi.tone)">
+            <svg class="w-5 h-5" [innerHTML]="kpi.icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+          </div>
+          <div class="text-right">
+            <p class="text-3xl font-black text-slate-900">{{ kpi.value }}{{ kpi.suffix || '' }}</p>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{{ kpi.label }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="selectedPeriod && !selectedPeriod.is_closed && pendingEvaluations > 0" class="bg-red-50 border border-red-200 rounded-3xl p-6 flex items-start gap-4">
+    <div class="p-3 rounded-full bg-white text-red-600 shadow-sm shrink-0">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <div class="space-y-1">
+      <h4 class="text-red-900 font-bold text-lg">No se puede cerrar el periodo</h4>
+      <p class="text-red-700 text-sm">
+        Aun hay {{ pendingEvaluations }} evaluacion(es) en borrador. Deben publicarse o cerrarse antes de finalizar el periodo.
+      </p>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && selectedPeriodId" class="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.4fr)_420px] gap-6">
+    <div class="space-y-6">
+      <div class="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-50 flex items-center justify-between gap-4">
+          <div>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Avance por curso</p>
+            <h2 class="text-xl font-bold text-slate-900 mt-2">Cursos del periodo</h2>
+          </div>
+          <span class="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold uppercase tracking-widest text-slate-600">
+            {{ courseSummaries.length }} curso(s)
+          </span>
+        </div>
+
+        <div *ngIf="courseSummaries.length === 0" class="p-8 text-center text-slate-500">
+          No hay evaluaciones registradas para este periodo.
+        </div>
+
+        <div *ngIf="courseSummaries.length > 0" class="divide-y divide-slate-50">
+          <div *ngFor="let course of courseSummaries" class="p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div class="space-y-2">
+              <h3 class="text-lg font-bold text-slate-900">{{ course.courseName }}</h3>
+              <div class="flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
+                <span class="px-3 py-1 rounded-full bg-slate-50 border border-slate-200">Total: {{ course.total }}</span>
+                <span class="px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">Publicadas: {{ course.published }}</span>
+                <span class="px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Cerradas: {{ course.closed }}</span>
+                <span class="px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200">Borradores: {{ course.drafts }}</span>
+              </div>
+            </div>
+
+            <div class="lg:w-64">
+              <div class="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
+                <span>Avance</span>
+                <span>{{ course.progress }}%</span>
+              </div>
+              <div class="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
+                <div class="h-full rounded-full transition-all" [style.width.%]="course.progress"
+                     [class]="course.progress === 100 ? 'bg-green-500' : course.progress >= 70 ? 'bg-blue-500' : 'bg-yellow-500'"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-50">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Seguimiento critico</p>
+          <h2 class="text-xl font-bold text-slate-900 mt-2">Estudiantes en riesgo</h2>
+        </div>
+
+        <div *ngIf="riskStudents.length === 0" class="p-8 text-center text-slate-500">
+          No hay estudiantes en recuperacion o permanencia para el ano activo.
+        </div>
+
+        <div *ngIf="riskStudents.length > 0" class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="text-[10px] font-bold uppercase tracking-widest text-slate-400 border-b border-slate-50">
+                <th class="px-6 py-4 text-left">Estudiante</th>
+                <th class="px-6 py-4 text-left">Grado</th>
+                <th class="px-6 py-4 text-center">Estado</th>
+                <th class="px-6 py-4 text-center">Pendientes</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              <tr *ngFor="let student of riskStudents | slice:0:12">
+                <td class="px-6 py-4">
+                  <div class="flex flex-col">
+                    <span class="text-sm font-bold text-slate-800">{{ student.name }}</span>
+                    <span class="text-[10px] font-mono uppercase text-slate-400">{{ student.code }}</span>
+                    <span *ngIf="student.decisionReason" class="text-xs text-slate-500 mt-1">{{ student.decisionReason }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 text-sm text-slate-600">{{ student.gradeLevel }}</td>
+                <td class="px-6 py-4 text-center">
+                  <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border" [class]="getStatusBadgeClass(student.finalStatus)">
+                    {{ student.finalStatus }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                  <div class="flex flex-col items-center gap-1">
+                    <span class="text-sm font-black text-slate-900">{{ student.pendingCompetencies }}</span>
+                    <span *ngIf="student.recoveryRequired" class="text-[10px] font-bold uppercase tracking-widest text-yellow-700">
+                      Recuperacion requerida
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-5">
+        <div>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Impacto anual</p>
+          <h2 class="text-xl font-bold text-slate-900 mt-2">Estado final de estudiantes</h2>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-2xl border border-green-200 bg-green-50 p-4">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-green-700">Promocionan</p>
+            <p class="text-2xl font-black text-green-700 mt-2">{{ statusBreakdown.promociona }}</p>
+          </div>
+          <div class="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-yellow-700">Recuperacion</p>
+            <p class="text-2xl font-black text-yellow-700 mt-2">{{ statusBreakdown.recuperacion }}</p>
+          </div>
+          <div class="rounded-2xl border border-red-200 bg-red-50 p-4">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-red-700">Permanecen</p>
+            <p class="text-2xl font-black text-red-700 mt-2">{{ statusBreakdown.permanece }}</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-600">Pendientes</p>
+            <p class="text-2xl font-black text-slate-700 mt-2">{{ statusBreakdown.pendiente }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-5">
+        <div>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Control pedagógico</p>
+          <h2 class="text-xl font-bold text-slate-900 mt-2">Alertas del cierre</h2>
+        </div>
+
+        <div class="space-y-3">
+          <div class="rounded-2xl border border-slate-100 p-4 flex items-center justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Evaluaciones pendientes</p>
+              <p class="text-sm text-slate-500 mt-1">Deben publicarse antes del cierre</p>
+            </div>
+            <span class="text-2xl font-black" [class]="pendingEvaluations > 0 ? 'text-red-600' : 'text-green-600'">
+              {{ pendingEvaluations }}
+            </span>
+          </div>
+
+          <div class="rounded-2xl border border-slate-100 p-4 flex items-center justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Competencias con soporte</p>
+              <p class="text-sm text-slate-500 mt-1">Resultados finales en B o C con seguimiento</p>
+            </div>
+            <span class="text-2xl font-black text-yellow-700">{{ supportRequiredCount }}</span>
+          </div>
+
+          <div class="rounded-2xl border border-slate-100 p-4 flex items-center justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest text-slate-400">C consecutiva</p>
+              <p class="text-sm text-slate-500 mt-1">Casos que requieren mayor justificacion</p>
+            </div>
+            <span class="text-2xl font-black text-red-700">{{ consecutiveCCount }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4">
+        <div>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Decision de cierre</p>
+          <h2 class="text-xl font-bold text-slate-900 mt-2">Viabilidad del periodo</h2>
+        </div>
+
+        <div class="rounded-2xl p-4 border"
+             [class]="readyToClose ? 'bg-green-50 border-green-200 text-green-700' : 'bg-yellow-50 border-yellow-200 text-yellow-700'">
+          <p class="text-sm font-bold">
+            {{ readyToClose ? 'El periodo esta listo para cerrarse.' : 'Todavia hay condiciones pendientes para el cierre.' }}
+          </p>
+          <p class="text-sm mt-2 opacity-80">
+            {{ readyToClose
+              ? 'No quedan borradores abiertos y la supervision anual ya esta visible.'
+              : 'Revisa borradores, estudiantes en riesgo y resultados con soporte antes de continuar.' }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

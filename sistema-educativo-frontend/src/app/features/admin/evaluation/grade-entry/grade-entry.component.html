@@ -1,0 +1,284 @@
+<!-- //src/app/features/admin/evaluation/grade-entry/grade-entry.component.html -->
+<div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 text-slate-700">
+  <app-back-button></app-back-button>
+
+  <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+    <div class="space-y-2">
+      <h1 class="text-3xl font-semibold text-slate-900 tracking-tight">Registro de Evaluaciones</h1>
+      <p class="text-slate-500 text-sm font-medium">Captura de notas por competencia con contexto de promoción, recuperación y riesgo académico.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <button (click)="recalculateAcademicSummary()" [disabled]="!canRecalculate() || recalculating || saving" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
+        <div *ngIf="recalculating" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        <svg *ngIf="!recalculating" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg>
+        Recalcular resumen
+      </button>
+      <button (click)="saveDraft()" [disabled]="!canSave() || saving" class="px-6 py-2.5 bg-white border border-blue-700 text-blue-700 text-sm font-bold rounded-xl transition-all hover:bg-blue-50 active:scale-95 flex items-center gap-2 disabled:opacity-50">
+        <svg *ngIf="!saving" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <div *ngIf="saving" class="w-4 h-4 border-2 border-blue-700 border-t-transparent rounded-full animate-spin"></div>
+        Guardar borrador
+      </button>
+      <button (click)="publishAll()" [disabled]="!canPublish() || saving" class="px-6 py-2.5 bg-blue-700 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
+        <svg *ngIf="!saving" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <div *ngIf="saving" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        Publicar calificaciones
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 text-sm font-medium">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="successMessage" class="bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-4 text-sm font-medium">
+    {{ successMessage }}
+  </div>
+
+  <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-end gap-6">
+    <div class="flex-1 space-y-2 w-full">
+      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Curso</label>
+      <select [(ngModel)]="selectedCourseId" (change)="onCourseChange()" [disabled]="saving || recalculating" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
+        <option [ngValue]="''">Seleccionar Curso</option>
+        <option *ngFor="let c of courses" [ngValue]="c.id">{{ c.name }}</option>
+      </select>
+    </div>
+    <div class="flex-1 space-y-2 w-full md:w-48">
+      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Periodo</label>
+      <select [(ngModel)]="selectedPeriodId" (change)="onFilterChange()" [disabled]="saving || recalculating" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
+        <option [ngValue]="''">Seleccionar Periodo</option>
+        <option *ngFor="let p of periods" [ngValue]="p.id">{{ p.name }}</option>
+      </select>
+    </div>
+    <div class="flex-1 space-y-2 w-full">
+      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Competencia</label>
+      <select [(ngModel)]="selectedCompetencyId" (change)="onFilterChange()" [disabled]="saving || recalculating" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
+        <option [ngValue]="''">Seleccionar Competencia</option>
+        <option *ngFor="let comp of competencies" [ngValue]="comp.id">{{ comp.name || comp.description }}</option>
+      </select>
+    </div>
+  </div>
+
+  <div *ngIf="selectedCourseId || selectedPeriodId || selectedCompetencyId" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+    <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Estudiantes</p>
+      <p class="text-3xl font-black text-slate-900">{{ students.length }}</p>
+      <p class="text-sm text-slate-500 mt-2">Cargados en la planilla actual</p>
+    </div>
+    <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Con nota</p>
+      <p class="text-3xl font-black text-slate-900">{{ gradedCount }}</p>
+      <p class="text-sm text-slate-500 mt-2">Registros editados para esta competencia</p>
+    </div>
+    <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">En B/C</p>
+      <p class="text-3xl font-black text-amber-600">{{ currentRiskCount }}</p>
+      <p class="text-sm text-slate-500 mt-2">Alumnos en nivel de seguimiento</p>
+    </div>
+    <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Publicados</p>
+      <p class="text-3xl font-black text-blue-600">{{ publishedCount }}</p>
+      <p class="text-sm text-slate-500 mt-2">Planillas ya visibles</p>
+    </div>
+    <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Estado sección</p>
+      <p class="text-3xl font-black" [class]="sectionRiskStudents > 0 ? 'text-red-600' : 'text-green-600'">{{ sectionRiskStudents }}</p>
+      <p class="text-sm text-slate-500 mt-2">Estudiantes en recuperación o permanencia</p>
+    </div>
+  </div>
+
+  <div *ngIf="selectedCourseId && currentSectionLabel" class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div class="space-y-1">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contexto</p>
+      <p class="text-lg font-bold text-slate-900">{{ currentSectionLabel }}</p>
+      <p class="text-sm text-slate-500">
+        Año activo: {{ activeAcademicYearLabel || 'Sin definir' }}
+        <span *ngIf="selectedCompetencyName">· Competencia: {{ selectedCompetencyName }}</span>
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <span class="px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border" [class]="sectionDecisionStats.promociona > 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-500 border-slate-200'">
+        Promoción: {{ sectionDecisionStats.promociona }}
+      </span>
+      <span class="px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border" [class]="sectionDecisionStats.recuperacion > 0 ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-slate-50 text-slate-500 border-slate-200'">
+        Recuperación: {{ sectionDecisionStats.recuperacion }}
+      </span>
+      <span class="px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border" [class]="sectionDecisionStats.permanece > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-500 border-slate-200'">
+        Permanencia: {{ sectionDecisionStats.permanece }}
+      </span>
+      <span class="px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border bg-slate-50 text-slate-600 border-slate-200">
+        Pendiente: {{ sectionDecisionStats.pendiente }}
+      </span>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="flex justify-center py-12">
+    <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+
+  <div *ngIf="!loading && students.length > 0" class="grid grid-cols-1 2xl:grid-cols-[minmax(0,2fr)_380px] gap-6">
+    <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+      <div class="p-6 border-b border-slate-50 bg-slate-50/20 flex justify-between items-center">
+        <h2 class="text-lg font-bold text-slate-800 tracking-tight">Planilla de Calificaciones</h2>
+        <div *ngIf="saving || recalculating" class="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-widest animate-pulse">
+          <div class="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          {{ saving ? 'Sincronizando...' : 'Actualizando resumen...' }}
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-50">
+              <th class="py-5 px-6 text-center w-16">#</th>
+              <th class="py-5 px-6 text-left">Estudiante</th>
+              <th class="py-5 px-6 text-center">Estado académico</th>
+              <th class="py-5 px-6 text-center">Calificación</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            <tr *ngFor="let student of students; let i = index"
+                (click)="selectStudent(student.id)"
+                class="group transition-colors cursor-pointer"
+                [ngClass]="selectedStudentId === student.id ? 'bg-blue-50/40' : 'hover:bg-slate-50/50'">
+              <td class="py-6 px-6 text-center text-sm font-medium text-slate-400">{{ i + 1 }}</td>
+              <td class="py-6 px-6">
+                <div class="flex items-center gap-4">
+                  <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs uppercase">
+                    {{ student.initials }}
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-bold text-slate-800">{{ student.name }}</span>
+                    <span class="text-[10px] font-mono text-slate-400 uppercase">{{ student.code }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="py-6 px-6">
+                <div class="flex flex-col items-center gap-2">
+                  <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border" [class]="getFinalStatusBadgeClass(student.final_status)">
+                    {{ getFinalStatusLabel(student.final_status) }}
+                  </span>
+                  <span *ngIf="student.recovery_required" class="px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200 text-[10px] font-bold uppercase tracking-widest">
+                    Recuperación
+                  </span>
+                  <span *ngIf="(student.risk_count || 0) > 0" class="text-[10px] font-semibold text-slate-500">
+                    {{ student.risk_count }} competencias en B/C
+                  </span>
+                </div>
+              </td>
+              <td class="py-6 px-6">
+                <div class="flex flex-col gap-3">
+                  <div class="flex items-center justify-center gap-2">
+                    <button *ngFor="let grade of ['AD', 'A', 'B', 'C']"
+                            (click)="setGrade(student, grade); $event.stopPropagation()"
+                            [disabled]="student.status === 'publicada' || saving"
+                            [class]="student.grade === grade ? getGradeSelectedClass(grade) : 'px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 text-xs font-bold hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed'">
+                      {{ grade }}
+                    </button>
+                  </div>
+                  <div class="relative max-w-xs mx-auto w-full">
+                    <input type="text" [(ngModel)]="student.observation" placeholder="Observación..."
+                           (click)="$event.stopPropagation()"
+                           [disabled]="student.status === 'publicada' || saving"
+                           class="w-full bg-slate-50/50 border border-slate-100 rounded-lg px-3 py-1.5 text-[10px] italic text-slate-500 focus:outline-none focus:border-blue-300 transition-all disabled:bg-transparent disabled:border-none" />
+                  </div>
+                  <div class="flex items-center justify-center gap-2 flex-wrap">
+                    <span *ngIf="student.status" class="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md"
+                          [class.bg-blue-50]="student.status === 'publicada'" [class.text-blue-500]="student.status === 'publicada'"
+                          [class.bg-slate-50]="student.status === 'borrador'" [class.text-slate-400]="student.status === 'borrador'">
+                      {{ student.status }}
+                    </span>
+                    <span *ngIf="student.grade === 'C'" class="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-red-50 text-red-600">
+                      Riesgo alto
+                    </span>
+                    <span *ngIf="student.grade === 'B'" class="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-yellow-50 text-yellow-700">
+                      Seguimiento
+                    </span>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
+      <div class="p-6 border-b border-slate-50 bg-slate-50/30">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Detalle pedagógico</p>
+        <h3 class="text-xl font-bold text-slate-900 mt-2">{{ selectedStudent?.name || 'Selecciona un estudiante' }}</h3>
+        <p class="text-sm text-slate-500 mt-1">{{ selectedStudent?.code || 'Sin selección' }}</p>
+      </div>
+
+      <div *ngIf="selectedStudent; else noStudentSelected" class="p-6 space-y-5">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-slate-50 p-4 border border-slate-100">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado final</p>
+            <p class="text-lg font-black text-slate-900 mt-2">{{ getFinalStatusLabel(selectedStudent.final_status) }}</p>
+          </div>
+          <div class="rounded-2xl bg-slate-50 p-4 border border-slate-100">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pendientes</p>
+            <p class="text-lg font-black text-slate-900 mt-2">{{ selectedStudent.pending_competencies_count || 0 }}</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-100 p-4 space-y-3">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Distribución anual</p>
+          <div class="grid grid-cols-4 gap-2 text-center">
+            <div class="rounded-xl bg-green-50 border border-green-100 p-3">
+              <p class="text-[10px] font-bold text-green-700 uppercase">AD</p>
+              <p class="text-xl font-black text-green-700 mt-1">{{ selectedStudent.totals?.ad || 0 }}</p>
+            </div>
+            <div class="rounded-xl bg-blue-50 border border-blue-100 p-3">
+              <p class="text-[10px] font-bold text-blue-700 uppercase">A</p>
+              <p class="text-xl font-black text-blue-700 mt-1">{{ selectedStudent.totals?.a || 0 }}</p>
+            </div>
+            <div class="rounded-xl bg-yellow-50 border border-yellow-100 p-3">
+              <p class="text-[10px] font-bold text-yellow-700 uppercase">B</p>
+              <p class="text-xl font-black text-yellow-700 mt-1">{{ selectedStudent.totals?.b || 0 }}</p>
+            </div>
+            <div class="rounded-xl bg-red-50 border border-red-100 p-3">
+              <p class="text-[10px] font-bold text-red-700 uppercase">C</p>
+              <p class="text-xl font-black text-red-700 mt-1">{{ selectedStudent.totals?.c || 0 }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-100 p-4 space-y-3">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Competencia actual</p>
+          <p class="text-sm font-bold text-slate-900">{{ selectedCompetencyName || 'Sin competencia seleccionada' }}</p>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="px-3 py-1 rounded-full text-xs font-bold border" [class]="getCurrentGradeBadgeClass(selectedStudent.grade)">
+              {{ selectedStudent.grade || 'Sin nota' }}
+            </span>
+            <span *ngIf="selectedStudent.observation" class="text-xs text-slate-500 italic">
+              "{{ selectedStudent.observation }}"
+            </span>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-100 p-4 space-y-3">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recuperación y soporte</p>
+          <p class="text-sm text-slate-600" *ngIf="selectedStudent.summary?.recovery_process; else noRecovery">
+            Proceso activo con {{ selectedStudent.summary?.recovery_process?.results_count || 0 }} competencia(s) asociada(s).
+          </p>
+          <ng-template #noRecovery>
+            <p class="text-sm text-slate-500">Este estudiante no tiene proceso de recuperación activo.</p>
+          </ng-template>
+          <div *ngIf="selectedStudentConclusion" class="rounded-xl bg-slate-50 border border-slate-100 p-3">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Conclusión descriptiva</p>
+            <p class="text-sm text-slate-600">{{ selectedStudentConclusion }}</p>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noStudentSelected>
+        <div class="p-8 text-center text-slate-500">
+          <p class="font-medium">Selecciona un estudiante para revisar su resumen anual.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && students.length === 0 && selectedCourseId && selectedPeriodId && selectedCompetencyId" class="text-center py-12 bg-white rounded-3xl border border-slate-100">
+    <p class="text-slate-400 font-medium">No se encontraron estudiantes para los filtros seleccionados.</p>
+  </div>
+</div>

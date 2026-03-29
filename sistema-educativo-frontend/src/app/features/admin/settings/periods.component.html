@@ -1,0 +1,490 @@
+<div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
+  <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-2">
+    <div class="flex items-center gap-4">
+      <app-back-button></app-back-button>
+      <div class="space-y-1">
+        <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Periodos Academicos</h1>
+        <p class="text-slate-500 text-sm font-medium">
+          Gestiona periodos y consulta el historial congelado por alumno cuando el periodo se cierra.
+        </p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Historial operativo</p>
+        <p class="mt-1 text-sm font-semibold text-slate-700">
+          Cierre con snapshot de notas, asistencia, tareas y mensajeria
+        </p>
+      </div>
+      <button
+        (click)="openModal()"
+        class="px-6 py-3 bg-gradient-to-r from-[#0E3A8A] to-[#0F766E] hover:opacity-90 text-white text-sm font-bold rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Registrar Periodo
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mt-2">
+    <app-setting-metric-card label="Total Periodos" [value]="totalPeriods"></app-setting-metric-card>
+    <app-setting-metric-card label="Abiertos" [value]="openPeriods"></app-setting-metric-card>
+    <app-setting-metric-card label="Cerrados" [value]="closedPeriods"></app-setting-metric-card>
+    <app-setting-metric-card label="Con Historial" [value]="periodsWithHistory"></app-setting-metric-card>
+    <app-setting-metric-card label="Sin Historial" [value]="closedWithoutHistory"></app-setting-metric-card>
+  </div>
+  <div class="grid grid-cols-1 xl:grid-cols-[1.6fr_0.9fr] gap-6">
+    <section class="rounded-[2rem] border border-slate-200 bg-white shadow-sm p-6">
+      <div class="flex items-center justify-between gap-3 mb-5">
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Catalogo</p>
+          <h2 class="mt-2 text-xl font-bold text-slate-900">Periodos registrados</h2>
+        </div>
+        <div class="rounded-2xl bg-slate-50 border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500">
+          {{ groupedPeriods.length }} anios agrupados
+        </div>
+      </div>
+
+      <div *ngIf="loading" class="flex justify-center p-12">
+        <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent flex items-center justify-center rounded-full animate-spin"></div>
+      </div>
+
+      <div *ngIf="!loading" class="space-y-7">
+        <div *ngFor="let yearGroup of groupedPeriods" class="space-y-5">
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="text-lg font-semibold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-blue-600 pl-4 tracking-tight uppercase leading-none">
+              Anio lectivo {{ yearGroup.year }}
+            </h3>
+            <span class="text-xs font-semibold text-slate-500 rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5">
+              {{ yearGroup.periods.length }} periodo(s)
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-5">
+            <article *ngFor="let period of yearGroup.periods" class="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition-all group flex flex-col relative overflow-hidden">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-4 min-w-0">
+                  <div [ngClass]="period.is_closed ? 'from-slate-500 to-slate-600' : 'from-[#0E3A8A] to-[#1D4ED8]'" class="w-14 h-14 bg-gradient-to-br rounded-[1rem] flex items-center justify-center shadow-md group-hover:rotate-3 transition-all shrink-0">
+                    <span class="text-2xl font-bold text-white leading-none">{{ period.period_number }}</span>
+                  </div>
+                  <div class="min-w-0">
+                    <h4 class="text-lg font-bold text-[#0F172A] tracking-wide uppercase truncate">{{ period.name }}</h4>
+                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                      <span *ngIf="period.is_closed" class="inline-flex items-center rounded-full bg-red-50 border border-red-200 px-2.5 py-1 text-[10px] font-bold text-red-700 uppercase tracking-widest">Cerrado</span>
+                      <span *ngIf="!period.is_closed" class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[10px] font-bold text-emerald-700 uppercase tracking-widest">Abierto</span>
+                      <span
+                        *ngIf="hasHistory(period.id)"
+                        class="inline-flex items-center rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-[10px] font-bold text-blue-700 uppercase tracking-widest">
+                        Snapshot listo
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-5 space-y-4 relative z-10 w-full">
+                <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-100 space-y-3">
+                  <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    <span>Inicio</span>
+                    <span>Fin</span>
+                  </div>
+                  <div class="flex justify-between items-center gap-2 text-xs font-bold text-[#0F172A] tracking-tight">
+                    <span>{{ period.start_date | date:'dd/MM/yyyy' }}</span>
+                    <svg class="w-3.5 h-3.5 text-slate-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                    <span>{{ period.end_date | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                </div>
+
+                <div class="rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-50 to-white px-4 py-3">
+                  <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Historial</p>
+                  <p class="mt-2 text-sm font-semibold text-slate-700">
+                    {{ historyLabel(period) }}
+                  </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <button
+                    (click)="openHistory(period)"
+                    class="py-3 bg-slate-900 text-white hover:bg-slate-800 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-sm flex items-center justify-center gap-1.5 px-2">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18"/><path d="M7 14h3"/><path d="M7 10h7"/><path d="M7 18h10"/></svg>
+                    Ver historial
+                  </button>
+                  <button
+                    (click)="generateHistory(period)"
+                    [disabled]="historyGeneratingPeriodId === period.id"
+                    class="py-3 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-sm flex items-center justify-center gap-1.5 px-2 disabled:opacity-60">
+                    <span *ngIf="historyGeneratingPeriodId === period.id" class="w-3.5 h-3.5 border-2 border-amber-600/30 border-t-amber-600 rounded-full animate-spin"></span>
+                    {{ period.is_closed ? 'Regenerar' : 'Snapshot' }}
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <button (click)="openModal(period)" class="py-3 bg-white text-[#0E3A8A] border border-slate-200 hover:border-[#0E3A8A] text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-sm flex items-center justify-center gap-1.5 px-2">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Editar
+                  </button>
+                  <button (click)="deletePeriod(period.id)" class="py-3 bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white rounded-xl transition-all active:scale-95 flex items-center justify-center">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-slate-50 rounded-full blur-2xl group-hover:bg-blue-50 transition-colors pointer-events-none"></div>
+            </article>
+          </div>
+        </div>
+
+        <div *ngIf="!groupedPeriods.length" class="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+          <p class="text-lg font-semibold text-slate-700">No hay periodos registrados.</p>
+          <p class="mt-2 text-sm text-slate-500">Crea el primer periodo para comenzar a trabajar el historial academico.</p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white shadow-sm p-6 space-y-5">
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-[0.32em] text-slate-400">Vision general</p>
+        <h2 class="mt-2 text-2xl font-bold tracking-tight">Historial por periodo</h2>
+        <p class="mt-3 text-sm leading-6 text-slate-300">
+          El cierre del periodo ahora puede dejar una fotografia consultable por alumno con informacion clave del anio academico activo.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Incluye</p>
+          <p class="mt-2 text-sm font-semibold text-white">Notas y avances</p>
+        </div>
+        <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Incluye</p>
+          <p class="mt-2 text-sm font-semibold text-white">Asistencia y tareas</p>
+        </div>
+        <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Incluye</p>
+          <p class="mt-2 text-sm font-semibold text-white">Mensajeria del periodo</p>
+        </div>
+        <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Pendiente</p>
+          <p class="mt-2 text-sm font-semibold text-white">Conducta formal</p>
+        </div>
+      </div>
+
+      <div class="rounded-[1.75rem] bg-white text-slate-800 p-5 border border-slate-200 shadow-inner">
+        <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Como usarlo</p>
+        <div class="mt-4 space-y-3">
+          <div class="flex gap-3">
+            <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">1</span>
+            <p class="text-sm leading-6 text-slate-600">Cierra un periodo o genera un snapshot preliminar manual.</p>
+          </div>
+          <div class="flex gap-3">
+            <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">2</span>
+            <p class="text-sm leading-6 text-slate-600">Abre “Ver historial” para revisar resumen y alumnos congelados.</p>
+          </div>
+          <div class="flex gap-3">
+            <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">3</span>
+            <p class="text-sm leading-6 text-slate-600">Usa “Regenerar” si cambiaste datos y necesitas refrescar el snapshot.</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+  <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="closeModal()"></div>
+    <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg relative z-10 animate-slide-up overflow-hidden border border-slate-100">
+      <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <h2 class="text-xl font-bold text-slate-800 tracking-tight">{{ isEditing ? 'Editar Periodo' : 'Nuevo Periodo' }}</h2>
+        <button (click)="closeModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200/50 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form [formGroup]="periodForm" (ngSubmit)="savePeriod()" class="p-8 space-y-5">
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Anio Academico</label>
+          <select formControlName="academic_year_id" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+            <option value="">Seleccione un anio</option>
+            <option *ngFor="let year of academicYears" [value]="year.id">{{ year.year }}</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Nombre</label>
+            <input type="text" formControlName="name" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500" placeholder="Ej: Bimestre I">
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Numero</label>
+            <input type="number" formControlName="period_number" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500" placeholder="Ej: 1">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Fecha de inicio</label>
+            <input type="date" formControlName="start_date" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Fecha de fin</label>
+            <input type="date" formControlName="end_date" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p class="font-semibold">Cerrar el periodo ahora puede generar historial.</p>
+          <p class="mt-1 text-xs leading-5">Si pasas el periodo a cerrado, el backend intentara congelar snapshot de alumnos para consulta posterior.</p>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2">
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" formControlName="is_closed" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500 cursor-pointer"></div>
+          </label>
+          <span class="text-sm font-bold text-slate-700">Periodo cerrado</span>
+        </div>
+
+        <div class="pt-6 flex gap-3">
+          <button type="button" (click)="closeModal()" class="flex-1 px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-sm active:scale-95">
+            Cancelar
+          </button>
+          <button type="submit" [disabled]="periodForm.invalid || isSubmitting" class="flex-1 px-4 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+            <span *ngIf="isSubmitting" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            {{ isEditing ? 'Guardar cambios' : 'Registrar periodo' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div *ngIf="showHistoryModal" class="fixed inset-0 z-50 flex items-center justify-end">
+    <div class="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" (click)="closeHistoryModal()"></div>
+    <div class="relative z-10 h-full w-full max-w-[1120px] bg-slate-50 border-l border-slate-200 shadow-2xl animate-slide-left overflow-y-auto">
+      <div class="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200 px-6 py-5 flex items-center justify-between gap-4">
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Historial de periodo</p>
+          <h2 class="mt-2 text-2xl font-bold text-slate-900">{{ selectedHistoryPeriod?.name || 'Periodo' }}</h2>
+          <p class="mt-1 text-sm text-slate-500">
+            {{ selectedHistoryPeriod?.start_date | date:'dd/MM/yyyy' }} - {{ selectedHistoryPeriod?.end_date | date:'dd/MM/yyyy' }}
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button
+            *ngIf="selectedHistoryPeriod"
+            (click)="generateHistory(selectedHistoryPeriod, true)"
+            [disabled]="historyGeneratingPeriodId === selectedHistoryPeriod.id"
+            class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-amber-700 hover:bg-amber-100 disabled:opacity-60">
+            {{ historyGeneratingPeriodId === selectedHistoryPeriod.id ? 'Procesando...' : 'Regenerar snapshot' }}
+          </button>
+          <button (click)="closeHistoryModal()" class="w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300 flex items-center justify-center">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6 space-y-6">
+        <div *ngIf="historyLoading" class="flex items-center justify-center rounded-[2rem] bg-white border border-slate-200 p-16">
+          <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+
+        <div *ngIf="!historyLoading && historyError" class="rounded-[2rem] border border-red-200 bg-red-50 p-6">
+          <p class="text-lg font-bold text-red-900">No se pudo cargar el historial</p>
+          <p class="mt-2 text-sm text-red-700 leading-6">{{ historyError }}</p>
+        </div>
+
+        <div *ngIf="!historyLoading && !historyError && !selectedHistory" class="rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
+          <p class="text-lg font-semibold text-slate-700">Aun no existe snapshot para este periodo.</p>
+          <p class="mt-2 text-sm text-slate-500">Puedes generarlo manualmente desde este panel.</p>
+        </div>
+
+        <ng-container *ngIf="!historyLoading && selectedHistory">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+            <div class="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+              <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Alumnos</p>
+              <p class="mt-3 text-2xl font-bold text-slate-900">{{ selectedHistory.students_count || 0 }}</p>
+            </div>
+            <div class="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+              <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Evaluaciones</p>
+              <p class="mt-3 text-2xl font-bold text-slate-900">{{ selectedHistory.evaluations_count || 0 }}</p>
+            </div>
+            <div class="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+              <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Asistencia</p>
+              <p class="mt-3 text-2xl font-bold text-slate-900">{{ selectedHistory.attendance_count || 0 }}</p>
+            </div>
+            <div class="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+              <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Tareas</p>
+              <p class="mt-3 text-2xl font-bold text-slate-900">{{ selectedHistory.assignments_count || 0 }}</p>
+            </div>
+            <div class="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+              <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Mensajes</p>
+              <p class="mt-3 text-2xl font-bold text-slate-900">{{ selectedHistory.messages_count || 0 }}</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-[0.92fr_1.35fr] gap-6">
+            <section class="space-y-6">
+              <div class="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Resumen</p>
+                    <h3 class="mt-2 text-lg font-bold text-slate-900">Cobertura del snapshot</h3>
+                  </div>
+                  <span class="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest"
+                    [ngClass]="selectedHistory.is_finalized ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-amber-50 border border-amber-200 text-amber-700'">
+                    {{ selectedHistory.is_finalized ? 'Finalizado' : 'Preliminar' }}
+                  </span>
+                </div>
+
+                <div class="mt-5 space-y-3 text-sm">
+                  <div class="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                    <span class="font-medium text-slate-600">Cobertura de evaluaciones</span>
+                    <span class="font-bold text-slate-900">{{ selectedHistory.summary?.coverage?.evaluation_coverage_rate || 0 }}%</span>
+                  </div>
+                  <div class="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                    <span class="font-medium text-slate-600">Cobertura de asistencia</span>
+                    <span class="font-bold text-slate-900">{{ selectedHistory.summary?.coverage?.attendance_coverage_rate || 0 }}%</span>
+                  </div>
+                  <div class="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                    <span class="font-medium text-slate-600">Cobertura de tareas</span>
+                    <span class="font-bold text-slate-900">{{ selectedHistory.summary?.coverage?.assignment_coverage_rate || 0 }}%</span>
+                  </div>
+                  <div class="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                    <span class="font-medium text-slate-600">Cobertura de mensajeria</span>
+                    <span class="font-bold text-slate-900">{{ selectedHistory.summary?.coverage?.message_coverage_rate || 0 }}%</span>
+                  </div>
+                </div>
+
+                <div *ngIf="selectedHistory.summary?.notes?.length" class="mt-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4">
+                  <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-blue-500">Notas del sistema</p>
+                  <div class="mt-3 space-y-2">
+                    <p *ngFor="let note of selectedHistory.summary?.notes" class="text-sm leading-6 text-blue-900">• {{ note }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Alumnos congelados</p>
+                    <h3 class="mt-2 text-lg font-bold text-slate-900">Detalle por alumno</h3>
+                  </div>
+                  <span class="text-xs font-semibold text-slate-500">{{ selectedSnapshots.length }} registros</span>
+                </div>
+
+                <div class="mt-5 max-h-[520px] overflow-y-auto space-y-2 pr-1">
+                  <button
+                    *ngFor="let snapshot of selectedSnapshots"
+                    type="button"
+                    (click)="selectSnapshot(snapshot)"
+                    class="w-full rounded-2xl border px-4 py-3 text-left transition-all"
+                    [ngClass]="selectedSnapshot?.id === snapshot.id ? 'border-slate-900 bg-slate-900 text-white shadow-md' : 'border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 text-slate-700'">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-bold">{{ snapshot.student_name }}</p>
+                        <p class="mt-1 text-xs opacity-80">Codigo: {{ snapshot.student_code || 'Sin codigo' }}</p>
+                      </div>
+                      <span class="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest"
+                        [ngClass]="selectedSnapshot?.id === snapshot.id ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-500'">
+                        {{ snapshot.snapshot?.evaluations?.summary?.records || 0 }} notas
+                      </span>
+                    </div>
+                  </button>
+
+                  <div *ngIf="!selectedSnapshots.length" class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                    No se encontraron alumnos en el snapshot del periodo.
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div *ngIf="!selectedSnapshot" class="h-full min-h-[420px] flex items-center justify-center text-center px-8">
+                <div>
+                  <p class="text-lg font-semibold text-slate-700">Selecciona un alumno</p>
+                  <p class="mt-2 text-sm leading-6 text-slate-500">Aqui veras el resumen congelado del periodo por alumno, con notas, asistencia, tareas y mensajes.</p>
+                </div>
+              </div>
+
+              <ng-container *ngIf="selectedSnapshot">
+                <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Snapshot de alumno</p>
+                    <h3 class="mt-2 text-2xl font-bold text-slate-900">{{ selectedSnapshot.student_name }}</h3>
+                    <p class="mt-1 text-sm text-slate-500">Codigo {{ selectedSnapshot.student_code || 'Sin codigo' }}</p>
+                  </div>
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    <p class="font-semibold text-slate-800">{{ selectedSnapshot.snapshot?.student?.section?.grade_level?.name || 'Sin grado' }}</p>
+                    <p class="mt-1">Seccion {{ selectedSnapshot.snapshot?.student?.section?.section_letter || 'N/D' }}</p>
+                  </div>
+                </div>
+
+                <div class="mt-6 grid grid-cols-2 xl:grid-cols-4 gap-3">
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Notas</p><p class="mt-3 text-2xl font-bold text-slate-900">{{ selectedSnapshot.snapshot?.meta?.evaluations_count || 0 }}</p></div>
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Asistencia</p><p class="mt-3 text-2xl font-bold text-slate-900">{{ selectedSnapshot.snapshot?.meta?.attendance_count || 0 }}</p></div>
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Tareas</p><p class="mt-3 text-2xl font-bold text-slate-900">{{ selectedSnapshot.snapshot?.meta?.assignments_count || 0 }}</p></div>
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Mensajes</p><p class="mt-3 text-2xl font-bold text-slate-900">{{ selectedSnapshot.snapshot?.meta?.messages_count || 0 }}</p></div>
+                </div>
+
+                <div class="mt-6 grid grid-cols-1 2xl:grid-cols-2 gap-5">
+                  <div class="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
+                    <div class="flex items-center justify-between gap-3"><h4 class="text-base font-bold text-slate-900">Evaluaciones</h4><span class="text-xs font-semibold text-slate-500">{{ selectedSnapshot.snapshot?.evaluations?.summary?.records || 0 }}</span></div>
+                    <div class="mt-4 space-y-2 max-h-72 overflow-y-auto pr-1">
+                      <div *ngFor="let item of selectedSnapshot.snapshot?.evaluations?.items" class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div class="flex items-center justify-between gap-3">
+                          <div class="min-w-0"><p class="truncate text-sm font-bold text-slate-800">{{ item.course_name || 'Curso' }}</p><p class="mt-1 text-xs text-slate-500">{{ item.competency_name || 'Competencia' }}</p></div>
+                          <div class="text-right shrink-0"><p class="text-sm font-bold text-slate-900">{{ item.grade || 'N/D' }}</p><p class="mt-1 text-[10px] uppercase tracking-widest text-slate-400">{{ item.status || 'estado' }}</p></div>
+                        </div>
+                      </div>
+                      <p *ngIf="!(selectedSnapshot.snapshot?.evaluations?.items?.length)" class="text-sm text-slate-500">Sin evaluaciones congeladas en este periodo.</p>
+                    </div>
+                  </div>
+
+                  <div class="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
+                    <div class="flex items-center justify-between gap-3"><h4 class="text-base font-bold text-slate-900">Asistencia</h4><span class="text-xs font-semibold text-slate-500">{{ selectedSnapshot.snapshot?.attendance?.summary?.records || 0 }}</span></div>
+                    <div class="mt-4 space-y-2 max-h-72 overflow-y-auto pr-1">
+                      <div *ngFor="let item of selectedSnapshot.snapshot?.attendance?.items" class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div class="flex items-center justify-between gap-3">
+                          <div><p class="text-sm font-bold text-slate-800">{{ item.course_name || 'Curso' }}</p><p class="mt-1 text-xs text-slate-500">{{ item.date | date:'dd/MM/yyyy' }}</p></div>
+                          <span class="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest" [ngClass]="attendanceTone(item.status)">{{ item.status }}</span>
+                        </div>
+                      </div>
+                      <p *ngIf="!(selectedSnapshot.snapshot?.attendance?.items?.length)" class="text-sm text-slate-500">Sin asistencias congeladas en este periodo.</p>
+                    </div>
+                  </div>
+
+                  <div class="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
+                    <div class="flex items-center justify-between gap-3"><h4 class="text-base font-bold text-slate-900">Tareas y entregas</h4><span class="text-xs font-semibold text-slate-500">{{ selectedSnapshot.snapshot?.assignments?.summary?.published || 0 }}</span></div>
+                    <div class="mt-4 space-y-2 max-h-72 overflow-y-auto pr-1">
+                      <div *ngFor="let item of selectedSnapshot.snapshot?.assignments?.items" class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <p class="text-sm font-bold text-slate-800">{{ item.title }}</p>
+                        <p class="mt-1 text-xs text-slate-500">{{ item.course_name || 'Curso' }}</p>
+                        <p class="mt-2 text-[11px] font-semibold text-slate-400">Vence: {{ item.due_date ? (item.due_date | date:'dd/MM/yyyy HH:mm') : 'Sin fecha' }}</p>
+                      </div>
+                      <p *ngIf="!(selectedSnapshot.snapshot?.assignments?.items?.length)" class="text-sm text-slate-500">Sin tareas congeladas en este periodo.</p>
+                    </div>
+                  </div>
+
+                  <div class="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
+                    <div class="flex items-center justify-between gap-3"><h4 class="text-base font-bold text-slate-900">Mensajeria</h4><span class="text-xs font-semibold text-slate-500">{{ selectedSnapshot.snapshot?.messages?.summary?.total || 0 }}</span></div>
+                    <div class="mt-4 space-y-2 max-h-72 overflow-y-auto pr-1">
+                      <div *ngFor="let item of selectedSnapshot.snapshot?.messages?.items" class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div class="flex items-center justify-between gap-3"><p class="text-xs font-bold uppercase tracking-widest text-slate-400">{{ item.sender_role || 'rol' }}</p><p class="text-[11px] text-slate-400">{{ item.created_at | date:'dd/MM/yyyy HH:mm' }}</p></div>
+                        <p class="mt-2 text-sm text-slate-700 leading-6">{{ item.content }}</p>
+                      </div>
+                      <p *ngIf="!(selectedSnapshot.snapshot?.messages?.items?.length)" class="text-sm text-slate-500">Sin mensajes congelados en este periodo.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-5 rounded-[1.75rem] border border-dashed border-amber-300 bg-amber-50 px-5 py-4">
+                  <p class="text-sm font-semibold text-amber-900">Conducta</p>
+                  <p class="mt-2 text-sm leading-6 text-amber-800">{{ selectedSnapshot.snapshot?.conduct?.message || 'El modulo de conducta aun no esta integrado a este historial.' }}</p>
+                </div>
+              </ng-container>
+            </section>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>

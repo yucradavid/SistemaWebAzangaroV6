@@ -1,0 +1,45 @@
+<a
+  [routerLink]="path ? [path] : []"
+  [ngStyle]="customStyle"
+  [ngClass]="[
+    'group cursor-pointer relative flex flex-col items-center justify-center p-8 h-64 w-full',
+    'bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl',
+    'hover:bg-slate-800/60 hover:-translate-y-2 hover:border-blue-400/50',
+    'transition-all duration-500 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgba(59,130,246,0.3)] overflow-hidden',
+    customClass
+  ]"
+>
+  <!-- Decoration gradient background inside card -->
+  <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-blue-600/0 group-hover:from-blue-500/10 group-hover:to-blue-600/20 transition-colors duration-500 pointer-events-none z-0"></div>
+
+  <!-- Orb effect -->
+  <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-blue-400/30 group-hover:w-48 group-hover:h-48 group-hover:-mr-20 group-hover:-mt-20 transition-all duration-700 z-0"></div>
+
+  <!-- Content -->
+  <div class="flex flex-col items-center text-center z-10 space-y-6 w-full transform group-hover:scale-105 transition-transform duration-500">
+    <!-- Icon Container -->
+    <div class="relative p-4 rounded-2xl border-2 border-white/20 bg-white/5 group-hover:bg-blue-500/20 group-hover:border-blue-400 border-dashed backdrop-blur-sm transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(96,165,250,0.4)]">
+      <!-- Icon floating effect on hover -->
+      <div class="transform group-hover:-translate-y-1 transition-transform duration-500">
+        <i [attr.data-lucide]="icon" class="w-14 h-14 text-white/90 group-hover:text-blue-100 stroke-[1.5] transition-colors duration-300"></i>
+      </div>
+    </div>
+
+    <!-- Texts -->
+    <div class="space-y-2 w-full flex flex-col items-center">
+      <h3 class="text-[1.15rem] font-bold text-white tracking-widest uppercase group-hover:text-amber-300 transition-colors duration-300 drop-shadow-md">
+        {{ title }}
+      </h3>
+      
+      <!-- Description -->
+      <div class="h-0 group-hover:h-8 transition-all duration-500 overflow-hidden flex items-center justify-center relative translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100">
+        <p class="text-[0.7rem] text-blue-100/90 font-medium max-w-[200px] text-center leading-tight tracking-wide drop-shadow-sm uppercase">
+          {{ description }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom glowing line -->
+  <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+</a>

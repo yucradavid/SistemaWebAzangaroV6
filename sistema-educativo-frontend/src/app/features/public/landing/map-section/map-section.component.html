@@ -1,0 +1,141 @@
+<section class="section-padding bg-gray-50 relative overflow-hidden">
+  <div class="absolute top-0 right-0 w-96 h-96 bg-blue-100 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3"></div>
+
+  <div class="container-custom relative z-10">
+    
+    <div class="text-center mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-600 text-sm font-bold uppercase tracking-wider mb-4">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        Ubicación
+      </div>
+      <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+        Visítanos en Azángaro
+      </h2>
+      <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+        Estamos ubicados en el corazón de la ciudad, con instalaciones seguras y modernas para tu hijo.
+      </p>
+      <div class="w-24 h-1.5 bg-blue-600 mx-auto mt-6 rounded-full"></div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-8 lg:gap-12 max-w-7xl mx-auto items-start">
+      
+      <div class="space-y-6">
+        
+        <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border-l-4 border-red-600 group">
+          <div class="flex items-start gap-5">
+            <div class="w-14 h-14 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-red-600 transition-colors duration-300">
+              <svg class="w-7 h-7 text-red-600 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-xl font-bold text-gray-900 mb-1">Dirección</h3>
+              <p class="text-gray-600 font-medium">{{ schoolInfo().address }}</p>
+              <p class="text-gray-500 text-sm mt-1">{{ schoolInfo().location }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border-l-4 border-blue-600 group">
+          <div class="flex items-start gap-5">
+            <div class="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 transition-colors duration-300">
+              <svg class="w-7 h-7 text-blue-600 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-xl font-bold text-gray-900 mb-1">Central Telefónica</h3>
+              <a [href]="'tel:' + schoolInfo().phone" class="text-xl text-gray-700 hover:text-blue-600 transition-colors font-bold block">
+                {{ schoolInfo().phone }}
+              </a>
+              <span class="text-sm text-green-600 flex items-center gap-1 mt-1">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Disponible ahora
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border-l-4 border-yellow-400 group">
+          <div class="flex items-start gap-5">
+            <div class="w-14 h-14 bg-yellow-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-400 transition-colors duration-300">
+              <svg class="w-7 h-7 text-yellow-600 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-xl font-bold text-gray-900 mb-1">Correo Electrónico</h3>
+              <a [href]="'mailto:' + schoolInfo().email" class="text-gray-700 hover:text-yellow-600 transition-colors font-medium break-all">
+                {{ schoolInfo().email }}
+              </a>
+              <p class="text-gray-500 text-sm mt-1">Respondemos en menos de 24h</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border-l-4 border-blue-900 group">
+          <div class="flex items-start gap-5">
+            <div class="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900 transition-colors duration-300">
+              <svg class="w-7 h-7 text-blue-900 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-xl font-bold text-gray-900 mb-1">Horario de Atención</h3>
+              <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-2">
+                <span class="text-gray-600">Lunes - Viernes</span>
+                <span class="font-bold text-blue-900">{{ schoolInfo().schedule.weekdays }}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">Sábados</span>
+                <span class="font-bold text-blue-900">{{ schoolInfo().schedule.saturday }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="relative h-full min-h-[500px] lg:min-h-full">
+        <div class="bg-white p-2 rounded-3xl shadow-2xl h-full border border-gray-100">
+          <div class="rounded-2xl overflow-hidden h-full relative">
+            <div class="absolute inset-0 bg-gray-100 animate-pulse -z-10"></div>
+            
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3856.634139886916!2d-70.2016!3d-14.9089!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9167e45041a79833%3A0x6b579133939e6569!2sAz%C3%A1ngaro%2C%20Puno!5e0!3m2!1ses!2spe!4v1700000000000!5m2!1ses!2spe"
+              width="100%"
+              height="100%"
+              style="border:0;"
+              allowfullscreen=""
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              class="w-full h-full grayscale hover:grayscale-0 transition-all duration-500"
+            ></iframe>
+            
+            <div class="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-md rounded-xl p-5 shadow-2xl border-l-4 border-red-600">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-900 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg text-white">
+                   <span class="font-bold text-lg">CS</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-bold text-gray-900 truncate">{{ schoolInfo().name }}</p>
+                  <p class="text-sm text-gray-600 truncate">Sede Principal, Azángaro</p>
+                </div>
+                <a
+                  href="https://maps.google.com"
+                  target="_blank"
+                  class="px-5 py-2.5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors text-sm shadow-lg shadow-red-900/20 whitespace-nowrap flex items-center gap-2"
+                >
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                  Cómo llegar
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>

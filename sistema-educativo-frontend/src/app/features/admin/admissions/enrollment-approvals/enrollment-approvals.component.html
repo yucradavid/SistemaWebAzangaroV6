@@ -1,0 +1,358 @@
+<div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 text-slate-700">
+  <app-back-button></app-back-button>
+
+  <div class="flex items-center gap-4">
+    <div class="p-3 bg-blue-50 rounded-2xl border border-blue-100 shadow-sm">
+      <svg class="w-6 h-6 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    </div>
+    <div>
+      <h1 class="text-3xl font-semibold text-slate-900 tracking-tight">Solicitudes de Matricula</h1>
+      <p class="text-slate-500 text-sm font-medium">Revision administrativa de pre matriculas enviadas por las familias.</p>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    {{ errorMessage }}
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Mostradas</p>
+      <p class="mt-3 text-3xl font-semibold text-slate-900">{{ visibleApplications.length }}</p>
+      <p class="mt-2 text-sm text-slate-500">Solicitudes luego del filtro y la busqueda.</p>
+    </div>
+    <div class="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+      <p class="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700">Pendientes</p>
+      <p class="mt-3 text-3xl font-semibold text-amber-900">{{ pendingCount }}</p>
+      <p class="mt-2 text-sm text-amber-800/80">Requieren revision y decision administrativa.</p>
+    </div>
+    <div class="rounded-3xl border border-fuchsia-200 bg-fuchsia-50 p-5 shadow-sm">
+      <p class="text-[11px] font-black uppercase tracking-[0.2em] text-fuchsia-700">Con alerta</p>
+      <p class="mt-3 text-3xl font-semibold text-fuchsia-900">{{ applicationsWithAlerts }}</p>
+      <p class="mt-2 text-sm text-fuchsia-800/80">Necesidades especiales u observaciones registradas.</p>
+    </div>
+    <div class="rounded-3xl border border-sky-200 bg-sky-50 p-5 shadow-sm">
+      <p class="text-[11px] font-black uppercase tracking-[0.2em] text-sky-700">Con contacto</p>
+      <p class="mt-3 text-3xl font-semibold text-sky-900">{{ applicationsWithEmergencyContact }}</p>
+      <p class="mt-2 text-sm text-sky-800/80">Incluyen contacto de emergencia adicional.</p>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px_auto]">
+    <div>
+      <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest pl-1">Buscar solicitud</label>
+      <input
+        [(ngModel)]="searchTerm"
+        type="text"
+        placeholder="Estudiante, apoderado o documento"
+        class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+      />
+    </div>
+    <div>
+      <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest pl-1">Filtrar por estado</label>
+      <select
+        [(ngModel)]="selectedStatus"
+        (change)="loadApplications()"
+        class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer">
+        <option value="pending">Pendientes</option>
+        <option value="approved">Aprobados</option>
+        <option value="rejected">Rechazados</option>
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <div class="pt-5">
+      <button
+        (click)="loadApplications()"
+        class="w-full px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95">
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-slate-50/50">
+            <th class="p-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estudiante</th>
+            <th class="p-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Apoderado</th>
+            <th class="p-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Postula a</th>
+            <th class="p-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Estado</th>
+            <th class="p-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Fecha</th>
+            <th class="p-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          <tr *ngFor="let app of visibleApplications" class="hover:bg-slate-50/50 transition-colors group align-top">
+            <td class="p-5">
+              <div class="flex flex-col gap-1">
+                <span class="text-sm font-bold text-slate-700 capitalize group-hover:text-blue-600 transition-colors">
+                  {{ app.student_first_name }} {{ app.student_last_name }}
+                </span>
+                <span class="text-xs text-slate-500">
+                  {{ (app.student_document_type || 'doc') | uppercase }}: {{ app.student_document_number }}
+                </span>
+                <div class="flex flex-wrap gap-2 pt-2">
+                  <span *ngIf="app.has_special_needs" class="px-2.5 py-1 rounded-full bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 text-[10px] font-bold uppercase tracking-widest">
+                    Atencion especial
+                  </span>
+                  <span *ngIf="app.notes" class="px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold uppercase tracking-widest">
+                    Con observacion
+                  </span>
+                </div>
+              </div>
+            </td>
+            <td class="p-5">
+              <div class="flex flex-col gap-1 text-xs text-slate-500">
+                <span class="font-semibold text-slate-700 capitalize">
+                  {{ app.guardian_first_name || 'Sin dato' }} {{ app.guardian_last_name || '' }}
+                </span>
+                <span>{{ app.guardian_phone || 'Sin telefono' }}</span>
+                <span>{{ app.guardian_email || 'Sin correo' }}</span>
+              </div>
+            </td>
+            <td class="p-5 text-center">
+              <div class="flex flex-col gap-1 text-xs">
+                <span class="font-semibold text-slate-700">{{ getGradeLabel(app.grade_level_id) }}</span>
+                <span class="text-slate-500">Ano {{ getAcademicYearLabel(app.academic_year_id) }}</span>
+              </div>
+            </td>
+            <td class="p-5 text-center">
+              <span
+                [class]="getStatusBadgeClass(app.status)"
+                class="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border">
+                {{ app.status }}
+              </span>
+              <div *ngIf="app.status === 'rejected' && app.rejection_reason" class="mt-2 text-[11px] text-red-600 max-w-[180px] mx-auto">
+                {{ app.rejection_reason }}
+              </div>
+            </td>
+            <td class="p-5 text-center text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
+              {{ (app.application_date || app.created_at) | date:'dd MMM yyyy' }}
+            </td>
+            <td class="p-5">
+              <div class="flex items-center justify-center gap-2 flex-wrap">
+                <button
+                  (click)="openDetailModal(app)"
+                  [disabled]="isLoadingDetail && selectedDetailId === app.id"
+                  class="px-3 py-2 bg-slate-50 text-slate-700 hover:bg-slate-700 hover:text-white rounded-lg transition-all border border-slate-200 text-[10px] font-bold uppercase tracking-widest disabled:opacity-50">
+                  Ver
+                </button>
+                <button
+                  *ngIf="app.status === 'pending'"
+                  (click)="onApproveClick(app)"
+                  [disabled]="isBusy(app.id)"
+                  class="p-2 bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-lg transition-all border border-green-100 disabled:opacity-50">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </button>
+                <button
+                  *ngIf="app.status === 'pending'"
+                  (click)="onRejectClick(app)"
+                  [disabled]="isBusy(app.id)"
+                  class="p-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-all border border-red-100 disabled:opacity-50">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+                <button
+                  *ngIf="app.status === 'approved'"
+                  (click)="generateCredentials(app)"
+                  [disabled]="isBusy(app.id)"
+                  class="px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-700 hover:text-white rounded-lg transition-all border border-blue-100 text-[10px] font-bold uppercase tracking-widest disabled:opacity-50">
+                  {{ isBusy(app.id) && processingAction === 'credentials' ? 'Generando...' : 'Credenciales' }}
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="visibleApplications.length === 0" class="py-24 text-center">
+      <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+        <svg class="w-10 h-10 text-blue-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <h3 class="text-slate-900 font-semibold text-xl mb-2">No hay solicitudes</h3>
+      <p class="text-slate-500 text-sm max-w-xs mx-auto font-medium">No se encontraron solicitudes para los filtros actuales.</p>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="showDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in text-slate-700">
+  <div class="bg-white rounded-[2rem] max-w-5xl w-full shadow-2xl border border-white/20 overflow-hidden">
+    <div class="flex items-start justify-between gap-4 p-8 border-b border-slate-100">
+      <div>
+        <h3 class="text-2xl font-bold text-slate-900 tracking-tight">Detalle de pre matricula</h3>
+        <p class="text-slate-500 text-sm font-medium">Revision completa de la informacion registrada por la familia.</p>
+      </div>
+      <button (click)="closeDetailModal()" class="w-11 h-11 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 transition-all">
+        <svg class="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div *ngIf="isLoadingDetail" class="p-10 text-center text-slate-500">
+      Cargando detalle de la solicitud...
+    </div>
+
+    <div *ngIf="!isLoadingDetail && detailApplication" class="p-8 space-y-6 max-h-[80vh] overflow-y-auto">
+      <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h4 class="text-xl font-semibold text-slate-900">
+              {{ detailApplication.student_first_name }} {{ detailApplication.student_last_name }}
+            </h4>
+            <p class="text-sm text-slate-500 mt-1">
+              {{ getGradeLabel(detailApplication.grade_level_id) }} - Ano {{ getAcademicYearLabel(detailApplication.academic_year_id) }}
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span [class]="getStatusBadgeClass(detailApplication.status)" class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border">
+              {{ detailApplication.status }}
+            </span>
+            <span *ngIf="detailApplication.has_special_needs" class="px-3 py-1 rounded-full bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 text-[10px] font-bold uppercase tracking-widest">
+              Necesidad especial
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid gap-6 md:grid-cols-2">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Datos del estudiante</h4>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Documento</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ formatDocument(detailApplication.student_document_type, detailApplication.student_document_number) }}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Fecha nacimiento</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ detailApplication.student_birth_date ? (detailApplication.student_birth_date | date:'dd/MM/yyyy') : 'No registrado' }}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Genero</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ formatGender(detailApplication.student_gender) }}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Colegio procedencia</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ detailApplication.previous_school || 'No registrado' }}</p>
+            </div>
+            <div class="sm:col-span-2">
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Direccion</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ detailApplication.student_address || 'No registrado' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Datos del apoderado</h4>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Nombre completo</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ formatGuardianName(detailApplication) }}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Documento</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ formatDocument(detailApplication.guardian_document_type, detailApplication.guardian_document_number) }}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Relacion</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ detailApplication.guardian_relationship || 'No registrado' }}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Telefono</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ detailApplication.guardian_phone || 'No registrado' }}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Correo</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800 break-all">{{ detailApplication.guardian_email || 'No registrado' }}</p>
+            </div>
+            <div class="sm:col-span-2">
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Direccion</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ detailApplication.guardian_address || 'No registrado' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid gap-6 md:grid-cols-2">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Informacion complementaria</h4>
+          <div class="space-y-4">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Necesidades especiales</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">
+                {{ detailApplication.has_special_needs ? 'Si' : 'No' }}
+              </p>
+            </div>
+            <div *ngIf="detailApplication.has_special_needs">
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Descripcion</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ detailApplication.special_needs_description || 'No registrado' }}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Observaciones</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800 whitespace-pre-line">{{ detailApplication.notes || 'Sin observaciones' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Seguimiento administrativo</h4>
+          <div class="space-y-4">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Fecha de solicitud</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ (detailApplication.application_date || detailApplication.created_at) | date:'dd/MM/yyyy HH:mm' }}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Contacto de emergencia</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">
+                {{ formatEmergencyContact(detailApplication) }}
+              </p>
+            </div>
+            <div *ngIf="detailApplication.reviewed_at">
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Fecha de revision</p>
+              <p class="mt-1 text-sm font-semibold text-slate-800">{{ detailApplication.reviewed_at | date:'dd/MM/yyyy HH:mm' }}</p>
+            </div>
+            <div *ngIf="detailApplication.rejection_reason">
+              <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Motivo de rechazo</p>
+              <p class="mt-1 text-sm font-semibold text-red-700 whitespace-pre-line">{{ detailApplication.rejection_reason }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="showApproveModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in text-slate-700">
+  <div class="bg-white rounded-[2rem] p-8 max-w-lg w-full shadow-2xl border border-white/20">
+    <h3 class="text-2xl font-bold text-slate-900 tracking-tight mb-2">Aprobar pre matricula</h3>
+    <p class="text-slate-500 text-sm font-medium mb-6">Asigna una seccion del mismo ano academico y grado solicitado.</p>
+
+    <div *ngIf="selectedApp" class="mb-6 rounded-2xl bg-slate-50 border border-slate-100 p-4 text-sm text-slate-600">
+      <div class="font-semibold text-slate-900">
+        {{ selectedApp.student_first_name }} {{ selectedApp.student_last_name }}
+      </div>
+      <div>Postula a {{ getGradeLabel(selectedApp.grade_level_id) }} - {{ getAcademicYearLabel(selectedApp.academic_year_id) }}</div>
+    </div>
+
+    <div class="space-y-4">
+      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Seccion destino</label>
+      <select
+        [(ngModel)]="selectedSectionId"
+        class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all">
+        <option value="">Seleccionar seccion...</option>
+        <option *ngFor="let s of filteredSections" [value]="s.id">
+          {{ formatSectionLabel(s) }}
+        </option>
+      </select>
+      <p *ngIf="filteredSections.length === 0" class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+        No hay secciones configuradas para el mismo ano y grado de esta solicitud.
+      </p>
+    </div>
+
+    <div class="flex gap-3 mt-8">
+      <button (click)="closeApproveModal()" class="flex-1 py-3.5 bg-slate-50 text-slate-400 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all">Cancelar</button>
+      <button (click)="approve()" [disabled]="!selectedSectionId || isBusy(selectedApp?.id)" class="flex-1 py-3.5 bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50">
+        {{ processingAction === 'approve' ? 'Aprobando...' : 'Confirmar' }}
+      </button>
+    </div>
+  </div>
+</div>

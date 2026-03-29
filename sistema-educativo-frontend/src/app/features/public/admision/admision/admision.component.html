@@ -1,0 +1,275 @@
+<!-- //src/app/features/public/admision/admision/admision.component.html -->
+<div class="min-h-screen bg-gray-50">
+  <section class="relative bg-blue-900 text-white py-28 overflow-hidden">
+    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 20px 20px;"></div>
+
+    <div class="container-custom text-center relative z-10 px-4">
+      <span class="inline-block py-1 px-3 rounded-full bg-yellow-400 text-blue-900 text-sm font-bold mb-6 uppercase tracking-wider shadow-lg">
+        Pre matricula abierta
+      </span>
+      <h1 class="text-4xl md:text-6xl font-bold mb-6">Proceso de Admision 2026</h1>
+      <p class="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto font-light">
+        Completa la solicitud del estudiante y deja la pre matricula lista para revision del area administrativa.
+      </p>
+    </div>
+    <div class="absolute bottom-0 w-full h-2 bg-gradient-to-r from-red-600 via-yellow-400 to-blue-600"></div>
+  </section>
+
+  <section class="section-padding py-16">
+    <div class="container-custom px-4">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-4xl font-bold text-blue-900">Pasos del Proceso</h2>
+        <div class="w-20 h-1 bg-red-600 mx-auto mt-4 rounded-full"></div>
+      </div>
+
+      <div class="max-w-4xl mx-auto relative">
+        <div class="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200 hidden md:block"></div>
+
+        <div class="space-y-8">
+          <div *ngFor="let step of admissionSteps" class="flex flex-col md:flex-row gap-6 items-start group relative">
+            <div class="flex-shrink-0 z-10 mx-auto md:mx-0">
+              <div class="w-16 h-16 bg-blue-800 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg border-4 border-white group-hover:bg-yellow-400 group-hover:text-blue-900 transition-colors duration-300">
+                {{ step.step }}
+              </div>
+            </div>
+
+            <div class="flex-1 w-full bg-white rounded-2xl p-8 shadow-md hover:shadow-xl transition-all duration-300 border-l-4 border-blue-800 group-hover:border-yellow-400">
+              <h3 class="text-xl font-bold text-gray-900 mb-2">{{ step.title }}</h3>
+              <p class="text-gray-600 leading-relaxed">{{ step.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-padding bg-white border-t border-gray-100">
+    <div class="container-custom px-4">
+      <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div class="bg-blue-50 rounded-3xl p-8 border border-blue-100">
+          <h3 class="text-xl font-bold text-blue-900 mb-4">Que registra la pre matricula</h3>
+          <ul class="space-y-3 text-gray-700">
+            <li>Datos del estudiante</li>
+            <li>Datos del apoderado</li>
+            <li>Ano academico y grado</li>
+            <li>Observaciones especiales</li>
+          </ul>
+        </div>
+
+        <div class="bg-yellow-50 rounded-3xl p-8 border border-yellow-100">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Luego que pasa</h3>
+          <ul class="space-y-3 text-gray-700">
+            <li>El admin revisa la solicitud</li>
+            <li>Aprueba o rechaza la pre matricula</li>
+            <li>Si aprueba, asigna seccion</li>
+            <li>El estudiante entra al flujo del ano</li>
+          </ul>
+        </div>
+
+        <div class="bg-red-50 rounded-3xl p-8 border border-red-100">
+          <h3 class="text-xl font-bold text-red-900 mb-4">Importante</h3>
+          <ul class="space-y-3 text-gray-700">
+            <li>La pre matricula no garantiza vacante automatica</li>
+            <li>La aprobacion depende de revision administrativa</li>
+            <li>Completa correctamente documento y contacto</li>
+            <li>Usa el ano y grado correctos</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-padding bg-white">
+    <div class="container-custom px-4">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Formulario de Pre Matricula</h2>
+          <p class="text-xl text-gray-600">Completa la solicitud del estudiante y del apoderado</p>
+        </div>
+
+        <form [formGroup]="admissionForm" (ngSubmit)="onSubmit()" class="bg-white rounded-3xl p-8 md:p-12 shadow-2xl border-2 border-gray-50 relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 via-yellow-400 to-red-600"></div>
+
+          <div *ngIf="loadError()" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+            {{ loadError() }}
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Ano academico *</label>
+              <select formControlName="academic_year_id" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all">
+                <option value="">Selecciona un ano</option>
+                <option *ngFor="let year of academicYears" [value]="year.id">{{ year.year }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Grado *</label>
+              <select formControlName="grade_level_id" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all">
+                <option value="">Selecciona un grado</option>
+                <option *ngFor="let grade of gradeLevels" [value]="grade.id">{{ grade.name }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Nombres del estudiante *</label>
+              <input type="text" formControlName="student_first_name" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Apellidos del estudiante *</label>
+              <input type="text" formControlName="student_last_name" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Tipo documento estudiante *</label>
+              <select formControlName="student_document_type" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all">
+                <option *ngFor="let item of documentTypes" [value]="item.id">{{ item.label }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Numero documento estudiante *</label>
+              <input type="text" formControlName="student_document_number" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Fecha de nacimiento *</label>
+              <input type="date" formControlName="student_birth_date" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Genero *</label>
+              <select formControlName="student_gender" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all">
+                <option value="">Selecciona</option>
+                <option *ngFor="let item of genders" [value]="item.id">{{ item.label }}</option>
+              </select>
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Direccion del estudiante</label>
+              <input type="text" formControlName="student_address" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+          </div>
+
+          <div class="mt-10 mb-6">
+            <h3 class="text-2xl font-bold text-blue-900">Datos del Apoderado</h3>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Nombres del apoderado *</label>
+              <input type="text" formControlName="guardian_first_name" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Apellidos del apoderado *</label>
+              <input type="text" formControlName="guardian_last_name" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Tipo documento apoderado *</label>
+              <select formControlName="guardian_document_type" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all">
+                <option *ngFor="let item of documentTypes" [value]="item.id">{{ item.label }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Numero documento apoderado *</label>
+              <input type="text" formControlName="guardian_document_number" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Telefono *</label>
+              <input type="text" formControlName="guardian_phone" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Correo *</label>
+              <input type="email" formControlName="guardian_email" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Relacion *</label>
+              <select formControlName="guardian_relationship" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all">
+                <option *ngFor="let item of relationships" [value]="item.id">{{ item.label }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Direccion del apoderado</label>
+              <input type="text" formControlName="guardian_address" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+          </div>
+
+          <div class="mt-10 mb-6">
+            <h3 class="text-2xl font-bold text-blue-900">Informacion Complementaria</h3>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Colegio de procedencia</label>
+              <input type="text" formControlName="previous_school" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div class="flex items-center gap-3 pt-8">
+              <input id="special-needs" type="checkbox" formControlName="has_special_needs" class="w-4 h-4" />
+              <label for="special-needs" class="text-sm font-semibold text-gray-700">Tiene necesidades especiales?</label>
+            </div>
+
+            <div class="md:col-span-2" *ngIf="admissionForm.get('has_special_needs')?.value">
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Descripcion de necesidades especiales *</label>
+              <textarea formControlName="special_needs_description" rows="3" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all resize-none"></textarea>
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Contacto de emergencia</label>
+              <input type="text" formControlName="emergency_contact_name" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Telefono de emergencia</label>
+              <input type="text" formControlName="emergency_contact_phone" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all" />
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="block text-gray-700 font-bold mb-2 text-sm uppercase">Observaciones</label>
+              <textarea formControlName="notes" rows="4" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none transition-all resize-none" placeholder="Cuentanos algo importante para revisar la solicitud"></textarea>
+            </div>
+          </div>
+
+          <div *ngIf="submitSuccess()" class="mt-6 p-4 bg-green-50 border border-green-200 rounded-xl text-green-800">
+            Pre matricula registrada. El area administrativa revisara tu solicitud.
+          </div>
+
+          <button type="submit" [disabled]="admissionForm.invalid || isSubmitting()" class="w-full mt-8 px-8 py-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            <span *ngIf="!isSubmitting()">Enviar Pre Matricula</span>
+            <span *ngIf="isSubmitting()">Enviando...</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-padding bg-gray-50">
+    <div class="container-custom px-4">
+      <h2 class="text-3xl md:text-4xl font-bold text-center text-blue-900 mb-16">Preguntas Frecuentes</h2>
+
+      <div class="max-w-3xl mx-auto space-y-4">
+        <div *ngFor="let faq of faqs; let i = index" class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100">
+          <button (click)="toggleFaq(i)" class="w-full px-8 py-6 flex items-center justify-between text-left focus:outline-none">
+            <span class="text-lg font-bold text-gray-900 pr-4" [class.text-blue-700]="openFaqIndex() === i">{{ faq.question }}</span>
+            <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 transition-colors" [class.bg-blue-600]="openFaqIndex() === i">
+              <svg class="w-5 h-5 text-blue-600 transition-transform duration-300" [class.rotate-180]="openFaqIndex() === i" [class.text-white]="openFaqIndex() === i" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </button>
+          <div *ngIf="openFaqIndex() === i" class="px-8 pb-8 text-gray-600 leading-relaxed border-t border-gray-50">
+            {{ faq.answer }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

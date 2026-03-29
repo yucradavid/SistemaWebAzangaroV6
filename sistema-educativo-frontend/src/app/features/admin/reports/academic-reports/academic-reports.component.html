@@ -1,0 +1,536 @@
+<!-- //src/app/features/admin/reports/academic-reports/academic-reports.component.html -->
+<div class="min-h-[calc(100vh-80px)] max-w-7xl mx-auto p-6 sm:p-8 space-y-6">
+  <app-back-button></app-back-button>
+
+  <div class="space-y-1">
+    <h1 class="text-3xl font-bold tracking-tight text-slate-900">Reportes Academicos</h1>
+    <p class="text-sm text-slate-500">Consolidados de asistencia, evaluacion y exportes SIAGIE conectados al backend.</p>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div
+      *ngFor="let stat of quickStats"
+      class="rounded-2xl border px-5 py-4 shadow-sm"
+      [ngClass]="stat.tone"
+    >
+      <p class="text-[10px] font-bold uppercase tracking-[0.18em] opacity-80">{{ stat.label }}</p>
+      <p class="mt-2 text-2xl font-black tracking-tight">{{ stat.value }}</p>
+    </div>
+  </div>
+
+  <div
+    *ngIf="error"
+    class="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+  >
+    <svg class="w-5 h-5 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span>{{ error }}</span>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-200 px-5">
+      <div class="flex gap-4 overflow-x-auto">
+        <button
+          (click)="setTab('attendance')"
+          class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-all"
+          [class.border-blue-600]="activeTab === 'attendance'"
+          [class.text-blue-700]="activeTab === 'attendance'"
+          [class.border-transparent]="activeTab !== 'attendance'"
+          [class.text-slate-500]="activeTab !== 'attendance'"
+          [class.hover:text-slate-700]="activeTab !== 'attendance'"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
+            <line x1="16" x2="16" y1="2" y2="6"></line>
+            <line x1="8" x2="8" y1="2" y2="6"></line>
+            <line x1="3" x2="21" y1="10" y2="10"></line>
+            <path d="m9 16 2 2 4-4"></path>
+          </svg>
+          Asistencia
+        </button>
+
+        <button
+          (click)="setTab('evaluation')"
+          class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-all"
+          [class.border-blue-600]="activeTab === 'evaluation'"
+          [class.text-blue-700]="activeTab === 'evaluation'"
+          [class.border-transparent]="activeTab !== 'evaluation'"
+          [class.text-slate-500]="activeTab !== 'evaluation'"
+          [class.hover:text-slate-700]="activeTab !== 'evaluation'"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
+          Evaluacion
+        </button>
+
+        <button
+          (click)="setTab('siagie')"
+          class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-all"
+          [class.border-blue-600]="activeTab === 'siagie'"
+          [class.text-blue-700]="activeTab === 'siagie'"
+          [class.border-transparent]="activeTab !== 'siagie'"
+          [class.text-slate-500]="activeTab !== 'siagie'"
+          [class.hover:text-slate-700]="activeTab !== 'siagie'"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          Exportes SIAGIE
+        </button>
+      </div>
+    </div>
+
+    <div class="p-5 space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div>
+          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Ano Academico</label>
+          <select
+            [(ngModel)]="selectedYear"
+            (ngModelChange)="onYearChange()"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          >
+            <option value="">Seleccionar ano</option>
+            <option *ngFor="let y of academicYears" [value]="y.id">{{ y.year }}</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Periodo</label>
+          <select
+            [(ngModel)]="selectedPeriod"
+            (ngModelChange)="onPeriodChange()"
+            [disabled]="!selectedYear"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">Seleccionar periodo</option>
+            <option *ngFor="let p of periods" [value]="p.id">{{ p.name }}</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Grado</label>
+          <select
+            [(ngModel)]="selectedGrade"
+            (ngModelChange)="onGradeChange()"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          >
+            <option value="">Seleccionar grado</option>
+            <option *ngFor="let g of grades" [value]="g.id">{{ g.name || (g.grade + ' ' + g.level) }}</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Seccion</label>
+          <select
+            [(ngModel)]="selectedSection"
+            (ngModelChange)="onSectionChange()"
+            [disabled]="!selectedGrade"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">Seleccionar seccion</option>
+            <option *ngFor="let s of sections" [value]="s.id">Seccion {{ s.section_letter }}</option>
+          </select>
+        </div>
+
+        <div *ngIf="activeTab === 'evaluation'">
+          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Curso</label>
+          <select
+            [(ngModel)]="selectedCourse"
+            (ngModelChange)="onCourseChange()"
+            [disabled]="!selectedSection"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">Seleccionar curso</option>
+            <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div class="flex flex-wrap gap-2 text-xs text-slate-500">
+          <span *ngFor="let item of selectedFiltersSummary" class="rounded-full bg-slate-100 px-3 py-1">
+            {{ item.label }}: {{ item.value }}
+          </span>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            (click)="clearFilters()"
+            class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-600 transition hover:bg-slate-50"
+          >
+            Limpiar filtros
+          </button>
+          <button
+            type="button"
+            (click)="refresh()"
+            class="rounded-lg bg-slate-900 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white transition hover:bg-slate-800"
+          >
+            Recargar
+          </button>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-blue-100 bg-blue-50/60 px-4 py-3 text-sm text-blue-900">
+        {{ reportHint }}
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="flex items-center justify-center py-16">
+    <div class="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+  </div>
+
+  <ng-container *ngIf="!loading && activeTab === 'attendance'">
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div class="grid gap-4 lg:grid-cols-[1fr_180px]">
+        <div>
+          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Buscar alumno o codigo</label>
+          <input
+            [(ngModel)]="studentSearch"
+            type="text"
+            placeholder="Ej. Paredes, 2024001..."
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          />
+        </div>
+        <button
+          type="button"
+          (click)="clearSearch()"
+          class="self-end rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          Limpiar busqueda
+        </button>
+      </div>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-3">
+      <div class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+        <div class="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
+        <div class="mb-4 flex items-center justify-between">
+          <span class="text-3xl font-semibold tracking-tight text-slate-900">{{ avgAttendance.toFixed(1) }}%</span>
+          <div class="rounded-lg bg-green-50 p-2">
+            <svg class="w-6 h-6 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+              <polyline points="16 7 22 7 22 13"></polyline>
+            </svg>
+          </div>
+        </div>
+        <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Asistencia Promedio</p>
+      </div>
+
+      <div class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+        <div class="absolute left-0 top-0 h-full w-1 bg-red-500"></div>
+        <div class="mb-4 flex items-center justify-between">
+          <span class="text-3xl font-semibold tracking-tight text-slate-900">{{ totalAbsences }}</span>
+          <div class="rounded-lg bg-red-50 p-2">
+            <svg class="w-6 h-6 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+        </div>
+        <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Total Faltas</p>
+      </div>
+
+      <div class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+        <div class="absolute left-0 top-0 h-full w-1 bg-yellow-400"></div>
+        <div class="mb-4 flex items-start justify-between">
+          <div class="space-y-2">
+            <p class="mb-1 text-xs font-bold uppercase tracking-widest text-slate-400">Inasistencia Top 3</p>
+            <ul *ngIf="topAbsentees.length > 0" class="space-y-1 text-sm font-medium text-slate-700">
+              <li *ngFor="let name of topAbsentees; let i = index" class="flex items-center gap-2">
+                <span class="flex h-4 w-4 items-center justify-center rounded-full bg-yellow-100 text-[10px] font-bold text-yellow-700">{{ i + 1 }}</span>
+                {{ name }}
+              </li>
+            </ul>
+            <p *ngIf="topAbsentees.length === 0" class="text-sm italic text-slate-400">Sin datos suficientes</p>
+          </div>
+          <div class="shrink-0 rounded-lg bg-yellow-50 p-2">
+            <svg class="w-6 h-6 text-yellow-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+      <div class="flex flex-col justify-between gap-4 border-b border-slate-50 px-6 py-5 sm:flex-row sm:items-center">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Consolidado de Asistencia</h3>
+          <p class="text-xs font-medium uppercase tracking-tight text-slate-400">{{ attendanceRowsCount }} estudiantes visibles</p>
+        </div>
+        <div class="flex gap-2">
+          <button
+            (click)="exportCSV('attendance')"
+            [disabled]="attendanceRowsForView.length === 0"
+            class="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg class="w-4 h-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Excel / CSV
+          </button>
+          <button
+            (click)="exportPDF('attendance')"
+            [disabled]="attendanceRowsForView.length === 0"
+            class="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            Imprimir PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <div *ngIf="!canQuerySectionReports" class="py-20 text-center">
+          <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 p-4">
+            <svg class="w-8 h-8 text-blue-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3v18"></path>
+              <path d="M3 12h18"></path>
+            </svg>
+          </div>
+          <p class="font-medium text-slate-500">Falta completar el contexto del reporte</p>
+          <p class="text-sm text-slate-400">Selecciona ano, grado y seccion antes de consultar asistencia.</p>
+        </div>
+
+        <div *ngIf="canQuerySectionReports && attendanceRowsForView.length === 0" class="py-20 text-center">
+          <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 p-4">
+            <svg class="w-8 h-8 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </div>
+          <p class="font-medium text-slate-500">No se encontraron registros de asistencia</p>
+          <p class="text-sm text-slate-400">Puede que no haya datos o que la busqueda actual no tenga coincidencias.</p>
+        </div>
+
+        <div *ngIf="attendanceRowsForView.length > 0" class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-slate-100 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                <th class="px-4 py-4 text-left">Codigo</th>
+                <th class="px-4 py-4 text-left">Alumno</th>
+                <th class="px-4 py-4 text-center">% Asistencia</th>
+                <th class="px-4 py-4 text-center">Faltas</th>
+                <th class="px-4 py-4 text-center">Tardanzas</th>
+                <th class="px-4 py-4 text-center">Justificaciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              <tr *ngFor="let row of attendanceRowsForView" class="transition-colors hover:bg-slate-50/60">
+                <td class="px-4 py-4 text-sm font-mono text-slate-500">{{ row.student_code }}</td>
+                <td class="px-4 py-4 text-sm font-bold text-slate-800">{{ row.student_name }}</td>
+                <td class="px-4 py-4 text-center">
+                  <span class="rounded-full px-3 py-1 text-xs font-bold shadow-sm" [class]="attendanceBadgeClass(row.attendance_percentage)">
+                    {{ row.attendance_percentage.toFixed(1) }}%
+                  </span>
+                </td>
+                <td class="px-4 py-4 text-center text-sm font-bold text-red-600">{{ row.total_absences }}</td>
+                <td class="px-4 py-4 text-center text-sm font-bold text-yellow-600">{{ row.total_tardies }}</td>
+                <td class="px-4 py-4 text-center text-sm font-bold text-green-600">{{ row.total_justifications }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="!loading && activeTab === 'evaluation'">
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div class="grid gap-4 lg:grid-cols-[1fr_220px_180px]">
+        <div>
+          <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Buscar alumno o codigo</label>
+          <input
+            [(ngModel)]="studentSearch"
+            type="text"
+            placeholder="Ej. Ramos, 2024005..."
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          />
+        </div>
+        <label class="flex items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+          <input type="checkbox" [(ngModel)]="showOnlyAtRisk" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+          Solo en riesgo
+        </label>
+        <button
+          type="button"
+          (click)="clearSearch()"
+          class="self-end rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          Limpiar
+        </button>
+      </div>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2">
+      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h3 class="mb-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Distribucion de Calificaciones</h3>
+        <div class="space-y-4">
+          <div
+            *ngFor="let g of [
+              { l: 'AD', n: gradeDistribution.AD, c: 'bg-green-500' },
+              { l: 'A', n: gradeDistribution.A, c: 'bg-blue-500' },
+              { l: 'B', n: gradeDistribution.B, c: 'bg-yellow-400' },
+              { l: 'C', n: gradeDistribution.C, c: 'bg-red-500' }
+            ]"
+            class="space-y-1.5"
+          >
+            <div class="flex items-center justify-between text-xs font-bold uppercase tracking-tight">
+              <span class="text-slate-600">{{ g.l }}</span>
+              <span class="text-slate-900">{{ g.n }}%</span>
+            </div>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+              <div class="h-full transition-all duration-1000" [class]="g.c" [style.width]="g.n + '%'"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+        <div class="absolute left-0 top-0 h-full w-1 bg-red-600"></div>
+        <div class="mb-4 flex items-center justify-between">
+          <span class="text-4xl font-semibold tracking-tighter text-slate-900">{{ studentsAtRisk }}</span>
+          <div class="rounded-xl bg-red-50 p-3">
+            <svg class="w-8 h-8 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+        </div>
+        <p class="text-sm font-bold text-slate-900">Estudiantes en Riesgo Academico</p>
+        <p class="mt-1 text-xs font-medium text-slate-400">Con 2 o mas competencias en niveles B o C.</p>
+      </div>
+    </div>
+
+    <div class="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+      <div class="flex flex-col justify-between gap-4 border-b border-slate-50 px-6 py-5 sm:flex-row sm:items-center">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Consolidado de Evaluacion</h3>
+          <p class="text-xs font-medium uppercase tracking-tight text-slate-400">{{ evaluationRowsCount }} alumnos visibles</p>
+        </div>
+        <div class="flex gap-2">
+          <button
+            (click)="exportCSV('evaluation')"
+            [disabled]="evaluationRowsForView.length === 0"
+            class="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            CSV
+          </button>
+          <button
+            (click)="exportPDF('evaluation')"
+            [disabled]="evaluationRowsForView.length === 0"
+            class="flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Descargar Reporte PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <div *ngIf="!canQuerySectionReports" class="py-20 text-center text-slate-400">
+          <p class="font-medium">Falta seleccionar ano, grado y seccion.</p>
+          <p class="mt-1 text-sm">Completa esos filtros para consultar el consolidado de evaluacion.</p>
+        </div>
+
+        <div *ngIf="canQuerySectionReports && evaluationRowsForView.length === 0" class="py-20 text-center text-slate-400">
+          <p class="font-medium">No hay resultados para los filtros seleccionados.</p>
+          <p class="mt-1 text-sm">Puede que no existan datos o que la busqueda/filtro de riesgo no tenga coincidencias.</p>
+        </div>
+
+        <div *ngIf="evaluationRowsForView.length > 0" class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-slate-100 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                <th class="px-4 py-4 text-left">Codigo</th>
+                <th class="px-4 py-4 text-left">Alumno</th>
+                <th *ngFor="let comp of competenciesList" class="px-2 py-4 text-center">
+                  <span class="mx-auto block w-24 truncate" [title]="comp.description">{{ comp.description }}</span>
+                </th>
+                <th class="px-4 py-4 text-center">Final</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              <tr *ngFor="let row of evaluationRowsForView" class="transition-colors hover:bg-slate-50/60">
+                <td class="px-4 py-4 text-xs font-mono text-slate-500">{{ row.student_code }}</td>
+                <td class="px-4 py-4 text-sm font-bold text-slate-800">{{ row.student_name }}</td>
+                <td *ngFor="let comp of competenciesList" class="px-2 py-4 text-center">
+                  <span class="flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-bold" [class]="gradeBadgeClass(row.competencies[comp.id])">
+                    {{ row.competencies[comp.id] || '-' }}
+                  </span>
+                </td>
+                <td class="px-4 py-4 text-center">
+                  <span class="mx-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 text-sm font-bold shadow-sm" [class]="gradeBadgeClass(row.final_grade)">
+                    {{ row.final_grade }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="!loading && activeTab === 'siagie'">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div
+        *ngFor="let exp of [
+          { t: 'Matricula', d: 'Lista consolidada de estudiantes matriculados', i: 'M' },
+          { t: 'Asistencia', d: 'Consolidado de asistencia por periodos', i: 'A' },
+          { t: 'Evaluacion', d: 'Calificaciones por competencias y descriptores', i: 'E' }
+        ]"
+        class="group rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-blue-500/30 hover:shadow-md"
+      >
+        <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-xl font-bold text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+          {{ exp.i }}
+        </div>
+        <h4 class="mb-2 text-lg font-bold text-slate-900">Exporte de {{ exp.t }}</h4>
+        <p class="mb-6 text-sm leading-relaxed text-slate-500">{{ exp.d }}</p>
+        <button
+          (click)="exportSIAGIE(exp.i === 'M' ? 'matricula' : exp.i === 'A' ? 'asistencia' : 'evaluacion')"
+          [disabled]="!selectedYear || !selectedSection"
+          class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Generar CSV
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-start gap-4 rounded-2xl border border-blue-100 bg-blue-50/50 p-6">
+      <div class="shrink-0 rounded-lg bg-blue-100 p-2">
+        <svg class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      </div>
+      <div class="space-y-1">
+        <p class="text-sm font-bold text-blue-900">Nota sobre exportes para el portal SIAGIE</p>
+        <p class="text-xs font-medium leading-relaxed text-blue-700/80">
+          Los archivos se generan en UTF-8 con BOM para que Excel respete los caracteres. Antes de exportar, selecciona el ano y la seccion que deseas consultar en el backend.
+        </p>
+      </div>
+    </div>
+  </ng-container>
+</div>

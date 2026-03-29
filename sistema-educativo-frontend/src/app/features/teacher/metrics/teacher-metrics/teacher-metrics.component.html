@@ -1,0 +1,153 @@
+<div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+  <!-- Header Section -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+    <!-- Decorative background -->
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-cermat-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 flex items-center gap-4">
+      <div class="w-14 h-14 bg-cermat-blue-50 rounded-2xl flex items-center justify-center border border-cermat-blue-100 shadow-sm shrink-0">
+        <i data-lucide="bar-chart-2" class="w-7 h-7 text-cermat-blue-600"></i>
+      </div>
+      <div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Rendimiento y Métricas</h1>
+        <p class="text-slate-500 mt-1 font-medium">Estadísticas detalladas del desempeño académico de tus aulas</p>
+      </div>
+    </div>
+    
+    <div class="relative z-10 flex gap-2">
+      <select class="appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-2.5 pl-4 pr-10 rounded-xl font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-cermat-blue-500/20 cursor-pointer">
+        <option>Todos los cursos</option>
+        <option>Matemáticas 1ro A</option>
+        <option>Comunicación 2do B</option>
+      </select>
+      <button class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 p-2.5 rounded-xl shadow-sm transition-colors tooltip" title="Descargar Reporte">
+        <i data-lucide="download" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Big Metrics Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+    <div *ngFor="let m of metrics; let i = index" 
+         class="bg-white rounded-2xl border border-slate-200/60 p-6 flex flex-col justify-center shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden"
+         [ngStyle]="{'animation-delay': (i * 0.1) + 's'}" class="animate-fade-in-up">
+         
+         <div class="absolute inset-0 bg-gradient-to-br from-transparent to-slate-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+         
+      <div class="flex justify-between items-start mb-4">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner transition-transform duration-500 group-hover:scale-110 {{ m.bg }}">
+          <i [attr.data-lucide]="m.icon" class="w-6 h-6 {{ m.color }} drop-shadow-sm"></i>
+        </div>
+        <div class="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md" [ngClass]="i % 2 === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'">
+           <i [attr.data-lucide]="i % 2 === 0 ? 'trending-up' : 'trending-down'" class="w-3 h-3"></i>
+           {{ i % 2 === 0 ? '+2.4%' : '-1.2%' }}
+        </div>
+      </div>
+      <h3 class="text-slate-500 font-bold tracking-wide text-xs mb-1">{{ m.label }}</h3>
+      <p class="text-3xl font-black text-slate-800 tracking-tight group-hover:text-cermat-blue-700 transition-colors">{{ m.value }}</p>
+    </div>
+    
+    <!-- Cuarta tarjeta estática extra -->
+     <div class="bg-white rounded-2xl border border-slate-200/60 p-6 flex flex-col justify-center shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden animate-fade-in-up" style="animation-delay: 0.3s">
+         <div class="absolute inset-0 bg-gradient-to-br from-transparent to-slate-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div class="flex justify-between items-start mb-4">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner transition-transform duration-500 group-hover:scale-110 bg-amber-50">
+          <i data-lucide="alert-circle" class="w-6 h-6 text-amber-500 drop-shadow-sm"></i>
+        </div>
+        <div class="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md bg-slate-100 text-slate-500">
+           ~
+        </div>
+      </div>
+      <h3 class="text-slate-500 font-bold tracking-wide text-xs mb-1">Alumnos en Riesgo</h3>
+      <p class="text-3xl font-black text-slate-800 tracking-tight group-hover:text-amber-600 transition-colors">4</p>
+    </div>
+  </div>
+
+  <!-- Dashboard Details Area -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Distribución de Notas (Bar Chart Visual Mock) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 lg:col-span-2 relative overflow-hidden group">
+      <div class="flex items-center justify-between mb-8 relative z-10">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+           <i data-lucide="activity" class="w-5 h-5 text-cermat-blue-600"></i> Nivel de Logro (Último periodo)
+        </h3>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Matemáticas 1ro A</span>
+      </div>
+      
+      <!-- Chart Mockup -->
+      <div class="relative h-64 flex items-end justify-around gap-2 pb-6 border-b border-slate-100 z-10 px-2 sm:px-6">
+         <!-- Y axis lines -->
+         <div class="absolute inset-0 flex flex-col justify-between pb-6 opacity-30 pointer-events-none">
+            <div class="border-b border-dashed border-slate-300 w-full"></div>
+            <div class="border-b border-dashed border-slate-300 w-full"></div>
+            <div class="border-b border-dashed border-slate-300 w-full"></div>
+            <div class="border-b border-dashed border-slate-300 w-full"></div>
+         </div>
+         
+         <!-- Bars -->
+         <div class="relative flex flex-col items-center group/bar w-1/5 max-w-[60px]">
+            <div class="absolute -top-8 bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity shadow-lg">15%</div>
+            <div class="w-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all duration-700 ease-out hover:brightness-110" style="height: 15%"></div>
+            <span class="absolute -bottom-6 text-sm font-extrabold text-emerald-600">AD</span>
+         </div>
+         
+         <div class="relative flex flex-col items-center group/bar w-1/5 max-w-[60px]">
+             <div class="absolute -top-8 bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity shadow-lg">45%</div>
+             <div class="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all duration-700 ease-out hover:brightness-110" style="height: 45%"></div>
+             <span class="absolute -bottom-6 text-sm font-extrabold text-blue-600">A</span>
+         </div>
+         
+         <div class="relative flex flex-col items-center group/bar w-1/5 max-w-[60px]">
+             <div class="absolute -top-8 bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity shadow-lg">30%</div>
+             <div class="w-full bg-gradient-to-t from-amber-500 to-amber-400 rounded-t-lg shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all duration-700 ease-out hover:brightness-110" style="height: 30%"></div>
+             <span class="absolute -bottom-6 text-sm font-extrabold text-amber-600">B</span>
+         </div>
+         
+         <div class="relative flex flex-col items-center group/bar w-1/5 max-w-[60px]">
+             <div class="absolute -top-8 bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity shadow-lg">10%</div>
+             <div class="w-full bg-gradient-to-t from-rose-500 to-rose-400 rounded-t-lg shadow-[0_0_15px_rgba(244,63,94,0.3)] transition-all duration-700 ease-out hover:brightness-110" style="height: 10%"></div>
+             <span class="absolute -bottom-6 text-sm font-extrabold text-rose-600">C</span>
+         </div>
+      </div>
+    </div>
+
+    <!-- Progreso de Tareas (Circular Mock) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 flex flex-col relative overflow-hidden group">
+      <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-6">
+         <i data-lucide="check-square" class="w-5 h-5 text-indigo-500"></i> Entrega de Tareas
+      </h3>
+      
+      <div class="flex-1 flex flex-col items-center justify-center relative">
+         <!-- Circular Progress Mock -->
+         <div class="w-48 h-48 rounded-full border-[16px] border-slate-100 relative flex items-center justify-center shrink-0">
+             <!-- SVG Arc overlay (Mocking an 80% circle) -->
+             <svg class="absolute inset-0 w-full h-full transform -rotate-90 pointer-events-none drop-shadow-lg">
+                <circle cx="50%" cy="50%" r="41%" fill="transparent" stroke="url(#gradient)" stroke-width="16" stroke-dasharray="260" stroke-dashoffset="52" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
+                <defs>
+                   <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                     <stop offset="0%" stop-color="#4F46E5" />
+                     <stop offset="100%" stop-color="#0EA5E9" />
+                   </linearGradient>
+                </defs>
+             </svg>
+             
+             <div class="text-center">
+                 <span class="text-4xl font-black text-slate-800 tracking-tighter">80%</span>
+                 <p class="text-xs font-bold text-slate-400 uppercase mt-1">Completadas</p>
+             </div>
+         </div>
+      </div>
+      
+      <div class="mt-6 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4 text-center">
+         <div>
+            <p class="text-xs font-bold text-slate-400 uppercase">A tiempo</p>
+            <p class="text-lg font-extrabold text-indigo-700">142</p>
+         </div>
+         <div>
+            <p class="text-xs font-bold text-slate-400 uppercase">Retrasadas</p>
+            <p class="text-lg font-extrabold text-rose-600">8</p>
+         </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,23 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 28%),
+    linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.finance-fade-in {
+  animation: financeFadeIn 0.35s ease-out;
+}
+
+@keyframes financeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

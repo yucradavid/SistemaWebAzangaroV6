@@ -1,0 +1,478 @@
+<div class="admin-users-page min-h-[calc(100vh-80px)] max-w-7xl mx-auto space-y-8 p-6 text-slate-700 sm:p-8 lg:p-10">
+  <app-back-button></app-back-button>
+
+  <section class="hero-panel relative overflow-hidden rounded-[2rem] p-6 text-white lg:p-8">
+    <div class="relative z-10 grid items-start gap-6 lg:grid-cols-[1.4fr,0.9fr]">
+      <div class="space-y-5">
+        <div class="space-y-3">
+          <span class="eyebrow-chip">Configuracion de usuarios</span>
+          <div class="space-y-2">
+            <h1 class="text-3xl font-black tracking-tight sm:text-4xl">Gestion de usuarios y perfiles</h1>
+            <p class="max-w-2xl text-sm text-white/80 sm:text-base">
+              Administra roles operativos y academicos desde un solo modulo. Los roles simples crean
+              <strong>usuario + perfil</strong> y los roles academicos agregan su entidad real sin pasos manuales.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <div class="hero-chip">
+            <span class="hero-chip__label">Roles simples</span>
+            <strong>{{ simpleRoleCount }}</strong>
+          </div>
+          <div class="hero-chip">
+            <span class="hero-chip__label">Roles academicos</span>
+            <strong>{{ academicRoleCount }}</strong>
+          </div>
+          <div class="hero-chip">
+            <span class="hero-chip__label">Vista actual</span>
+            <strong>{{ currentViewCount }} usuarios</strong>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <button
+            type="button"
+            (click)="openCreateModal()"
+            class="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-900 transition hover:-translate-y-0.5 hover:bg-slate-100">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Crear usuario
+          </button>
+          <div class="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-xs font-semibold text-white/80">
+            Usa este panel para perfiles administrativos, docentes, estudiantes y apoderados con la misma logica de negocio.
+          </div>
+        </div>
+      </div>
+
+      <aside class="hero-aside space-y-4 rounded-[1.5rem] p-5">
+        <div>
+          <p class="text-[11px] font-bold uppercase tracking-[0.28em] text-white/55">Regla principal</p>
+          <h2 class="mt-2 text-xl font-black leading-tight">No todos los roles necesitan tabla academica</h2>
+        </div>
+        <div class="space-y-3 text-sm text-white/80">
+          <div class="hero-note">
+            <strong>Simple:</strong> admin, finanzas, caja, secretaria, administrativo y editor web.
+          </div>
+          <div class="hero-note">
+            <strong>Academico:</strong> docente, estudiante y apoderado crean su relacion real para modulos de clases, matricula o tutoria.
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="flex flex-wrap gap-3">
+    <app-setting-metric-card label="Total Usuarios" [value]="stats().total"></app-setting-metric-card>
+    <app-setting-metric-card label="Activos" [value]="stats().active"></app-setting-metric-card>
+    <app-setting-metric-card label="Inactivos" [value]="stats().inactive"></app-setting-metric-card>
+    <app-setting-metric-card label="Docentes" [value]="stats().teachers"></app-setting-metric-card>
+    <app-setting-metric-card label="Academicos" [value]="academicUsersCount"></app-setting-metric-card>
+    <app-setting-metric-card label="Operativos" [value]="operationalUsersCount"></app-setting-metric-card>
+  </section>
+
+  <section class="grid gap-4 lg:grid-cols-2">
+    <article class="grid items-start gap-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-[auto,1fr]">
+      <div class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M4 7h16M4 12h10M4 17h7" />
+        </svg>
+      </div>
+      <div class="space-y-2">
+        <p class="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Roles simples</p>
+        <h3 class="text-lg font-black text-slate-950">Solo crean usuario y perfil</h3>
+        <p class="text-sm text-slate-600">
+          Ideales para administracion, caja, finanzas, secretaria o gestion web. No requieren tablas academicas extras.
+        </p>
+      </div>
+    </article>
+
+    <article class="grid items-start gap-4 rounded-[1.5rem] border border-blue-100 bg-gradient-to-b from-blue-50 to-white p-5 shadow-sm md:grid-cols-[auto,1fr]">
+      <div class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7l7-4z" />
+        </svg>
+      </div>
+      <div class="space-y-2">
+        <p class="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Roles con entidad real</p>
+        <h3 class="text-lg font-black text-slate-950">Sincronizan su tabla academica</h3>
+        <p class="text-sm text-slate-600">
+          Docentes, estudiantes y apoderados generan su registro real para asignaciones, matricula y vinculos familiares.
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <section class="panel-card p-4 sm:p-5">
+    <div class="grid gap-4 lg:grid-cols-[1.4fr,0.8fr,0.8fr]">
+      <label class="flex flex-col gap-2">
+        <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Busqueda</span>
+        <input
+          type="text"
+          [(ngModel)]="filters.q"
+          (input)="loadUsers()"
+          placeholder="Buscar por email o nombre"
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+      </label>
+
+      <label class="flex flex-col gap-2">
+        <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Rol</span>
+        <select
+          [(ngModel)]="filters.role"
+          (change)="loadUsers()"
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+          <option value="Todos">Todos los roles</option>
+          <option *ngFor="let role of roleOptions" [value]="role.value">{{ role.label }}</option>
+        </select>
+      </label>
+
+      <label class="flex flex-col gap-2">
+        <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Estado</span>
+        <select
+          [(ngModel)]="filters.isActive"
+          (change)="loadUsers()"
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+          <option [ngValue]="undefined">Todos los estados</option>
+          <option [ngValue]="true">Activo</option>
+          <option [ngValue]="false">Inactivo</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section *ngIf="loading()" class="panel-card flex justify-center py-12">
+    <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900"></div>
+  </section>
+
+  <section *ngIf="!loading()" class="panel-card overflow-hidden">
+    <div class="flex flex-wrap items-end justify-between gap-4 px-6 pb-4 pt-6">
+      <div>
+        <p class="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Directorio interno</p>
+        <h2 class="text-lg font-black text-slate-950">Usuarios registrados</h2>
+      </div>
+      <p class="text-sm font-semibold text-slate-500">{{ currentViewCount }} resultados en la vista actual</p>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-left">
+        <thead>
+          <tr class="border-b border-slate-100 bg-slate-50/70">
+            <th class="px-6 py-4 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Usuario</th>
+            <th class="px-6 py-4 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Rol</th>
+            <th class="px-6 py-4 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Cobertura</th>
+            <th class="px-6 py-4 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Estado</th>
+            <th class="px-6 py-4 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Fecha</th>
+            <th class="px-6 py-4 text-right text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Accion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users(); trackBy: trackByUser" class="border-b border-slate-50 transition hover:bg-slate-50/60">
+            <td class="px-6 py-5 align-middle">
+              <div class="flex items-center gap-3">
+                <div class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-slate-200 text-sm font-black uppercase text-slate-900">
+                  {{ user.full_name.charAt(0) || 'U' }}
+                </div>
+                <div>
+                  <p class="text-sm font-black uppercase tracking-tight text-slate-900">{{ user.full_name }}</p>
+                  <p class="text-xs font-medium text-slate-500">{{ user.email }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-5 align-middle">
+              <span [class]="'inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] ' + getRoleClass(user.role)">
+                {{ getRoleLabel(user.role) }}
+              </span>
+            </td>
+            <td class="px-6 py-5 align-middle">
+              <div class="space-y-1">
+                <p class="text-sm font-bold text-slate-900">{{ getRoleScopeLabel(user.role) }}</p>
+                <p class="text-xs text-slate-500">{{ getRoleRecordTargets(user.role).join(' + ') }}</p>
+              </div>
+            </td>
+            <td class="px-6 py-5 align-middle">
+              <div
+                class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em]"
+                [class]="user.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'">
+                <span class="h-2 w-2 rounded-full" [class]="user.is_active ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+                {{ user.is_active ? 'Activo' : 'Inactivo' }}
+              </div>
+            </td>
+            <td class="px-6 py-5 align-middle">
+              <p class="text-sm font-semibold text-slate-600">{{ user.created_at | date:'dd MMM yyyy' }}</p>
+            </td>
+            <td class="px-6 py-5 text-right align-middle">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-black uppercase tracking-[0.18em] text-rose-600 transition hover:bg-rose-600 hover:text-white"
+                (click)="deleteUser(user)">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+                Eliminar
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="users().length === 0" class="grid justify-items-center gap-3 px-6 py-12 text-center">
+      <div class="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+        <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-3.5-3.5"></path>
+        </svg>
+      </div>
+      <h3 class="text-lg font-black text-slate-900">No hay usuarios para este filtro</h3>
+      <p class="max-w-md text-sm text-slate-500">
+        Ajusta la busqueda, cambia el rol o registra un nuevo usuario desde el boton principal.
+      </p>
+    </div>
+  </section>
+
+  <div *ngIf="showModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm">
+    <div class="modal-shell max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-100 px-6 py-5 sm:px-8">
+        <div>
+          <p class="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Alta de usuario</p>
+          <h2 class="text-2xl font-black tracking-tight text-slate-950">Crear perfil por rol</h2>
+        </div>
+        <button type="button" (click)="closeModal()" class="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form (submit)="createUser($event)" class="modal-grid overflow-y-auto p-6 sm:p-8">
+        <div class="space-y-6">
+          <section class="panel-card p-5">
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="flex flex-col gap-2 md:col-span-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Nombre completo</span>
+                <input type="text" [(ngModel)]="newUser.name" name="name" required placeholder="Ej: Juan Perez Quispe"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Email institucional</span>
+                <input type="email" [(ngModel)]="newUser.email" name="email" required placeholder="usuario@cermat.edu.pe"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Contrasena temporal</span>
+                <input type="password" [(ngModel)]="newUser.password" name="password" required placeholder="********"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Rol del sistema</span>
+                <select [(ngModel)]="newUser.role" name="role" required
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+                  <option *ngFor="let role of roleOptions" [value]="role.value">{{ role.label }}</option>
+                </select>
+              </label>
+
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">DNI</span>
+                <input type="text" [(ngModel)]="newUser.dni" name="dni" placeholder="Opcional"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+            </div>
+          </section>
+
+          <section *ngIf="newUser.role === 'teacher'" class="panel-card p-5">
+            <div class="mb-4">
+              <p class="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Datos docentes</p>
+              <h3 class="text-lg font-black text-slate-950">Informacion laboral</h3>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Telefono</span>
+                <input type="text" [(ngModel)]="newUser.phone" name="teacher_phone" placeholder="Opcional"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Fecha de ingreso</span>
+                <input type="date" [(ngModel)]="newUser.hire_date" name="hire_date"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+              <label class="flex flex-col gap-2 md:col-span-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Especialidad</span>
+                <input type="text" [(ngModel)]="newUser.specialization" name="specialization" placeholder="Ej: Matematica"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+            </div>
+          </section>
+
+          <section *ngIf="newUser.role === 'student'" class="panel-card p-5">
+            <div class="mb-4">
+              <p class="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Datos academicos</p>
+              <h3 class="text-lg font-black text-slate-950">Matricula inicial</h3>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Fecha de nacimiento</span>
+                <input type="date" [(ngModel)]="newUser.birth_date" name="birth_date"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Genero</span>
+                <select [(ngModel)]="newUser.gender" name="gender"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+                  <option value="">Selecciona</option>
+                  <option value="M">Masculino</option>
+                  <option value="F">Femenino</option>
+                </select>
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Seccion inicial</span>
+                <select [(ngModel)]="newUser.section_id" name="section_id"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+                  <option value="">Sin seccion</option>
+                  <option *ngFor="let section of sections()" [value]="section.id">{{ getSectionLabel(section) }}</option>
+                </select>
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Fecha de matricula</span>
+                <input type="date" [(ngModel)]="newUser.enrollment_date" name="enrollment_date"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+              <label class="flex flex-col gap-2 md:col-span-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Direccion</span>
+                <input type="text" [(ngModel)]="newUser.address" name="student_address" placeholder="Opcional"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+            </div>
+            <div class="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+              El estudiante se registra primero y luego puede vincularse con su apoderado desde el formulario correspondiente.
+            </div>
+          </section>
+
+          <section *ngIf="newUser.role === 'guardian'" class="panel-card p-5">
+            <div class="mb-4">
+              <p class="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Datos del apoderado</p>
+              <h3 class="text-lg font-black text-slate-950">Relacion familiar</h3>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Telefono</span>
+                <input type="text" [(ngModel)]="newUser.phone" name="guardian_phone" placeholder="Opcional"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Relacion</span>
+                <input type="text" [(ngModel)]="newUser.relationship" name="relationship" placeholder="Ej: Madre, Padre, Tio"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+              <label class="flex flex-col gap-2 md:col-span-2">
+                <span class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Direccion</span>
+                <input type="text" [(ngModel)]="newUser.address" name="guardian_address" placeholder="Opcional"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+              </label>
+
+              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 md:col-span-2">
+                <input type="checkbox" [(ngModel)]="newUser.is_primary" name="is_primary" class="h-4 w-4">
+                <span>Marcar como apoderado principal</span>
+              </label>
+
+              <div class="md:col-span-2">
+                <span class="mb-2 block text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Buscar estudiante relacionado</span>
+                <input
+                  type="text"
+                  [(ngModel)]="studentSearchText"
+                  (ngModelChange)="onStudentSearchChange($event)"
+                  name="related_student_search"
+                  placeholder="Escribe nombre, codigo o DNI"
+                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100">
+
+                <div *ngIf="searchingStudents()" class="mt-2 text-sm font-semibold text-slate-500">Buscando estudiantes...</div>
+
+                <div *ngIf="studentSearchText.trim().length >= 2 && students().length > 0" class="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                  <button
+                    type="button"
+                    *ngFor="let student of students()"
+                    (click)="selectStudent(student)"
+                    class="flex w-full items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50 last:border-b-0">
+                    <span class="text-sm font-extrabold text-slate-900">{{ getStudentLabel(student) }}</span>
+                    <span class="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{{ student.dni || 'Sin DNI' }}</span>
+                  </button>
+                </div>
+
+                <div *ngIf="studentSearchText.trim().length >= 2 && !searchingStudents() && students().length === 0" class="mt-2 text-sm font-semibold text-slate-500">
+                  No se encontraron estudiantes.
+                </div>
+
+                <div *ngIf="newUser.related_student_id" class="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+                  <div>
+                    <p class="text-[11px] font-black uppercase tracking-[0.22em] text-blue-500">Estudiante seleccionado</p>
+                    <p class="text-sm font-extrabold text-slate-900">{{ studentSearchText }}</p>
+                  </div>
+                  <button type="button" (click)="clearStudentSelection()" class="rounded-xl bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-blue-600">
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+
+              <label *ngIf="newUser.related_student_id" class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 md:col-span-2">
+                <input type="checkbox" [(ngModel)]="newUser.relationship_is_primary" name="guardian_relationship_is_primary" class="h-4 w-4">
+                <span>Marcar este vinculo como principal</span>
+              </label>
+            </div>
+          </section>
+
+          <div *ngIf="isSimpleRole(newUser.role)" class="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+            Este rol solo crea usuario y perfil. No necesita una tabla academica adicional.
+          </div>
+
+          <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button type="button" (click)="closeModal()" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition hover:-translate-y-0.5 hover:border-slate-300">
+              Cancelar
+            </button>
+            <button type="submit" [disabled]="submitting()" class="rounded-2xl bg-gradient-to-r from-slate-900 to-blue-600 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60">
+              {{ submitting() ? 'Creando...' : 'Confirmar creacion' }}
+            </button>
+          </div>
+        </div>
+
+        <aside class="space-y-4">
+          <section class="panel-card sticky top-0 space-y-4 p-5">
+            <span [class]="'inline-flex w-fit rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] ' + getRoleClass(newUser.role)">
+              {{ getRoleLabel(newUser.role) }}
+            </span>
+
+            <div>
+              <p class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Que crea este rol</p>
+              <h3 class="mt-2 text-xl font-black text-slate-950">{{ getRoleScopeLabel(newUser.role) }}</h3>
+              <p class="mt-2 text-sm text-slate-600">{{ getRoleHelperText() }}</p>
+            </div>
+
+            <div class="space-y-3">
+              <p class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Tablas afectadas</p>
+              <div class="flex flex-wrap gap-2">
+                <span *ngFor="let target of getRoleRecordTargets(newUser.role)" class="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-slate-700">
+                  {{ target }}
+                </span>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+              <strong>Importante:</strong> usa roles simples para personal operativo y reserva roles academicos para perfiles que deban existir en modulos de clases, matricula o tutoria.
+            </div>
+          </section>
+
+          <section class="panel-card p-5">
+            <p class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Buenas practicas</p>
+            <ul class="mt-3 list-disc space-y-3 pl-5 text-sm text-slate-600">
+              <li>Usa correo institucional unico por persona.</li>
+              <li>Define el rol correcto antes de guardar para evitar registros innecesarios.</li>
+              <li>Si el rol es academico, completa sus datos base desde este mismo formulario.</li>
+            </ul>
+          </section>
+        </aside>
+      </form>
+    </div>
+  </div>
+</div>

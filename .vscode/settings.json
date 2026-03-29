@@ -1,0 +1,5 @@
+{
+    "intelephense.environment.phpVersion": "8.2.0",
+    "php.validate.executablePath": "C:\\php\\php.exe",
+    "php.executablePath": "C:\\php\\php.exe"
+}
