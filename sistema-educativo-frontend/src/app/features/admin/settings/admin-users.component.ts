@@ -63,7 +63,7 @@ export class AdminUsersComponent implements OnInit {
     { value: 'student', label: 'Estudiante' },
     { value: 'guardian', label: 'Apoderado' },
     { value: 'cashier', label: 'Caja' },
-    { value: 'administrative', label: 'Administrativo' },
+    { value: 'administrative', label: 'Encargado de Asistencia' },
     { value: 'finance', label: 'Finanzas' },
     { value: 'web_editor', label: 'Editor Web' }
   ];
@@ -209,6 +209,8 @@ export class AdminUsersComponent implements OnInit {
         return 'Crea user y profile para finanzas sin tabla academica adicional';
       case 'web_editor':
         return 'Crea user y profile para la gestion del sitio web institucional';
+      case 'administrative':
+        return 'Crea user y profile para operar unicamente el modulo de asistencia';
       default:
         return 'Crea user y profile para roles administrativos';
     }

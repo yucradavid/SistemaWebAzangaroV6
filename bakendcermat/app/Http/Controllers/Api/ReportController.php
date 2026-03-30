@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentCourseEnrollment;
+use App\Services\DailyAttendanceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -13,6 +14,11 @@ use Illuminate\Validation\ValidationException;
 
 class ReportController extends Controller
 {
+    public function __construct(
+        private readonly DailyAttendanceService $dailyAttendanceService
+    ) {
+    }
+
     /**
      * BOLETA / REPORTE DE NOTAS
      * GET /api/reports/students/{student}/report-card?period_id=UUID
@@ -408,6 +414,12 @@ class ReportController extends Controller
             ->orderByDesc('attendance.updated_at')
             ->get();
 
+        $dailyRecords = $this->dailyAttendanceService->getStudentDailyRecords(
+            (string) $student->id,
+            $dateFrom ? (string) $dateFrom : null,
+            $dateTo ? (string) $dateTo : null
+        );
+
         return response()->json([
             'student_id' => $student->id,
             'filters' => [
@@ -417,6 +429,8 @@ class ReportController extends Controller
             'counts_by_status' => $counts,
             'records' => $records,
             'recent' => $records->take(30)->values(),
+            'daily_records' => $dailyRecords,
+            'today_record' => $dailyRecords->firstWhere('date', now()->toDateString()),
         ]);
     }
 

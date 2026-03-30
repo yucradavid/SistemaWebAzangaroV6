@@ -1,0 +1,530 @@
+{
+  "info": {
+    "name": "CERMAT SCHOOL - Modulo Noticias API",
+    "description": "Coleccion actualizada segun rutas, requests, controller, model y resource vigentes del modulo Noticias.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Helpers de autenticacion para consumir los endpoints protegidos del modulo Noticias.",
+      "item": [
+        {
+          "name": "Login - Obtener Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@cermatschool.edu.pe\",\n  \"password\": \"12345678\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "description": "Autentica con email y password. El backend espera exactamente estos campos.\n\nValidaciones reales:\n- `email`: requerido, formato email\n- `password`: requerido, string, minimo 6 caracteres"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Publico",
+      "description": "Endpoints publicos del modulo Noticias. No requieren token.",
+      "item": [
+        {
+          "name": "Listar Noticias Publicadas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/public/news?per_page=12&page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "news"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "12"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "category",
+                  "value": "eventos",
+                  "disabled": true
+                },
+                {
+                  "key": "featured",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "olimpiada",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lista solo noticias con `status=publicado` y con `published_at` nulo o menor/igual a ahora.\n\nFiltros reales:\n- `category`: institucional, academico, eventos, comunicados\n- `featured`: true/false\n- `q`: busca en `title` y `excerpt`\n- `per_page`: default 12\n- `page`: paginacion"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Noticia por Slug",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/public/news/{{news_slug}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "news",
+                "{{news_slug}}"
+              ]
+            },
+            "description": "Obtiene una noticia por slug usando route model binding `{publicNews:slug}`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Gestion de noticias. Requiere Bearer token y uno de estos roles: admin, director, coordinator, secretary, web_editor.",
+      "item": [
+        {
+          "name": "Listar Todas las Noticias",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/public-news?per_page=20&page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public-news"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "20"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "status",
+                  "value": "publicado",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "eventos",
+                  "disabled": true
+                },
+                {
+                  "key": "is_featured",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "olimpiada",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lista noticias de cualquier estado.\n\nFiltros reales:\n- `status`: borrador, publicado, archivado\n- `category`: institucional, academico, eventos, comunicados\n- `is_featured`: true/false\n- `q`: busca en `title`, `excerpt` y `content`\n- `per_page`: default 20\n- `page`: paginacion\n\nRespuesta real transformada por `PublicNewsResource`:\n- `image_url` -> `imageUrl`\n- `is_featured` -> `featured`\n- `published_at` -> `date` y `publishedAt`\n- `createdBy` y `updatedBy` solo aparecen si el usuario esta autorizado"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Noticia por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/public-news/{{news_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public-news",
+                "{{news_id}}"
+              ]
+            },
+            "description": "Obtiene una noticia por UUID."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Noticia - Completa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Gran inauguracion del ano academico 2026\",\n  \"slug\": \"gran-inauguracion-del-ano-academico-2026\",\n  \"excerpt\": \"Celebramos el inicio de un nuevo ciclo con toda la comunidad educativa.\",\n  \"content\": \"El ano academico 2026 inicia con nuevas metas institucionales, actividades de bienvenida y compromiso con la excelencia educativa.\",\n  \"image_url\": \"https://images.unsplash.com/photo-1523050853063-8802a6359561?auto=format&fit=crop&w=1200&q=80\",\n  \"category\": \"institucional\",\n  \"author\": \"Direccion General\",\n  \"status\": \"publicado\",\n  \"is_featured\": true,\n  \"published_at\": \"2026-03-29 08:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/public-news",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public-news"
+              ]
+            },
+            "description": "Crea una noticia.\n\nCampos requeridos reales:\n- `title`\n- `excerpt`\n\nCampos opcionales reales:\n- `slug`: unico; si no se envia, el backend lo genera desde `title`\n- `content`\n- `image_url`\n- `category`: institucional, academico, eventos, comunicados\n- `author`\n- `status`: borrador, publicado, archivado\n- `is_featured`: boolean\n- `published_at`: fecha valida\n\nReglas automaticas del controller:\n- si no envias `category`, usa `institucional`\n- si no envias `author`, usa `Direccion General`\n- si no envias `status`, usa `borrador`\n- si no envias `is_featured`, usa `false`\n- si `status=publicado` y no mandas `published_at`, el backend coloca la fecha/hora actual"
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Noticia - Minima",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Taller de innovacion tecnologica en primaria\",\n  \"excerpt\": \"Nuestros estudiantes exploran robotica y programacion basica en una jornada creativa.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/public-news",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public-news"
+              ]
+            },
+            "description": "Caso minimo valido. El backend completa slug, category, author, status e is_featured con valores por defecto."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Noticia - PUT",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Olimpiada de matematicas 2026 - Resultados finales\",\n  \"excerpt\": \"Nuestros alumnos obtienen el primer lugar en la etapa regional.\",\n  \"content\": \"Compartimos resultados, reconocimientos y testimonios de la jornada.\",\n  \"category\": \"eventos\",\n  \"author\": \"Area Academica\",\n  \"status\": \"publicado\",\n  \"is_featured\": true,\n  \"published_at\": \"2026-03-29 10:30:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/public-news/{{news_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public-news",
+                "{{news_id}}"
+              ]
+            },
+            "description": "Actualiza una noticia existente. El request de update acepta actualizacion parcial aunque uses PUT.\n\nReglas reales:\n- si envias `title` y no envias `slug`, el controller regenera `slug`\n- si el resultado final queda en `status=publicado` y la noticia aun no tenia `published_at`, el backend coloca fecha/hora actual si tampoco la envias"
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Noticia - PATCH",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"publicado\",\n  \"is_featured\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/public-news/{{news_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public-news",
+                "{{news_id}}"
+              ]
+            },
+            "description": "Actualizacion parcial real sobre la misma ruta `public-news/{id}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar Status a Publicado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"publicado\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/public-news/{{news_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public-news",
+                "{{news_id}}"
+              ]
+            },
+            "description": "Publica una noticia. Si no tenia `published_at`, el backend puede autocompletarlo con la fecha/hora actual."
+          },
+          "response": []
+        },
+        {
+          "name": "Destacar Noticia",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_featured\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/public-news/{{news_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public-news",
+                "{{news_id}}"
+              ]
+            },
+            "description": "Marca o desmarca la noticia como destacada."
+          },
+          "response": []
+        },
+        {
+          "name": "Archivar Noticia",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"archivado\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/public-news/{{news_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public-news",
+                "{{news_id}}"
+              ]
+            },
+            "description": "Ejemplo util para mover la noticia al estado `archivado`."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar Noticia",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/public-news/{{news_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public-news",
+                "{{news_id}}"
+              ]
+            },
+            "description": "Elimina la noticia. La respuesta esperada es `204 No Content`."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "news_id",
+      "value": "610c21c5-43aa-4eeb-b42a-b03eb065b24f",
+      "type": "string"
+    },
+    {
+      "key": "news_slug",
+      "value": "nothing-610c21c5",
+      "type": "string"
+    }
+  ]
+}

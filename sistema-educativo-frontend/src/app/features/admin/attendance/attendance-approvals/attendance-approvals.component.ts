@@ -5,25 +5,24 @@ import { createIcons, icons } from 'lucide';
 import Swal from 'sweetalert2';
 import {
   AdminAttendanceOverview,
-  AdminAttendanceTeacherStatus,
   AttendanceAssignment,
   AttendanceJustification,
   AttendanceRecord,
   AttendanceService,
   AttendanceStatus,
+  DailyAttendanceCheckpoint,
+  DailyAttendanceQrSession,
+  DailyAttendanceSectionResponse,
   JustificationStatus,
   StudentSummary,
   TeacherAttendanceContextResponse,
 } from '@core/services/attendance.service';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
-import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
+import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 interface AttendanceState {
-  attendanceId?: string;
   status: AttendanceStatus;
   justification: string;
-  lockedByApprovedJustification: boolean;
-  approvedJustificationReason?: string | null;
   updatedAt?: string | null;
   history: AttendanceRecord[];
   historyOpen: boolean;
@@ -46,7 +45,9 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
 
   selectedCourseId = '';
   selectedSectionId = '';
+  selectedAcademicYearId = '';
   selectedDate = new Date().toISOString().split('T')[0];
+  selectedCheckpoint: DailyAttendanceCheckpoint = 'entrada';
   searchTerm = '';
   error = '';
   success = '';
@@ -56,6 +57,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
 
   context: TeacherAttendanceContextResponse | null = null;
   adminOverview: AdminAttendanceOverview | null = null;
+  dailyAttendance: DailyAttendanceSectionResponse | null = null;
   assignments: AttendanceAssignment[] = [];
   selectedAssignment: AttendanceAssignment | null = null;
   students: StudentSummary[] = [];
@@ -103,16 +105,20 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     return this.justifications.filter((item) => item.status === 'pendiente').length;
   }
 
-  get pendingTeacherStatuses(): AdminAttendanceTeacherStatus[] {
-    return (this.adminOverview?.teacher_statuses || []).filter((item) => !item.is_complete);
+  get activeQrSession(): DailyAttendanceQrSession | null {
+    return (this.dailyAttendance?.qr_sessions || []).find(
+      (session) => session.checkpoint_type === this.selectedCheckpoint && session.status === 'activo'
+    ) || null;
+  }
+
+  get currentCheckpointLabel(): string {
+    return this.selectedCheckpoint === 'entrada' ? 'Entrada QR' : 'Salida QR';
   }
 
   recordFor(studentId: string): AttendanceState {
     return this.attendanceRecords[studentId] ?? {
       status: 'presente',
       justification: '',
-      lockedByApprovedJustification: false,
-      approvedJustificationReason: null,
       updatedAt: null,
       history: [],
       historyOpen: false,
@@ -142,9 +148,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
         }
 
         this.selectedAssignment = this.assignments[0];
-        this.selectedCourseId = this.selectedAssignment.course_id;
-        this.selectedSectionId = this.selectedAssignment.section_id;
-
+        this.applyAssignment(this.selectedAssignment);
         this.loadStudents();
         this.loadJustifications();
       },
@@ -162,31 +166,33 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     if (!this.selectedAssignment) {
       this.selectedCourseId = '';
       this.selectedSectionId = '';
+      this.selectedAcademicYearId = '';
       this.students = [];
       this.attendanceRecords = {};
       this.justifications = [];
+      this.dailyAttendance = null;
       return;
     }
 
-    this.selectedCourseId = this.selectedAssignment.course_id;
-    this.selectedSectionId = this.selectedAssignment.section_id;
+    this.applyAssignment(this.selectedAssignment);
     this.loadStudents();
     this.loadJustifications();
   }
 
   onDateChange(): void {
-    if (!this.selectedAssignment) {
-      this.loadAdminOverview();
-      return;
-    }
-
     this.loadAdminOverview();
-    this.loadStudents();
-    this.loadJustifications();
+    if (this.selectedAssignment) {
+      this.loadDailyAttendance();
+      this.loadJustifications();
+    }
+  }
+
+  onCheckpointChange(): void {
+    this.syncAttendanceStateFromDaily();
   }
 
   loadStudents(): void {
-    if (!this.selectedCourseId || !this.selectedSectionId) {
+    if (!this.selectedSectionId || !this.selectedAcademicYearId) {
       return;
     }
 
@@ -195,15 +201,23 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     this.success = '';
 
     this.attendanceService
-      .getStudentsForAttendance(this.selectedCourseId, this.selectedSectionId, this.selectedAssignment?.academic_year_id)
+      .getStudentsForSectionAttendance(this.selectedSectionId, this.selectedAcademicYearId)
       .subscribe({
         next: (res) => {
-          this.students = (res.data || [])
-            .map((enrollment: any) => enrollment.student ?? null)
-            .filter((student: StudentSummary | null) => !!student) as StudentSummary[];
+          const uniqueStudents = new Map<string, StudentSummary>();
+          (res.data || []).forEach((enrollment: any) => {
+            const student = enrollment.student ?? null;
+            if (student?.id && !uniqueStudents.has(student.id)) {
+              uniqueStudents.set(student.id, student);
+            }
+          });
+
+          this.students = Array.from(uniqueStudents.values()).sort((a, b) =>
+            this.studentFullName(a).localeCompare(this.studentFullName(b))
+          );
 
           this.initRecords();
-          this.loadExistingAttendance();
+          this.loadDailyAttendance();
         },
         error: (err) => {
           this.error = err.error?.message || 'Error al cargar estudiantes.';
@@ -253,12 +267,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
 
   updateAttendance(studentId: string, field: 'status' | 'justification', value: string): void {
     const current = this.attendanceRecords[studentId];
-
     if (!current) {
-      return;
-    }
-
-    if (current.lockedByApprovedJustification && field === 'status') {
       return;
     }
 
@@ -270,10 +279,6 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
 
   markFilteredStudentsPresent(): void {
     this.filteredStudents.forEach((student) => {
-      if (this.attendanceRecords[student.id]?.lockedByApprovedJustification) {
-        return;
-      }
-
       this.updateAttendance(student.id, 'status', 'presente');
       this.updateAttendance(student.id, 'justification', '');
     });
@@ -281,7 +286,6 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
 
   toggleHistory(studentId: string): void {
     const record = this.attendanceRecords[studentId];
-
     if (!record) {
       return;
     }
@@ -297,8 +301,8 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
 
     this.attendanceService.getAttendanceHistory({
       student_id: studentId,
-      course_id: this.selectedCourseId,
-      section_id: this.selectedSectionId,
+      course_id: this.selectedCourseId || undefined,
+      section_id: this.selectedSectionId || undefined,
       date_to: this.selectedDate,
       per_page: 5,
     }).subscribe({
@@ -315,8 +319,8 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
   }
 
   handleSaveAttendance(): void {
-    if (!this.selectedCourseId || !this.selectedSectionId || !this.selectedDate) {
-      void Swal.fire('Atencion', 'Selecciona curso, seccion y fecha.', 'warning');
+    if (!this.selectedSectionId || !this.selectedAcademicYearId || !this.selectedDate) {
+      void Swal.fire('Atención', 'Selecciona aula, fecha y checkpoint.', 'warning');
       return;
     }
 
@@ -337,24 +341,23 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     this.saving = true;
     this.success = '';
 
-    const payload = {
-      date: this.selectedDate,
-      course_id: this.selectedCourseId,
+    this.attendanceService.saveDailySectionAttendance({
       section_id: this.selectedSectionId,
+      academic_year_id: this.selectedAcademicYearId,
+      date: this.selectedDate,
+      checkpoint: this.selectedCheckpoint,
       records: this.students.map((student) => ({
         student_id: student.id,
         status: this.attendanceRecords[student.id]?.status ?? 'presente',
-        justification: this.attendanceRecords[student.id]?.justification ?? '',
+        note: this.attendanceRecords[student.id]?.justification ?? '',
       })),
-    };
-
-    this.attendanceService.saveBatchAttendance(payload).subscribe({
+    }).subscribe({
       next: (res) => {
         this.saving = false;
-        this.success = 'Asistencia guardada correctamente.';
-        void Swal.fire('Guardado', res.message || 'Asistencia guardada correctamente.', 'success');
+        this.success = 'Asistencia diaria guardada correctamente.';
+        void Swal.fire('Guardado', res.message || 'Asistencia diaria guardada correctamente.', 'success');
         this.loadAdminOverview();
-        this.loadExistingAttendance();
+        this.loadDailyAttendance();
         this.loadJustifications();
       },
       error: (err) => {
@@ -364,12 +367,47 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     });
   }
 
+  createQrSession(): void {
+    if (!this.selectedSectionId || !this.selectedAcademicYearId || !this.selectedDate) {
+      void Swal.fire('Atención', 'Selecciona aula y fecha antes de abrir el QR.', 'warning');
+      return;
+    }
+
+    this.attendanceService.createDailyQrSession({
+      section_id: this.selectedSectionId,
+      academic_year_id: this.selectedAcademicYearId,
+      date: this.selectedDate,
+      checkpoint: this.selectedCheckpoint,
+      late_after_minutes: this.selectedCheckpoint === 'entrada' ? 10 : 0,
+      expires_in_minutes: 20,
+    }).subscribe({
+      next: ({ data }) => {
+        void Swal.fire({
+          title: `${this.currentCheckpointLabel} abierto`,
+          html: `
+            <div style="text-align:left">
+              <p><strong>Código:</strong> ${data.session_code}</p>
+              <p><strong>Payload QR:</strong></p>
+              <code style="word-break:break-all;display:block;padding:12px;background:#f8fafc;border-radius:8px;">${data.qr_payload}</code>
+            </div>
+          `,
+          icon: 'success',
+          confirmButtonText: 'Cerrar'
+        });
+        this.loadDailyAttendance();
+      },
+      error: (err) => {
+        void Swal.fire('Error', err.error?.message || 'No se pudo abrir la sesión QR.', 'error');
+      }
+    });
+  }
+
   approve(item: AttendanceJustification): void {
     void Swal.fire({
-      title: 'Aprobar justificacion',
-      text: `Se marcara como justificada la asistencia de ${this.studentFullName(item.attendance?.student || null)}.`,
+      title: 'Aprobar justificación',
+      text: `Se marcará como justificada la asistencia de ${this.studentFullName(item.attendance?.student || null)}.`,
       input: 'textarea',
-      inputLabel: 'Comentario de revision (opcional)',
+      inputLabel: 'Comentario de revisión (opcional)',
       inputValue: item.review_notes || '',
       icon: 'question',
       showCancelButton: true,
@@ -387,13 +425,13 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
         review_notes: reviewNotes || null,
       }).subscribe({
         next: () => {
-          void Swal.fire('Aprobada', 'La justificacion fue aprobada.', 'success');
+          void Swal.fire('Aprobada', 'La justificación fue aprobada.', 'success');
           this.loadAdminOverview();
           this.loadJustifications();
-          this.loadExistingAttendance();
+          this.loadDailyAttendance();
         },
         error: (err) => {
-          void Swal.fire('Error', err.error?.message || 'No se pudo aprobar la justificacion.', 'error');
+          void Swal.fire('Error', err.error?.message || 'No se pudo aprobar la justificación.', 'error');
         }
       });
     });
@@ -401,8 +439,8 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
 
   reject(item: AttendanceJustification): void {
     void Swal.fire({
-      title: 'Rechazar justificacion',
-      text: `La solicitud de ${this.studentFullName(item.attendance?.student || null)} quedara rechazada.`,
+      title: 'Rechazar justificación',
+      text: `La solicitud de ${this.studentFullName(item.attendance?.student || null)} quedará rechazada.`,
       input: 'textarea',
       inputLabel: 'Motivo de rechazo',
       inputValue: item.review_notes || '',
@@ -421,56 +459,16 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
         review_notes: String(result.value || '').trim(),
       }).subscribe({
         next: () => {
-          void Swal.fire('Rechazada', 'La justificacion fue rechazada.', 'success');
+          void Swal.fire('Rechazada', 'La justificación fue rechazada.', 'success');
           this.loadAdminOverview();
           this.loadJustifications();
-          this.loadExistingAttendance();
+          this.loadDailyAttendance();
         },
         error: (err) => {
-          void Swal.fire('Error', err.error?.message || 'No se pudo rechazar la justificacion.', 'error');
+          void Swal.fire('Error', err.error?.message || 'No se pudo rechazar la justificación.', 'error');
         }
       });
     });
-  }
-
-  exportCurrentAttendance(): void {
-    if (!this.filteredStudents.length) {
-      void Swal.fire('Sin datos', 'No hay estudiantes para exportar con los filtros actuales.', 'info');
-      return;
-    }
-
-    const rows = [
-      ['Fecha', 'Curso', 'Seccion', 'Codigo', 'Estudiante', 'Estado', 'Comentario', 'Ultima actualizacion'],
-      ...this.filteredStudents.map((student) => {
-        const record = this.attendanceRecords[student.id];
-        return [
-          this.selectedDate,
-          this.selectedAssignment?.course?.name || '',
-          this.sectionLabel(this.selectedAssignment?.section || null),
-          student.student_code || '',
-          this.studentFullName(student),
-          this.getStatusLabel(record?.status || 'presente'),
-          record?.justification || '',
-          this.formatDateTime(record?.updatedAt || null),
-        ];
-      }),
-    ];
-
-    const csv = rows
-      .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `asistencia-admin-${this.selectedDate}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  canEditStudent(studentId: string): boolean {
-    return !this.attendanceRecords[studentId]?.lockedByApprovedJustification;
   }
 
   getStatusLabel(status: AttendanceStatus): string {
@@ -501,7 +499,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
 
   assignmentLabel(assignment: AttendanceAssignment | null | undefined): string {
     if (!assignment) {
-      return 'Sin asignacion';
+      return 'Sin asignación';
     }
 
     const course = assignment.course?.code
@@ -513,13 +511,9 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
       .join(' ')
       .trim();
 
-    const parts = [
-      course,
-      this.sectionLabel(assignment.section || null),
-      teacherName ? `Docente: ${teacherName}` : '',
-    ].filter(Boolean);
-
-    return parts.join(' | ');
+    return [course, this.sectionLabel(assignment.section || null), teacherName ? `Docente: ${teacherName}` : '']
+      .filter(Boolean)
+      .join(' | ');
   }
 
   sectionLabel(section: AttendanceAssignment['section'] | AttendanceRecord['section'] | null | undefined): string {
@@ -534,11 +528,6 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     }
 
     return [student.last_name, student.first_name].filter(Boolean).join(', ') || 'Sin nombre';
-  }
-
-  teacherFullName(status: AdminAttendanceTeacherStatus | AttendanceAssignment | null | undefined): string {
-    const teacher = status?.teacher;
-    return [teacher?.first_name, teacher?.last_name].filter(Boolean).join(' ') || 'Sin docente';
   }
 
   guardianFullName(item: AttendanceJustification): string {
@@ -556,6 +545,13 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     }).format(new Date(value));
   }
 
+  private applyAssignment(assignment: AttendanceAssignment): void {
+    this.selectedAssignment = assignment;
+    this.selectedCourseId = assignment.course_id;
+    this.selectedSectionId = assignment.section_id;
+    this.selectedAcademicYearId = assignment.academic_year_id || '';
+  }
+
   private initIcons(): void {
     createIcons({ icons });
   }
@@ -571,8 +567,6 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
       this.attendanceRecords[student.id] = {
         status: 'presente',
         justification: '',
-        lockedByApprovedJustification: false,
-        approvedJustificationReason: null,
         updatedAt: null,
         history: [],
         historyOpen: false,
@@ -581,41 +575,53 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     });
   }
 
-  private loadExistingAttendance(): void {
-    this.attendanceService.getAttendanceHistory({
-      course_id: this.selectedCourseId,
-      section_id: this.selectedSectionId,
-      date: this.selectedDate,
-      per_page: 200,
-    }).subscribe({
-      next: (res) => {
-        const rows = res.data || [];
+  private loadDailyAttendance(): void {
+    if (!this.selectedSectionId || !this.selectedAcademicYearId || !this.selectedDate) {
+      return;
+    }
 
-        rows.forEach((attendance) => {
-          const approvedJustification = (attendance.justifications || []).find(
-            (justification) => justification.status === 'aprobada'
-          );
-
-          this.attendanceRecords[attendance.student_id] = {
-            attendanceId: attendance.id,
-            status: attendance.status,
-            justification: attendance.justification || approvedJustification?.reason || '',
-            lockedByApprovedJustification: !!approvedJustification,
-            approvedJustificationReason: approvedJustification?.reason || null,
-            updatedAt: attendance.updated_at || attendance.created_at || null,
-            history: this.attendanceRecords[attendance.student_id]?.history || [],
-            historyOpen: false,
-            historyLoading: false,
-          };
-        });
-
+    this.attendanceService.getDailySectionAttendance(
+      this.selectedSectionId,
+      this.selectedAcademicYearId,
+      this.selectedDate
+    ).subscribe({
+      next: (response) => {
+        this.dailyAttendance = response;
+        this.syncAttendanceStateFromDaily();
         this.loading = false;
         this.refreshIcons();
       },
       error: (err) => {
-        this.error = err.error?.message || 'Error al cargar la asistencia existente.';
+        this.error = err.error?.message || 'Error al cargar la asistencia diaria.';
         this.loading = false;
       }
+    });
+  }
+
+  private syncAttendanceStateFromDaily(): void {
+    const dailyRows = new Map((this.dailyAttendance?.students || []).map((row) => [row.student_id, row]));
+
+    this.students.forEach((student) => {
+      const row = dailyRows.get(student.id);
+      const status = this.selectedCheckpoint === 'entrada'
+        ? row?.entry_status ?? 'presente'
+        : row?.exit_status ?? 'presente';
+      const note = this.selectedCheckpoint === 'entrada'
+        ? row?.entry_note ?? ''
+        : row?.exit_note ?? '';
+      const updatedAt = this.selectedCheckpoint === 'entrada'
+        ? row?.entry_marked_at ?? null
+        : row?.exit_marked_at ?? null;
+
+      this.attendanceRecords[student.id] = {
+        ...this.attendanceRecords[student.id],
+        status,
+        justification: note,
+        updatedAt,
+        history: this.attendanceRecords[student.id]?.history || [],
+        historyOpen: false,
+        historyLoading: false,
+      };
     });
   }
 }

@@ -45,6 +45,7 @@ use App\Http\Controllers\Api\AssignmentSubmissionController;
 
 // Asistencia
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\DailyAttendanceController;
 use App\Http\Controllers\Api\AttendanceJustificationController;
 
 // Comunicación
@@ -82,6 +83,10 @@ Route::pattern('announcement', '[0-9a-fA-F-]{36}');
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/public/enrollment-options', [EnrollmentApplicationController::class, 'publicOptions']);
 Route::post('/public/enrollment-applications', [EnrollmentApplicationController::class, 'store']);
+
+// Noticias públicas (sin autenticación)
+Route::get('/public/news', [PublicNewsController::class, 'published']);
+Route::get('/public/news/{publicNews:slug}', [PublicNewsController::class, 'show']);
 
 /*
 |--------------------------------------------------------------------------
@@ -226,13 +231,13 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('teacher-course-assignments', [TeacherCourseAssignmentController::class, 'index'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher');
+        ->middleware('role:admin,director,coordinator,secretary,administrative,teacher');
     Route::get('teacher-course-assignments/{id}', [TeacherCourseAssignmentController::class, 'show'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher');
+        ->middleware('role:admin,director,coordinator,secretary,administrative,teacher');
     Route::get('student-course-enrollments', [StudentCourseEnrollmentController::class, 'index'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher');
+        ->middleware('role:admin,director,coordinator,secretary,administrative,teacher');
     Route::get('student-course-enrollments/{id}', [StudentCourseEnrollmentController::class, 'show'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher');
+        ->middleware('role:admin,director,coordinator,secretary,administrative,teacher');
 
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
         Route::apiResource('enrollment-applications', EnrollmentApplicationController::class);
@@ -322,13 +327,20 @@ Route::middleware('auth:sanctum')->group(function () {
     | Registro y mantenimiento de asistencia.
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:admin,director,coordinator,secretary,teacher')->group(function () {
+    Route::middleware('role:admin,director,coordinator,secretary,administrative,teacher')->group(function () {
         Route::get('attendance/admin-overview', [AttendanceController::class, 'adminOverview'])
-            ->middleware('role:admin,director,coordinator,secretary');
+            ->middleware('role:admin,director,coordinator,secretary,administrative');
         Route::get('attendance/my-context', [AttendanceController::class, 'myContext']);
         Route::post('attendance/batch', [AttendanceController::class, 'batchStore']);
+        Route::get('attendance/daily', [DailyAttendanceController::class, 'index']);
+        Route::post('attendance/daily/batch', [DailyAttendanceController::class, 'batchStore']);
+        Route::get('attendance/daily/qr-sessions', [DailyAttendanceController::class, 'listQrSessions']);
+        Route::post('attendance/daily/qr-sessions', [DailyAttendanceController::class, 'createQrSession']);
+        Route::post('attendance/daily/qr-sessions/{attendanceQrSession}/close', [DailyAttendanceController::class, 'closeQrSession']);
         Route::apiResource('attendance', AttendanceController::class);
     });
+    Route::post('attendance/daily/self-checkpoint', [DailyAttendanceController::class, 'selfCheckpoint'])
+        ->middleware('role:student');
 
     /*
     |--------------------------------------------------------------------------
@@ -338,15 +350,15 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('attendance-justifications', [AttendanceJustificationController::class, 'index'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher,guardian');
+        ->middleware('role:admin,director,coordinator,secretary,administrative,teacher,guardian');
     Route::post('attendance-justifications', [AttendanceJustificationController::class, 'store'])
         ->middleware('role:admin,guardian');
     Route::get('attendance-justifications/{attendanceJustification}', [AttendanceJustificationController::class, 'show'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher,guardian');
+        ->middleware('role:admin,director,coordinator,secretary,administrative,teacher,guardian');
     Route::post('attendance-justifications/{attendanceJustification}/approve', [AttendanceJustificationController::class, 'approve'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher');
+        ->middleware('role:admin,director,coordinator,secretary,administrative,teacher');
     Route::post('attendance-justifications/{attendanceJustification}/reject', [AttendanceJustificationController::class, 'reject'])
-        ->middleware('role:admin,director,coordinator,secretary,teacher');
+        ->middleware('role:admin,director,coordinator,secretary,administrative,teacher');
     Route::delete('attendance-justifications/{attendanceJustification}', [AttendanceJustificationController::class, 'destroy'])
         ->middleware('role:admin');
 

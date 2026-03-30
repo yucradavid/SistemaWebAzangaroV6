@@ -151,6 +151,8 @@ export class AuthService {
 
   getHomeRoute(role: UserRole | null = this.getRole()): string {
     switch (role) {
+      case 'administrative':
+        return '/app/attendance/approvals';
       case 'student':
         return '/app/dashboard/student';
       case 'teacher':

@@ -34,6 +34,25 @@ export interface StudentAttendanceSummaryResponse {
   }>;
   records: StudentAttendanceRecord[];
   recent: StudentAttendanceRecord[];
+  daily_records?: StudentDailyAttendanceRecord[];
+  today_record?: StudentDailyAttendanceRecord | null;
+}
+
+export interface StudentDailyAttendanceRecord {
+  id: string;
+  student_id: string;
+  section_id: string;
+  academic_year_id: string;
+  date: string;
+  entry_status?: 'presente' | 'tarde' | 'falta' | 'justificado' | null;
+  entry_note?: string | null;
+  entry_marked_at?: string | null;
+  entry_source?: string | null;
+  exit_status?: 'presente' | 'tarde' | 'falta' | 'justificado' | null;
+  exit_note?: string | null;
+  exit_marked_at?: string | null;
+  exit_source?: string | null;
+  effective_status?: 'presente' | 'tarde' | 'falta' | 'justificado' | null;
 }
 
 export interface StudentReportCardCompetency {

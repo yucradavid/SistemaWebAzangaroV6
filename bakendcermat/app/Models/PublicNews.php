@@ -47,4 +47,19 @@ class PublicNews extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+
+    protected $appends = [
+        'date',
+        'featured',
+    ];
+
+    public function getDateAttribute(): ?string
+    {
+        return $this->published_at?->toDateString();
+    }
+
+    public function getFeaturedAttribute(): bool
+    {
+        return (bool) $this->is_featured;
+    }
 }

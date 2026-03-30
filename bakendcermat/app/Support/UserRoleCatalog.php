@@ -41,7 +41,7 @@ class UserRoleCatalog
             'record_type' => 'profile_only',
         ],
         'administrative' => [
-            'label' => 'Administrativo',
+            'label' => 'Encargado de Asistencia',
             'record_type' => 'profile_only',
         ],
         'finance' => [

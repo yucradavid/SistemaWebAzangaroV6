@@ -5,11 +5,13 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { RouterModule } from '@angular/router';
 import { ICONS } from '@core/constants/icons';
 import { AcademicContextStudent, AuthService } from '@core/services/auth.service';
+import { AttendanceService } from '@core/services/attendance.service';
 import {
   ReportService,
   StudentAttendanceJustificationData,
   StudentAttendanceRecord,
   StudentAttendanceSummaryResponse,
+  StudentDailyAttendanceRecord,
 } from '@core/services/report.service';
 import localeEsPe from '@angular/common/locales/es-PE';
 
@@ -53,16 +55,21 @@ export class AttendanceStudentComponent implements OnInit {
   private sanitizer = inject(DomSanitizer);
   private authService = inject(AuthService);
   private reportService = inject(ReportService);
+  private attendanceService = inject(AttendanceService);
 
   readonly dayLabels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
 
   loading = false;
+  qrSubmitting = false;
   error = '';
+  qrMessage = '';
   selectedMonth = new Date().toISOString().slice(0, 7);
   selectedCourseId = 'all';
   selectedCalendarDate = '';
+  qrCodeInput = '';
   months: { value: string, label: string }[] = [];
   attendance: AttendanceRecordView[] = [];
+  dailyAttendance: StudentDailyAttendanceRecord[] = [];
   studentContext: AcademicContextStudent | null = null;
   lastSummary: StudentAttendanceSummaryResponse | null = null;
 
@@ -97,6 +104,14 @@ export class AttendanceStudentComponent implements OnInit {
       return [];
     }
     return this.filteredAttendance.filter((record) => this.toDateString(new Date(record.date)) === this.selectedCalendarDate);
+  }
+
+  get selectedDailyRecord(): StudentDailyAttendanceRecord | null {
+    if (!this.selectedCalendarDate) {
+      return null;
+    }
+
+    return this.dailyAttendance.find((record) => record.date === this.selectedCalendarDate) || null;
   }
 
   get totalRecords(): number {
@@ -233,12 +248,14 @@ export class AttendanceStudentComponent implements OnInit {
       next: (response) => {
         this.lastSummary = response;
         this.attendance = (response.records || []).map((record) => this.mapRecord(record));
+        this.dailyAttendance = response.daily_records || [];
         this.syncSelectedCourse();
         this.syncSelectedCalendarDate();
         this.loading = false;
       },
       error: () => {
         this.attendance = [];
+        this.dailyAttendance = [];
         this.lastSummary = null;
         this.selectedCalendarDate = '';
         this.error = 'No se pudo cargar tu historial de asistencia.';
@@ -256,6 +273,29 @@ export class AttendanceStudentComponent implements OnInit {
       return;
     }
     this.selectedCalendarDate = day.date;
+  }
+
+  submitQrCheckpoint(): void {
+    if (!this.qrCodeInput.trim()) {
+      this.qrMessage = 'Ingresa o escanea el código QR.';
+      return;
+    }
+
+    this.qrSubmitting = true;
+    this.qrMessage = '';
+
+    this.attendanceService.submitStudentDailyQr(this.qrCodeInput.trim()).subscribe({
+      next: (response) => {
+        this.qrSubmitting = false;
+        this.qrCodeInput = '';
+        this.qrMessage = response.message;
+        this.loadAttendance();
+      },
+      error: (error) => {
+        this.qrSubmitting = false;
+        this.qrMessage = error?.error?.message || 'No se pudo registrar tu marcación QR.';
+      }
+    });
   }
 
   getSafeIcon(name: string): SafeHtml {
@@ -307,6 +347,12 @@ export class AttendanceStudentComponent implements OnInit {
       falta: 'bg-red-50 text-red-700 border border-red-100',
       justificado: 'bg-blue-50 text-blue-700 border border-blue-100',
     }[status];
+  }
+
+  getOptionalCalendarBadgeClass(status?: AttendanceStatus | null): string {
+    return status
+      ? this.getCalendarBadgeClass(status)
+      : 'bg-slate-200 text-slate-600 border border-slate-300';
   }
 
   private loadAcademicContext(): void {

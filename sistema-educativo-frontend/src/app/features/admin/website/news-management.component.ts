@@ -1,3 +1,4 @@
+//src/app/features/website/news-management/news-management.component.ts
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
@@ -9,10 +10,10 @@ import { BackButtonComponent } from '@shared/components/back-button/back-button.
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       <app-back-button></app-back-button>
-      
+
       <!-- Header Section with Stats -->
       <div class="flex flex-col xl:flex-row xl:items-center gap-6 pb-6 border-b border-slate-100">
-        
+
         <!-- Stats Row -->
         <div class="flex flex-wrap gap-4 flex-1">
           <div *ngFor="let stat of stats" class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 min-w-[150px] flex-1 hover:border-blue-100 transition-all">
@@ -86,7 +87,7 @@ import { BackButtonComponent } from '@shared/components/back-button/back-button.
       <!-- News Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div *ngFor="let item of news" class="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col relative">
-          
+
           <!-- Image Area -->
           <div class="relative h-56 overflow-hidden bg-slate-50">
             <div *ngIf="item.imageUrl; else noImage" class="w-full h-full">

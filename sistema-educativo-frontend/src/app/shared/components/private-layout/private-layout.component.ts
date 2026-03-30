@@ -32,6 +32,10 @@ export class PrivateLayoutComponent implements OnInit {
           (this.router.url === '/app' || this.router.url === '/app/dashboard')) {
         this.router.navigate(['/app/dashboard/apoderado']);
       }
+      if (user && user.role === 'administrative' &&
+          (this.router.url === '/app' || this.router.url === '/app/dashboard')) {
+        this.router.navigate(['/app/attendance/approvals']);
+      }
     });
   }
 
@@ -45,6 +49,7 @@ export class PrivateLayoutComponent implements OnInit {
 
   get dashboardRoute(): string {
     const role = this.authService.getRole();
+    if (role === 'administrative') return '/app/attendance/approvals';
     if (role === 'student') return '/app/dashboard/student';
     if (role === 'teacher') return '/app/dashboard/teacher';
     if (role === 'apoderado') return '/app/dashboard/apoderado';

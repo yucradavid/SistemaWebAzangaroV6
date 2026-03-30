@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePublicNewsRequest;
 use App\Http\Requests\UpdatePublicNewsRequest;
+use App\Http\Resources\PublicNewsResource;
 use App\Models\PublicNews;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -27,7 +28,49 @@ class PublicNewsController extends Controller
             $q->where('is_featured', filter_var($request->is_featured, FILTER_VALIDATE_BOOLEAN));
         }
 
-        return $q->orderByDesc('published_at')->orderByDesc('created_at')->paginate(20);
+        if ($request->filled('q')) {
+            $q->where(function ($query) use ($request) {
+                $query->where('title', 'ilike', "%{$request->q}%")
+                    ->orWhere('excerpt', 'ilike', "%{$request->q}%")
+                    ->orWhere('content', 'ilike', "%{$request->q}%");
+            });
+        }
+
+        $perPage = $request->integer('per_page', 20);
+        $paginated = $q->orderByDesc('published_at')->orderByDesc('created_at')->paginate($perPage);
+
+        return PublicNewsResource::collection($paginated);
+    }
+
+    /**
+     * Endpoint público: solo noticias publicadas
+     */
+    public function published(Request $request)
+    {
+        $q = PublicNews::where('status', 'publicado')
+            ->where(function ($query) {
+                $query->whereNull('published_at')->orWhere('published_at', '<=', now());
+            });
+
+        if ($request->filled('category')) {
+            $q->where('category', $request->category);
+        }
+
+        if ($request->filled('featured')) {
+            $q->where('is_featured', filter_var($request->featured, FILTER_VALIDATE_BOOLEAN));
+        }
+
+        if ($request->filled('q')) {
+            $q->where(function ($query) use ($request) {
+                $query->where('title', 'ilike', "%{$request->q}%")
+                    ->orWhere('excerpt', 'ilike', "%{$request->q}%");
+            });
+        }
+
+        $perPage = $request->integer('per_page', 12);
+        $paginated = $q->orderByDesc('published_at')->orderByDesc('created_at')->paginate($perPage);
+
+        return PublicNewsResource::collection($paginated);
     }
 
     public function store(StorePublicNewsRequest $request)
@@ -48,12 +91,12 @@ class PublicNewsController extends Controller
 
         $news = PublicNews::create($data);
 
-        return response()->json($news->load(['creator', 'updater']), 201);
+        return new PublicNewsResource($news->load(['creator', 'updater']));
     }
 
     public function show(PublicNews $publicNews)
     {
-        return $publicNews->load(['creator', 'updater']);
+        return new PublicNewsResource($publicNews->load(['creator', 'updater']));
     }
 
     public function update(UpdatePublicNewsRequest $request, PublicNews $publicNews)
@@ -72,7 +115,7 @@ class PublicNewsController extends Controller
 
         $publicNews->update($data);
 
-        return $publicNews->load(['creator', 'updater']);
+        return new PublicNewsResource($publicNews->load(['creator', 'updater']));
     }
 
     public function destroy(PublicNews $publicNews)

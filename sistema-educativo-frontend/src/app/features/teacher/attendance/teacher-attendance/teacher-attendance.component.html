@@ -1,4 +1,3 @@
-<!-- //src/app/features/teacher/attendance/teacher-attendance/teacher-attendance.component.html -->
 <div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
   <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
     <div class="absolute -right-10 -top-10 w-40 h-40 bg-cermat-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -8,9 +7,9 @@
         <i data-lucide="check-square" class="w-7 h-7 text-cermat-blue-600"></i>
       </div>
       <div>
-        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Registro de Asistencia</h1>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Asistencia diaria por QR</h1>
         <p class="text-slate-500 mt-1 font-medium">
-          {{ teacher?.first_name || teacher?.last_name ? (teacher.first_name + ' ' + teacher.last_name) : 'Gestiona y marca la asistencia diaria de tus estudiantes' }}
+          {{ teacher?.first_name || teacher?.last_name ? (teacher.first_name + ' ' + teacher.last_name) : 'Gestiona la entrada y salida QR por sección' }}
         </p>
       </div>
     </div>
@@ -24,6 +23,16 @@
       >
         <i data-lucide="check-check" class="w-4 h-4"></i>
         Marcar filtrados presentes
+      </button>
+
+      <button
+        type="button"
+        (click)="createQrSession()"
+        [disabled]="!selectedAssignment"
+        class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition border border-blue-200 font-bold disabled:opacity-50"
+      >
+        <i data-lucide="qr-code" class="w-4 h-4"></i>
+        Abrir {{ currentCheckpointLabel }}
       </button>
 
       <button
@@ -43,7 +52,7 @@
       >
         <i *ngIf="!saving" data-lucide="save" class="w-5 h-5"></i>
         <i *ngIf="saving" data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
-        {{ saving ? 'Guardando...' : 'Guardar Asistencia' }}
+        {{ saving ? 'Guardando...' : 'Guardar checkpoint' }}
       </button>
     </div>
   </div>
@@ -76,27 +85,43 @@
       <p class="mt-3 text-3xl font-black text-indigo-600">{{ justifiedCount }}</p>
     </div>
     <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
-      <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Bloqueados por justificación</p>
-      <p class="mt-3 text-3xl font-black text-slate-700">{{ approvedJustificationCount }}</p>
+      <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Salidas registradas</p>
+      <p class="mt-3 text-3xl font-black text-slate-700">{{ dailyAttendance?.summary?.exit_recorded_count || 0 }}</p>
     </div>
   </div>
 
   <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 relative overflow-hidden">
-    <div class="grid xl:grid-cols-5 gap-6">
+    <div class="grid xl:grid-cols-6 gap-6">
       <div>
-        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Curso / Sección</label>
+        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Curso guía / Sección</label>
         <div class="relative">
           <select
             [ngModel]="selectedAssignment?.id"
             (change)="onAssignmentChange($event)"
             class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300">
-            <option value="">Seleccionar curso asignado</option>
+            <option value="">Seleccionar asignación</option>
             <option *ngFor="let assignment of assignments" [value]="assignment.id">
               {{ assignment.course?.code }} - {{ assignment.course?.name }} ({{ assignment.section?.grade_level?.name }} {{ assignment.section?.section_letter }})
             </option>
           </select>
           <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
             <i data-lucide="chevron-down" class="w-5 h-5"></i>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Checkpoint</label>
+        <div class="relative">
+          <select
+            [(ngModel)]="selectedCheckpoint"
+            (change)="onCheckpointChange()"
+            class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300">
+            <option value="entrada">Entrada QR</option>
+            <option value="salida">Salida QR</option>
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+            <i data-lucide="scan-line" class="w-5 h-5"></i>
           </div>
         </div>
       </div>
@@ -154,6 +179,17 @@
         </div>
       </div>
     </div>
+
+    <div class="mt-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm text-blue-900">
+      <p class="font-bold">Modo diario activo.</p>
+      <p class="mt-1">
+        La <strong>entrada</strong> se replica en todos los cursos programados del día para la sección.
+        La <strong>salida</strong> queda como control QR adicional.
+      </p>
+      <p *ngIf="activeQrSession" class="mt-2 font-semibold">
+        QR activo: {{ activeQrSession.session_code }} · vence {{ activeQrSession.expires_at | date:'shortTime' }}
+      </p>
+    </div>
   </div>
 
   <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden" *ngIf="students.length > 0">
@@ -164,11 +200,11 @@
           Registro diario
         </h2>
         <p class="text-sm text-slate-500 mt-1">
-          {{ selectedAssignment?.course?.name }} · {{ selectedAssignment?.section?.grade_level?.name }} {{ selectedAssignment?.section?.section_letter }} · {{ selectedDate }}
+          {{ currentCheckpointLabel }} · {{ selectedAssignment?.section?.grade_level?.name }} {{ selectedAssignment?.section?.section_letter }} · {{ selectedDate }}
         </p>
       </div>
       <div class="text-sm text-slate-500 font-medium">
-        Los registros con justificación aprobada quedan bloqueados como <span class="font-bold text-indigo-700">justificado</span>.
+        La entrada impacta todos los cursos del día de esta sección.
       </div>
     </div>
 
@@ -209,36 +245,32 @@
                     <button
                       type="button"
                       (click)="updateAttendance(student.id, 'status', 'presente')"
-                      [disabled]="!canEditStudent(student.id)"
                       [ngClass]="recordFor(student.id).status === 'presente' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent"
                       title="Presente"
                     >P</button>
 
                     <button
                       type="button"
                       (click)="updateAttendance(student.id, 'status', 'tarde')"
-                      [disabled]="!canEditStudent(student.id)"
                       [ngClass]="recordFor(student.id).status === 'tarde' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent"
                       title="Tarde"
                     >T</button>
 
                     <button
                       type="button"
                       (click)="updateAttendance(student.id, 'status', 'falta')"
-                      [disabled]="!canEditStudent(student.id)"
                       [ngClass]="recordFor(student.id).status === 'falta' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent"
                       title="Falta"
                     >F</button>
 
                     <button
                       type="button"
                       (click)="updateAttendance(student.id, 'status', 'justificado')"
-                      [disabled]="!canEditStudent(student.id)"
                       [ngClass]="recordFor(student.id).status === 'justificado' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent"
                       title="Justificado"
                     >J</button>
                   </div>
@@ -262,17 +294,12 @@
                       placeholder="Añadir comentario..."
                       [value]="recordFor(student.id).justification"
                       (input)="updateAttendance(student.id, 'justification', $any($event.target).value)"
-                      [disabled]="recordFor(student.id).lockedByApprovedJustification"
-                      class="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none font-medium text-slate-700 bg-slate-50 focus:bg-white placeholder:text-slate-400 placeholder:font-normal disabled:bg-slate-100 disabled:text-slate-500"
+                      class="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none font-medium text-slate-700 bg-slate-50 focus:bg-white placeholder:text-slate-400 placeholder:font-normal"
                     />
                   </div>
 
                   <p *ngIf="needsJustification(student.id)" class="text-xs text-amber-600 font-semibold">
                     Este estado requiere comentario antes de guardar.
-                  </p>
-
-                  <p *ngIf="recordFor(student.id).lockedByApprovedJustification" class="text-xs text-indigo-600 font-semibold">
-                    Justificación aprobada: {{ recordFor(student.id).approvedJustificationReason || 'Sin detalle' }}
                   </p>
 
                   <p class="text-xs text-slate-400">

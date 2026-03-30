@@ -12,6 +12,7 @@ import {
   StudentAttendanceJustificationData,
   StudentAttendanceRecord,
   StudentAttendanceSummaryResponse,
+  StudentDailyAttendanceRecord,
 } from '@core/services/report.service';
 
 registerLocaleData(localeEsPe);
@@ -70,6 +71,7 @@ export class ApoderadoAttendanceComponent implements OnInit {
 
   students: AcademicContextStudent[] = [];
   attendance: GuardianAttendanceRecordView[] = [];
+  dailyAttendance: StudentDailyAttendanceRecord[] = [];
   months: { value: string; label: string }[] = [];
   selectedStudentId = '';
   selectedMonth = new Date().toISOString().slice(0, 7);
@@ -122,6 +124,14 @@ export class ApoderadoAttendanceComponent implements OnInit {
     }
 
     return this.filteredAttendance.filter((record) => this.toDateString(new Date(record.date)) === this.selectedCalendarDate);
+  }
+
+  get selectedDailyRecord(): StudentDailyAttendanceRecord | null {
+    if (!this.selectedCalendarDate) {
+      return null;
+    }
+
+    return this.dailyAttendance.find((record) => record.date === this.selectedCalendarDate) || null;
   }
 
   get actionableRecords(): GuardianAttendanceRecordView[] {
@@ -397,6 +407,12 @@ export class ApoderadoAttendanceComponent implements OnInit {
     }[status];
   }
 
+  getOptionalCalendarBadgeClass(status?: AttendanceStatus | null): string {
+    return status
+      ? this.getCalendarBadgeClass(status)
+      : 'bg-slate-200 text-slate-600 border border-slate-300';
+  }
+
   canJustify(record: GuardianAttendanceRecordView): boolean {
     const status = record.justification_data?.status;
     const isPendingOrApproved = status === 'pendiente' || status === 'aprobada';
@@ -458,12 +474,14 @@ export class ApoderadoAttendanceComponent implements OnInit {
       next: (response) => {
         this.lastSummary = response;
         this.attendance = (response.records || []).map((record) => this.mapRecord(record));
+        this.dailyAttendance = response.daily_records || [];
         this.syncSelectedCourse();
         this.syncSelectedCalendarDate();
         this.loading = false;
       },
       error: () => {
         this.attendance = [];
+        this.dailyAttendance = [];
         this.lastSummary = null;
         this.selectedCalendarDate = '';
         this.error = 'No se pudo cargar la asistencia del estudiante seleccionado.';

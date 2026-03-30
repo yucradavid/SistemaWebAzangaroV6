@@ -176,6 +176,8 @@ export const PRIVATE_ROUTES: Routes = [
       // ── Asistencia ───────────────────────────────────────
       {
         path: 'attendance/approvals',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'coordinator', 'secretary', 'administrative'] },
         loadComponent: () => import('./features/admin/attendance/attendance-approvals/attendance-approvals.component').then(m => m.AttendanceApprovalsComponent),
         title: 'CERMAT - Aprobación de Justificaciones'
       },

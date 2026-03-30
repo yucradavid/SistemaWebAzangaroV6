@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 
 export type AttendanceStatus = 'presente' | 'tarde' | 'falta' | 'justificado';
 export type JustificationStatus = 'pendiente' | 'aprobada' | 'rechazada';
+export type DailyAttendanceCheckpoint = 'entrada' | 'salida';
 
 export interface GradeLevelSummary {
   id: string;
@@ -193,6 +194,72 @@ export interface AdminAttendanceOverviewFilters {
   teacher_id?: string;
 }
 
+export interface DailyAttendanceStudentRecord {
+  student_id: string;
+  student?: StudentSummary | null;
+  entry_status?: AttendanceStatus | null;
+  entry_note?: string | null;
+  entry_marked_at?: string | null;
+  entry_source?: string | null;
+  exit_status?: AttendanceStatus | null;
+  exit_note?: string | null;
+  exit_marked_at?: string | null;
+  exit_source?: string | null;
+  effective_status?: AttendanceStatus | null;
+}
+
+export interface DailyAttendanceQrSession {
+  id: string;
+  section_id: string;
+  academic_year_id: string;
+  date: string;
+  checkpoint_type: DailyAttendanceCheckpoint;
+  session_code: string;
+  token: string;
+  status: 'activo' | 'cerrado' | 'expirado' | string;
+  late_after_minutes: number;
+  opened_at?: string | null;
+  expires_at?: string | null;
+  closed_at?: string | null;
+  notes?: string | null;
+  qr_payload: string;
+}
+
+export interface DailyAttendanceSectionResponse {
+  date: string;
+  section_id: string;
+  academic_year_id: string;
+  summary: {
+    students_total: number;
+    entry_present_count: number;
+    entry_late_count: number;
+    entry_absent_count: number;
+    entry_justified_count: number;
+    exit_recorded_count: number;
+  };
+  students: DailyAttendanceStudentRecord[];
+  scheduled_courses: Array<{
+    course_id: string;
+    course_name?: string;
+    course_code?: string;
+    start_time?: string;
+    end_time?: string;
+  }>;
+  uses_schedule: boolean;
+  qr_sessions: DailyAttendanceQrSession[];
+}
+
+export interface DailyAttendanceBatchResponse {
+  message: string;
+  processed_count: number;
+  skipped_count: number;
+  propagated_records_count: number;
+  skipped_students: Array<{
+    student_id: string;
+    reason: string;
+  }>;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -210,6 +277,22 @@ export class AttendanceService {
       section_id: sectionId,
       status: 'active',
       per_page: 200,
+    };
+
+    if (academicYearId) {
+      params['academic_year_id'] = academicYearId;
+    }
+
+    return this.http.get<PaginatedResponse<any>>(`${this.apiUrl}/student-course-enrollments`, {
+      params: this.buildParams(params),
+    });
+  }
+
+  getStudentsForSectionAttendance(sectionId: string, academicYearId?: string): Observable<PaginatedResponse<any>> {
+    const params: Record<string, string | number> = {
+      section_id: sectionId,
+      status: 'active',
+      per_page: 400,
     };
 
     if (academicYearId) {
@@ -246,6 +329,67 @@ export class AttendanceService {
     return this.http.get<AdminAttendanceOverview>(`${this.apiUrl}/attendance/admin-overview`, {
       params: this.buildParams(params),
     });
+  }
+
+  getDailySectionAttendance(sectionId: string, academicYearId: string, date: string): Observable<DailyAttendanceSectionResponse> {
+    return this.http.get<DailyAttendanceSectionResponse>(`${this.apiUrl}/attendance/daily`, {
+      params: this.buildParams({
+        section_id: sectionId,
+        academic_year_id: academicYearId,
+        date,
+      }),
+    });
+  }
+
+  saveDailySectionAttendance(data: {
+    section_id: string;
+    academic_year_id: string;
+    date: string;
+    checkpoint: DailyAttendanceCheckpoint;
+    records: Array<{ student_id: string; status: AttendanceStatus; note?: string | null }>;
+  }): Observable<DailyAttendanceBatchResponse> {
+    return this.http.post<DailyAttendanceBatchResponse>(`${this.apiUrl}/attendance/daily/batch`, data);
+  }
+
+  createDailyQrSession(data: {
+    section_id: string;
+    academic_year_id: string;
+    date: string;
+    checkpoint: DailyAttendanceCheckpoint;
+    expires_in_minutes?: number;
+    late_after_minutes?: number;
+    notes?: string | null;
+  }): Observable<{ message: string; data: DailyAttendanceQrSession }> {
+    return this.http.post<{ message: string; data: DailyAttendanceQrSession }>(`${this.apiUrl}/attendance/daily/qr-sessions`, data);
+  }
+
+  getDailyQrSessions(params: {
+    section_id: string;
+    academic_year_id: string;
+    date?: string;
+  }): Observable<PaginatedResponse<DailyAttendanceQrSession> | { data: DailyAttendanceQrSession[] }> {
+    return this.http.get<PaginatedResponse<DailyAttendanceQrSession> | { data: DailyAttendanceQrSession[] }>(
+      `${this.apiUrl}/attendance/daily/qr-sessions`,
+      { params: this.buildParams(params) }
+    );
+  }
+
+  closeDailyQrSession(id: string): Observable<{ message: string; data: DailyAttendanceQrSession }> {
+    return this.http.post<{ message: string; data: DailyAttendanceQrSession }>(`${this.apiUrl}/attendance/daily/qr-sessions/${id}/close`, {});
+  }
+
+  submitStudentDailyQr(sessionCode: string): Observable<{
+    message: string;
+    checkpoint: DailyAttendanceCheckpoint;
+    session: DailyAttendanceQrSession;
+    processed_count: number;
+  }> {
+    return this.http.post<{
+      message: string;
+      checkpoint: DailyAttendanceCheckpoint;
+      session: DailyAttendanceQrSession;
+      processed_count: number;
+    }>(`${this.apiUrl}/attendance/daily/self-checkpoint`, { session_code: sessionCode });
   }
 
   createJustification(payload: {
