@@ -2,6 +2,15 @@
 
 use Illuminate\Support\Str;
 
+$pgProfile = strtoupper((string) env('DB_TARGET', 'local')) === 'SUPABASE'
+    ? 'SUPABASE'
+    : 'LOCAL';
+
+$pgEnv = static fn (string $key, mixed $default = null) => env(
+    "DB_{$pgProfile}_{$key}",
+    env("DB_{$key}", $default)
+);
+
 return [
 
     /*
@@ -85,16 +94,16 @@ return [
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'host' => $pgEnv('HOST', '127.0.0.1'),
+            'port' => $pgEnv('PORT', '5432'),
+            'database' => $pgEnv('DATABASE', 'laravel'),
+            'username' => $pgEnv('USERNAME', 'root'),
+            'password' => $pgEnv('PASSWORD', ''),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'require'),
+            'search_path' => env('DB_SCHEMA', 'public'),
+            'sslmode' => $pgEnv('SSLMODE', env('APP_ENV') === 'local' ? 'disable' : 'require'),
 
             'options' => [],
         ],
