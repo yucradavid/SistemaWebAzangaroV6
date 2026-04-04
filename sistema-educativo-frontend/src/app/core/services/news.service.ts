@@ -1,25 +1,27 @@
+// src/app/core/services/news.service.ts
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject, shareReplay } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { Observable, BehaviorSubject } from 'rxjs';
+import { tap, catchError, shareReplay } from 'rxjs/operators';
+
 
 export interface NewsItem {
-  id: string;
+  id: string;                
   title: string;
   slug: string;
   excerpt: string;
   content: string;
-  imageUrl: string | null;
+  imageUrl: string | null;     
   category: 'institucional' | 'academico' | 'eventos' | 'comunicados';
   author: string;
   status: 'borrador' | 'publicado' | 'archivado';
-  featured: boolean;
-  date: string;
+  featured: boolean;           
+  date: string | null;         
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
-  createdBy?: string;
-  updatedBy?: string;
+  createdBy?: string;         
+  updatedBy?: string;         
 }
 
 export interface NewsResponse {
@@ -41,160 +43,196 @@ export interface NewsResponse {
   };
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+
+export interface PublicNewsParams {
+  page?: number;
+  per_page?: number;
+  category?: string;
+  featured?: boolean;
+  q?: string;
+}
+
+export interface AdminNewsParams {
+  page?: number;
+  per_page?: number;
+  status?: string;
+  category?: string;
+
+  is_featured?: boolean;
+
+  q?: string;
+}
+
+export interface CreateNewsPayload {
+  title: string;
+  excerpt: string;
+  content?: string;
+  image_url?: string;
+  category?: 'institucional' | 'academico' | 'eventos' | 'comunicados';
+  author?: string;
+  status?: 'borrador' | 'publicado' | 'archivado';
+  is_featured?: boolean;
+  published_at?: string;
+}
+
+export type UpdateNewsPayload = Partial<CreateNewsPayload>;
+
+
+@Injectable({ providedIn: 'root' })
 export class NewsService {
   private http = inject(HttpClient);
-  private baseUrl = '/api/public/news';
-  private adminBaseUrl = '/api/public-news';
 
+  /** Rutas según Postman collection */
+private readonly adminUrl = 'http://localhost:8000/api/public-news';
+private readonly publicUrl = 'http://localhost:8000/api/public/news';
+  /** Cache simple para el módulo público */
   private newsCache$ = new BehaviorSubject<NewsItem[] | null>(null);
 
+  // ──────────────────────────────────────────────
+  // PÚBLICO — sin autenticación
+  // ──────────────────────────────────────────────
+
   /**
-   * Obtener noticias publicadas (público, sin autenticación)
+   * GET /api/public/news
+   * Lista solo noticias con status=publicado y published_at <= ahora.
+   * Filtros: category, featured, q, per_page, page
    */
-  getPublishedNews(params?: {
-    page?: number;
-    per_page?: number;
-    category?: string;
-    featured?: boolean;
-    q?: string;
-  }): Observable<NewsResponse> {
-    let httpParams = new HttpParams();
+  getPublishedNews(params?: PublicNewsParams): Observable<NewsResponse> {
+    const httpParams = this.buildParams(params ?? {});
 
-    if (params?.page) httpParams = httpParams.set('page', params.page.toString());
-    if (params?.per_page) httpParams = httpParams.set('per_page', params.per_page.toString());
-    if (params?.category) httpParams = httpParams.set('category', params.category);
-    if (params?.featured !== undefined) httpParams = httpParams.set('featured', params.featured.toString());
-    if (params?.q) httpParams = httpParams.set('q', params.q);
-
-    return this.http.get<NewsResponse>(this.baseUrl, { params: httpParams }).pipe(
-      tap(response => {
-        if (response?.data) {
-          this.newsCache$.next(response.data);
-        }
-      }),
-      catchError(error => {
-        console.error('Error fetching published news:', error);
-        throw error;
-      }),
+    return this.http.get<NewsResponse>(this.publicUrl, { params: httpParams }).pipe(
+      tap(res => { if (res?.data) this.newsCache$.next(res.data); }),
+      catchError(err => { console.error('[NewsService] getPublishedNews:', err); throw err; }),
       shareReplay(1)
     );
   }
 
   /**
-   * Obtener noticia por slug (público)
+   * GET /api/public/news/:slug
+   * Obtiene una noticia por slug (route model binding).
    */
   getNewsBySlug(slug: string): Observable<{ data: NewsItem }> {
-    return this.http.get<{ data: NewsItem }>(`${this.baseUrl}/${slug}`).pipe(
-      catchError(error => {
-        console.error(`Error fetching news with slug ${slug}:`, error);
-        throw error;
-      })
+    return this.http.get<{ data: NewsItem }>(`${this.publicUrl}/${slug}`).pipe(
+      catchError(err => { console.error('[NewsService] getNewsBySlug:', err); throw err; })
     );
   }
 
+  // ──────────────────────────────────────────────
+  // ADMIN — requiere Bearer token
+  // ──────────────────────────────────────────────
+
   /**
-   * Obtener todas las noticias (admin, con autenticación)
+   * GET /api/public-news
+   * Lista noticias de cualquier estado.
+   * Requiere rol: admin | director | coordinator | secretary | web_editor
    */
-  getAllNews(params?: {
-    page?: number;
-    per_page?: number;
-    status?: string;
-    category?: string;
-    is_featured?: boolean;
-    q?: string;
-  }): Observable<NewsResponse> {
-    let httpParams = new HttpParams();
-
-    if (params?.page) httpParams = httpParams.set('page', params.page.toString());
-    if (params?.per_page) httpParams = httpParams.set('per_page', params.per_page.toString());
-    if (params?.status) httpParams = httpParams.set('status', params.status);
-    if (params?.category) httpParams = httpParams.set('category', params.category);
-    if (params?.is_featured !== undefined) httpParams = httpParams.set('is_featured', params.is_featured.toString());
-    if (params?.q) httpParams = httpParams.set('q', params.q);
-
-    return this.http.get<NewsResponse>(this.adminBaseUrl, { params: httpParams });
+  getAllNews(params?: AdminNewsParams): Observable<NewsResponse> {
+    const httpParams = this.buildParams(params ?? {});
+    return this.http.get<NewsResponse>(this.adminUrl, { params: httpParams });
   }
 
   /**
-   * Obtener una noticia por ID (admin)
+   * GET /api/public-news/:id
+   * Obtiene una noticia por UUID.
    */
   getNewsById(id: string): Observable<{ data: NewsItem }> {
-    return this.http.get<{ data: NewsItem }>(`${this.adminBaseUrl}/${id}`);
+    return this.http.get<{ data: NewsItem }>(`${this.adminUrl}/${id}`);
   }
 
   /**
-   * Crear noticia (admin)
+   * POST /api/public-news
+   * Crea una noticia nueva. Si status=publicado y no envías published_at,
+   * el backend lo completa con la fecha/hora actual.
    */
-  createNews(data: {
-    title: string;
-    excerpt: string;
-    content?: string;
-    image_url?: string;
-    category?: string;
-    author?: string;
-    status?: string;
-    is_featured?: boolean;
-    published_at?: string;
-  }): Observable<{ data: NewsItem }> {
-    return this.http.post<{ data: NewsItem }>(this.adminBaseUrl, data).pipe(
-      tap(() => this.newsCache$.next(null)), // Invalidate cache
-      catchError(error => {
-        console.error('Error creating news:', error);
-        throw error;
-      })
+  createNews(data: CreateNewsPayload): Observable<{ data: NewsItem }> {
+    return this.http.post<{ data: NewsItem }>(this.adminUrl, data).pipe(
+      tap(() => this.newsCache$.next(null)),
+      catchError(err => { console.error('[NewsService] createNews:', err); throw err; })
     );
   }
 
   /**
-   * Actualizar noticia (admin)
+   * PUT /api/public-news/:id
+   * Actualización completa. El backend acepta actualización parcial aunque uses PUT.
+   * Si envías title sin slug, el backend regenera el slug.
    */
-  updateNews(id: string, data: Partial<{
-    title: string;
-    excerpt: string;
-    content: string;
-    image_url: string;
-    category: string;
-    author: string;
-    status: string;
-    is_featured: boolean;
-    published_at: string;
-  }>): Observable<{ data: NewsItem }> {
-    return this.http.put<{ data: NewsItem }>(`${this.adminBaseUrl}/${id}`, data).pipe(
-      tap(() => this.newsCache$.next(null)), // Invalidate cache
-      catchError(error => {
-        console.error(`Error updating news ${id}:`, error);
-        throw error;
-      })
+  updateNews(id: string, data: UpdateNewsPayload): Observable<{ data: NewsItem }> {
+    return this.http.put<{ data: NewsItem }>(`${this.adminUrl}/${id}`, data).pipe(
+      tap(() => this.newsCache$.next(null)),
+      catchError(err => { console.error('[NewsService] updateNews:', err); throw err; })
     );
   }
 
   /**
-   * Eliminar noticia (admin)
+   * PATCH /api/public-news/:id
+   * Actualización parcial. Útil para cambios rápidos como publicar o destacar.
+   *
+   * Ejemplos comunes del Postman:
+   *   patchNews(id, { status: 'publicado' })       → Publicar noticia
+   *   patchNews(id, { status: 'archivado' })        → Archivar noticia
+   *   patchNews(id, { is_featured: true })          → Destacar noticia
+   *   patchNews(id, { status: 'publicado', is_featured: true })
+   */
+  patchNews(id: string, data: UpdateNewsPayload): Observable<{ data: NewsItem }> {
+    return this.http.patch<{ data: NewsItem }>(`${this.adminUrl}/${id}`, data).pipe(
+      tap(() => this.newsCache$.next(null)),
+      catchError(err => { console.error('[NewsService] patchNews:', err); throw err; })
+    );
+  }
+
+  /**
+   * DELETE /api/public-news/:id
+   * Elimina la noticia. La respuesta esperada es 204 No Content.
    */
   deleteNews(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.adminBaseUrl}/${id}`).pipe(
-      tap(() => this.newsCache$.next(null)), // Invalidate cache
-      catchError(error => {
-        console.error(`Error deleting news ${id}:`, error);
-        throw error;
-      })
+    return this.http.delete<void>(`${this.adminUrl}/${id}`).pipe(
+      tap(() => this.newsCache$.next(null)),
+      catchError(err => { console.error('[NewsService] deleteNews:', err); throw err; })
     );
   }
 
-  /**
-   * Obtener caché de noticias
-   */
+  // ──────────────────────────────────────────────
+  // Helpers de acceso directo (shortcuts del Postman)
+  // ──────────────────────────────────────────────
+
+  /** Publica una noticia (PATCH status=publicado) */
+  publishNews(id: string): Observable<{ data: NewsItem }> {
+    return this.patchNews(id, { status: 'publicado' });
+  }
+
+  /** Archiva una noticia (PATCH status=archivado) */
+  archiveNews(id: string): Observable<{ data: NewsItem }> {
+    return this.patchNews(id, { status: 'archivado' });
+  }
+
+  /** Marca/desmarca como destacada (PATCH is_featured) */
+  toggleFeatured(id: string, featured: boolean): Observable<{ data: NewsItem }> {
+    return this.patchNews(id, { is_featured: featured });
+  }
+
+  // ──────────────────────────────────────────────
+  // Cache
+  // ──────────────────────────────────────────────
+
   getCachedNews(): Observable<NewsItem[] | null> {
     return this.newsCache$.asObservable();
   }
 
-  /**
-   * Limpiar caché
-   */
   clearCache(): void {
     this.newsCache$.next(null);
   }
+
+  // ──────────────────────────────────────────────
+  // Util privado
+  // ──────────────────────────────────────────────
+
+  private buildParams<T extends Record<string, any>>(params: T): HttpParams {
+  let p = new HttpParams();
+  Object.entries(params).forEach(([key, val]) => {
+    if (val !== undefined && val !== null && val !== '') {
+      p = p.set(key, String(val));
+    }
+  });
+  return p;
+}
 }
