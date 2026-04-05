@@ -54,7 +54,7 @@ export const PUBLIC_ROUTES: Routes = [
             title: 'Noticias y Eventos - CERMAT SCHOOL',
           },
           {
-            path: ':id',
+            path: ':slug',
             loadComponent: () => import('./features/public/noticias/noticias-detail/noticias-detail.component').then(m => m.NoticiasDetailComponent),
             title: 'Noticia - CERMAT SCHOOL'
           }
