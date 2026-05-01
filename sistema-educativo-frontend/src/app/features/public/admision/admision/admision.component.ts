@@ -97,6 +97,24 @@ export class AdmisionComponent implements OnInit {
     });
   }
 
+  readonly fieldLabels: { [key: string]: string } = {
+    academic_year_id: 'Año académico',
+    grade_level_id: 'Grado a postular',
+    student_first_name: 'Nombres del estudiante',
+    student_last_name: 'Apellidos del estudiante',
+    student_document_type: 'Tipo de documento (Estudiante)',
+    student_document_number: 'Número de documento (Estudiante)',
+    student_birth_date: 'Fecha de nacimiento',
+    student_gender: 'Género',
+    guardian_first_name: 'Nombres del apoderado',
+    guardian_last_name: 'Apellidos del apoderado',
+    guardian_document_type: 'Tipo de documento (Apoderado)',
+    guardian_document_number: 'Número de documento (Apoderado)',
+    guardian_phone: 'Celular del apoderado',
+    guardian_email: 'Email del apoderado',
+    guardian_relationship: 'Parentesco'
+  };
+
   ngOnInit(): void {
     this.seoService.updateTitle('Proceso de Admision 2026 - CERMAT SCHOOL');
     this.seoService.updateMetaTags({
@@ -107,6 +125,27 @@ export class AdmisionComponent implements OnInit {
     this.loadAdmissionOptions();
   }
 
+  getMissingFields(): string[] {
+    const missing: string[] = [];
+    Object.keys(this.fieldLabels).forEach(key => {
+      const control = this.admissionForm.get(key);
+      if (control && control.invalid) {
+        missing.push(this.fieldLabels[key]);
+      }
+    });
+
+    // Caso especial para necesidades especiales
+    const hasSpecialNeeds = this.admissionForm.get('has_special_needs')?.value;
+    if (hasSpecialNeeds) {
+      const desc = this.admissionForm.get('special_needs_description');
+      if (!desc?.value || !String(desc.value).trim()) {
+        missing.push('Descripción de necesidades especiales');
+      }
+    }
+
+    return missing;
+  }
+
   toggleFaq(index: number): void {
     this.openFaqIndex.set(this.openFaqIndex() === index ? null : index);
   }
@@ -114,6 +153,19 @@ export class AdmisionComponent implements OnInit {
   onSubmit(): void {
     if (this.admissionForm.invalid) {
       this.admissionForm.markAllAsTouched();
+      
+      // ENCONTRAR EL PRIMER CAMPO INVÁLIDO Y DESPLAZARSE A ÉL
+      const firstInvalidControl = Object.keys(this.admissionForm.controls).find(key => {
+        return this.admissionForm.get(key)?.invalid;
+      });
+
+      if (firstInvalidControl) {
+        const element = document.querySelector(`[formControlName="${firstInvalidControl}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          (element as HTMLElement).focus();
+        }
+      }
       return;
     }
 

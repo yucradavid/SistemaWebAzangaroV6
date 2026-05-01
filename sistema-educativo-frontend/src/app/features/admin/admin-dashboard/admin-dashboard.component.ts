@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AuthService } from '@core/services/auth.service';
 import { ADMIN_MODULES_LIST, AdminModuleEntry } from '@core/constants/admin-modules';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { NavigationStateService } from '@core/services/navigation-state.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -16,11 +17,10 @@ export class AdminDashboardComponent implements OnInit {
   modules: AdminModuleEntry[] = ADMIN_MODULES_LIST;
   activeModule: AdminModuleEntry | null = null;
 
-  constructor(
-    private sanitizer: DomSanitizer,
-    private authService: AuthService,
-    private router: Router
-  ) { }
+  private sanitizer = inject(DomSanitizer);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private navState = inject(NavigationStateService);
 
   ngOnInit() {
     const role = this.authService.getRole();
@@ -30,6 +30,12 @@ export class AdminDashboardComponent implements OnInit {
     }
 
     this.modules = ADMIN_MODULES_LIST.filter((module) => module.roles.includes((role || '') as string));
+
+    // Restaurar el último módulo activo si existe
+    const lastModuleTitle = this.navState.getActiveModuleTitle();
+    if (lastModuleTitle) {
+      this.activeModule = this.modules.find(m => m.title === lastModuleTitle) || null;
+    }
   }
 
   sanitizeSvg(svg: string): SafeHtml {
@@ -40,11 +46,13 @@ export class AdminDashboardComponent implements OnInit {
     if (module.submodules && module.submodules.length > 0) {
       event.preventDefault();
       this.activeModule = module;
+      this.navState.setActiveModule(module);
     }
   }
 
   backToMain(): void {
     this.activeModule = null;
+    this.navState.setActiveModule(null);
   }
 }
 

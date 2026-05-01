@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 
 @Component({
@@ -7,7 +7,7 @@ import { Router, RouterModule } from '@angular/router';
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <div (click)="navigate()"
+    <div (click)="handleNavigation()"
          class="back-button-pill fixed left-6 top-24 z-40 group flex items-center rounded-full p-0 cursor-pointer active:scale-95">
       <!-- Icon Container -->
       <div class="icon-container flex items-center justify-center w-9 h-9 rounded-full text-white shadow-[0_0_0_1px_#0E3A8A] group-hover:shadow-none">
@@ -53,22 +53,30 @@ import { Router, RouterModule } from '@angular/router';
 })
 export class BackButtonComponent {
   @Input() link: any[] | string | null = null;
-  @Input() text: string = 'Volver al Panel';
+  @Input() text: string = 'Volver';
   @Output() onClick = new EventEmitter<void>();
 
-  router = inject(Router);
+  private router = inject(Router);
+  private location = inject(Location);
 
-  navigate() {
+  handleNavigation() {
+    // Si hay un listener para onClick, lo priorizamos (usado en Dashboard)
     if (this.onClick.observed) {
       this.onClick.emit();
       return;
     }
 
-    const targetLink = this.link || ['/app/dashboard'];
-    if (Array.isArray(targetLink)) {
-      this.router.navigate(targetLink);
-    } else {
-      this.router.navigateByUrl(targetLink);
+    // Si se pasó un link explícito, navegamos a él
+    if (this.link) {
+      if (Array.isArray(this.link)) {
+        this.router.navigate(this.link);
+      } else {
+        this.router.navigateByUrl(this.link);
+      }
+      return;
     }
+
+    // Por defecto, retrocedemos en el historial (esto mantiene el estado del Dashboard)
+    this.location.back();
   }
 }

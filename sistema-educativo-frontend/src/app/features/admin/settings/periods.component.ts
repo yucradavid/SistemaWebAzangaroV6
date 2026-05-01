@@ -28,7 +28,7 @@ interface GroupedPeriods {
     .animate-fade-in { animation: fadeIn 0.4s ease-out; }
     .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     .animate-slide-left { animation: slideLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes slideLeft { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: translateX(0); } }
   `]

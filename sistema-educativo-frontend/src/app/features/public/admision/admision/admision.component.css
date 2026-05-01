@@ -1,7 +1,25 @@
- @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fade-in {
-      animation: fadeIn 0.3s ease-out;
-    }
+/* src/app/features/public/admision/admision/admision.component.css */
+input.ng-invalid.ng-touched, 
+select.ng-invalid.ng-touched, 
+textarea.ng-invalid.ng-touched {
+    border-color: #fca5a5 !important; /* red-300 */
+    background-color: #fef2f2 !important; /* red-50 */
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+input.ng-invalid.ng-touched:focus, 
+select.ng-invalid.ng-touched:focus, 
+textarea.ng-invalid.ng-touched:focus {
+    border-color: #ef4444 !important; /* red-500 */
+    outline: none;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.animate-shake {
+    animation: shake 0.2s ease-in-out 0s 2;
+}

@@ -35,6 +35,7 @@ interface DaySchedule {
     room: string;
     color: string;
     colorBg: string;
+    borderColor: string;
   }[];
 }
 
@@ -43,138 +44,121 @@ interface DaySchedule {
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <div class="min-h-[calc(100vh-80px)] p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
-      <a routerLink="/app/dashboard/student" class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm font-medium group">
-        <div class="p-1.5 bg-white border border-slate-200 rounded-lg group-hover:bg-slate-50 transition-colors shadow-sm">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </div>
-        Volver al Panel
-      </a>
-
-      <div class="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.14),_transparent_36%),linear-gradient(135deg,#ffffff_0%,#eff6ff_48%,#f8fafc_100%)] p-6 sm:p-8 shadow-sm">
-        <div class="absolute -left-10 -bottom-10 h-36 w-36 rounded-full bg-blue-200/20 blur-3xl"></div>
-        <div class="absolute right-0 top-0 h-24 w-24 rounded-full bg-indigo-200/20 blur-2xl"></div>
-
-        <div class="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div class="max-w-2xl">
-            <p class="text-[11px] font-black uppercase tracking-[0.35em] text-blue-700">Portal Estudiantil</p>
-            <h1 class="mt-3 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Mi Horario Escolar</h1>
-            <p class="text-slate-600 mt-3 font-medium leading-relaxed">
-              Vista semanal conectada al backend con tu seccion y ano academico activo.
-            </p>
+    <div class="min-h-screen bg-[#F8FAFC] pb-12">
+      <!-- HEADER PREMIUM -->
+      <div class="bg-white border-b border-slate-200/60 sticky top-0 z-[100] backdrop-blur-xl bg-white/80">
+        <div class="max-w-[1600px] mx-auto px-6 py-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div class="flex items-center gap-6">
+            <a routerLink="/app/dashboard/student" class="p-3 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-white hover:shadow-xl transition-all group">
+              <svg class="w-5 h-5 text-slate-600 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </a>
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600 mb-1">Mi Horario Personal</p>
+              <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                {{ activeAcademicYearLabel }}
+                <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] rounded-full border border-blue-100 uppercase tracking-widest">{{ sectionLabel }}</span>
+              </h1>
+            </div>
           </div>
 
-          <div class="flex items-center gap-4 bg-white/90 backdrop-blur border border-slate-200 p-2 rounded-2xl shadow-sm">
-            <div class="flex items-center gap-2 px-3 py-1 border-r border-slate-100">
-              <div class="w-3 h-3 rounded-full bg-indigo-600"></div>
-              <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Activo</span>
-            </div>
-            <p class="text-xs font-black text-slate-900 pr-2">{{ activeAcademicYearLabel }}</p>
+          <div class="flex items-center gap-4">
+             <div class="hidden sm:flex flex-col items-end px-4 border-r border-slate-100">
+               <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Estudiante</p>
+               <p class="text-sm font-bold text-slate-700">{{ studentName }}</p>
+             </div>
+             <button (click)="printSchedule()" class="px-6 py-3 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest shadow-xl hover:shadow-slate-900/20 active:scale-95 transition-all">Imprimir PDF</button>
           </div>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Estudiante</p>
-          <p class="mt-3 text-lg font-bold text-slate-900 leading-tight">{{ studentName }}</p>
-          <p class="mt-2 text-sm font-medium text-slate-500">{{ sectionLabel || 'Seccion no disponible' }}</p>
+      <div class="max-w-[1600px] mx-auto p-6 lg:p-10">
+        <div *ngIf="loading" class="py-20 text-center bg-white rounded-[3rem] border border-slate-200/60 shadow-sm">
+          <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p class="mt-6 text-slate-500 font-bold uppercase tracking-widest text-xs">Sincronizando con el servidor...</p>
         </div>
 
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Bloques</p>
-          <p class="mt-3 text-3xl font-semibold text-slate-900">{{ totalBlocks }}</p>
-          <p class="mt-2 text-sm font-medium text-slate-500">Sesiones registradas</p>
+        <div *ngIf="!loading && weekSchedule.length === 0" class="py-32 text-center bg-white rounded-[3rem] border border-slate-200/60 shadow-sm">
+           <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">🗓️</div>
+           <h2 class="text-2xl font-black text-slate-900">No hay horario publicado</h2>
+           <p class="text-slate-500 mt-2 font-medium">Todavía no se han asignado clases para tu sección.</p>
         </div>
 
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Horas</p>
-          <p class="mt-3 text-3xl font-semibold text-slate-900">{{ totalHoursLabel }}</p>
-          <p class="mt-2 text-sm font-medium text-slate-500">Carga semanal</p>
-        </div>
+        <!-- GRID DE HORARIO ESTILO ADMIN -->
+        <div *ngIf="!loading && weekSchedule.length > 0" class="bg-white border border-slate-200/60 rounded-[3rem] shadow-2xl shadow-slate-200/50 overflow-hidden relative">
+          
+          <!-- Cabecera de Días -->
+          <div class="grid bg-slate-50/50 border-b border-slate-100 sticky top-0 z-10 backdrop-blur-md"
+               [ngClass]="maxDays === 5 ? 'grid-cols-[80px_repeat(5,1fr)]' : (maxDays === 6 ? 'grid-cols-[80px_repeat(6,1fr)]' : 'grid-cols-[80px_repeat(7,1fr)]')">
+            <div class="h-16 flex items-center justify-center text-xl">⏳</div>
+            <div *ngFor="let day of weekSchedule" class="h-16 flex flex-col items-center justify-center border-l border-slate-100/60 group">
+              <span class="text-[10px] font-black uppercase text-slate-400 tracking-[0.25em] group-hover:text-blue-600 transition-colors">{{ day.day.substring(0,3) }}</span>
+              <span class="text-xs font-bold text-slate-900">{{ day.day }}</span>
+            </div>
+          </div>
 
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Cursos</p>
-          <p class="mt-3 text-3xl font-semibold text-slate-900">{{ totalCourses }}</p>
-          <p class="mt-2 text-sm font-medium text-slate-500">Cursos programados</p>
-        </div>
-      </div>
-
-      <div *ngIf="loading" class="bg-white rounded-[32px] border border-slate-200 shadow-sm p-12 text-center">
-        <div class="mx-auto w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        <p class="mt-4 text-sm font-semibold text-slate-500">Cargando horario desde el backend...</p>
-      </div>
-
-      <div *ngIf="!loading && errorMessage" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-        {{ errorMessage }}
-      </div>
-
-      <div *ngIf="!loading && !errorMessage && weekSchedule.length === 0" class="bg-white rounded-[32px] border border-slate-200 shadow-sm p-12 text-center">
-        <p class="text-lg font-bold text-slate-900">No hay horario publicado</p>
-        <p class="mt-2 text-sm text-slate-500">Todavia no se encontraron bloques para tu seccion.</p>
-      </div>
-
-      <div *ngIf="!loading && !errorMessage && weekSchedule.length > 0" class="bg-white border border-slate-200 rounded-[40px] shadow-sm overflow-hidden overflow-x-auto">
-        <div class="min-w-[1000px] grid grid-cols-5 divide-x divide-slate-100">
-          <div *ngFor="let day of weekSchedule" class="flex flex-col divide-y divide-slate-50">
-            <div class="p-6 bg-slate-50/50 text-center">
-              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Dia</p>
-              <h3 class="text-lg font-black text-slate-900">{{ day.day | uppercase }}</h3>
+          <!-- Cuerpo del Horario -->
+          <div class="relative grid min-h-[1300px]" 
+               [ngClass]="maxDays === 5 ? 'grid-cols-[80px_repeat(5,1fr)]' : (maxDays === 6 ? 'grid-cols-[80px_repeat(6,1fr)]' : 'grid-cols-[80px_repeat(7,1fr)]')"
+               [style.height.px]="1300">
+            <!-- Eje de Horas -->
+            <div class="relative border-r border-slate-100 bg-slate-50/30">
+              <div *ngFor="let hour of getHourLabels()" class="absolute w-full flex items-center justify-center" [style.top.%]="getTopPosition(hour + ':00')">
+                <span class="text-[10px] font-black text-slate-400 tabular-nums">{{ hour }}:00</span>
+              </div>
             </div>
 
-            <div class="p-4 space-y-4 min-h-[600px] hover:bg-slate-50/20 transition-colors">
-              <div *ngFor="let slot of day.slots"
-                   [class]="'group p-5 rounded-3xl border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ' + slot.colorBg + ' ' + (slot.colorBg.includes('slate') ? 'border-slate-100 opacity-60' : 'border-transparent')">
+            <!-- Columnas de Días -->
+            <div *ngFor="let day of weekSchedule" class="relative border-r border-slate-100/60 group">
+              <div class="absolute inset-0 group-hover:bg-blue-50/20 transition-colors pointer-events-none"></div>
 
-                <div class="flex flex-col h-full gap-4">
-                  <div class="flex items-start justify-between">
-                    <div class="p-2 bg-white/40 backdrop-blur-md rounded-xl shadow-sm">
-                      <svg class="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+              <!-- Bloques de Clase Sólidos -->
+              <div *ngFor="let slot of day.slots" 
+                   class="absolute left-2 right-2 rounded-2xl shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden z-10 border border-white/10"
+                   [class]="slot.colorBg"
+                   [style.top.%]="getTopPosition(slot.startTime)"
+                   [style.height.%]="getHeightPercent(slot.startTime, slot.endTime)">
+                
+                <div class="p-4 flex flex-col h-full text-white relative">
+                  <div class="flex flex-col">
+                    <h4 class="text-[13px] font-black leading-tight mb-1 uppercase tracking-tight">{{ slot.course }}</h4>
+                    <span class="text-[10px] font-bold opacity-90 tabular-nums tracking-wide">{{ slot.startTime }} - {{ slot.endTime }}</span>
+                  </div>
+
+                  <div class="mt-auto pt-3 border-t border-white/20">
+                    <p class="text-[9px] font-black uppercase tracking-widest opacity-90 truncate">{{ slot.teacher }}</p>
+                    <div class="flex items-center gap-1.5 mt-1">
+                       <div class="w-1.5 h-1.5 rounded-full bg-white/40"></div>
+                       <span class="text-[9px] font-black uppercase tracking-widest opacity-80">{{ slot.room }}</span>
                     </div>
-                    <span class="text-[10px] font-black text-slate-600/60 tracking-wider">{{ slot.startTime }} - {{ slot.endTime }}</span>
-                  </div>
-
-                  <div>
-                    <h4 class="text-sm font-black text-slate-900 mb-1 leading-tight group-hover:text-indigo-600 transition-colors">{{ slot.course }}</h4>
-                    <p class="text-[10px] font-bold text-slate-600/70 uppercase tracking-tight">{{ slot.teacher }}</p>
-                  </div>
-
-                  <div class="mt-auto flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full" [ngClass]="slot.color"></div>
-                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ slot.room }}</span>
                   </div>
                 </div>
               </div>
-
-              <div *ngIf="day.slots.length === 0" class="flex flex-col items-center justify-center py-20 opacity-30">
-                <svg class="w-12 h-12 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                <span class="text-[10px] font-black uppercase mt-4">Sin clases</span>
-              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="flex flex-wrap items-center justify-between gap-6 p-6 bg-slate-900 rounded-[32px] text-white">
-        <div class="flex items-center gap-6">
-          <div class="flex items-center gap-2 text-xs font-bold">
-            <span class="w-3 h-3 rounded-full bg-blue-500"></span>
-            Matriz cromatica automatica
+        <!-- LEYENDA INFERIOR -->
+        <div class="mt-12 flex flex-wrap items-center justify-between gap-8 p-8 bg-slate-900 rounded-[3rem] text-white shadow-2xl shadow-slate-900/20">
+          <div class="flex items-center gap-8">
+            <div class="flex items-center gap-3">
+              <div class="w-4 h-4 rounded-full bg-blue-500 border-4 border-white/20"></div>
+              <span class="text-xs font-black uppercase tracking-widest text-slate-200">Matriz Cromática Activa</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="w-4 h-4 rounded-full bg-emerald-500 border-4 border-white/20"></div>
+              <span class="text-xs font-black uppercase tracking-widest text-slate-200">Datos en Tiempo Real</span>
+            </div>
           </div>
-          <div class="flex items-center gap-2 text-xs font-bold">
-            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
-            Datos desde backend
-          </div>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] italic">
+            * El horario se actualiza automáticamente con la planificación académica centralizada.
+          </p>
         </div>
-
-        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
-          * Los cambios del horario dependen de la publicacion administrativa.
-        </p>
       </div>
     </div>
   `,
   styles: [`
-    :host { display: block; background: #F8FAFC; min-height: 100vh; }
+    :host { display: block; }
+    .grid-cols-6 { grid-template-columns: 80px repeat(5, 1fr); }
   `]
 })
 export class ScheduleStudentComponent implements OnInit {
@@ -182,21 +166,26 @@ export class ScheduleStudentComponent implements OnInit {
   private readonly scheduleService = inject(ScheduleService);
 
   private readonly palette = [
-    { color: 'bg-blue-500', colorBg: 'bg-blue-50' },
-    { color: 'bg-rose-500', colorBg: 'bg-rose-50' },
-    { color: 'bg-emerald-500', colorBg: 'bg-emerald-50' },
-    { color: 'bg-indigo-500', colorBg: 'bg-indigo-50' },
-    { color: 'bg-amber-500', colorBg: 'bg-amber-50' },
-    { color: 'bg-cyan-500', colorBg: 'bg-cyan-50' }
+    { color: 'bg-[#8B5CF6]', colorBg: 'bg-[#8B5CF6]', border: 'border-none' }, // Violeta
+    { color: 'bg-[#10B981]', colorBg: 'bg-[#10B981]', border: 'border-none' }, // Esmeralda
+    { color: 'bg-[#0EA5E9]', colorBg: 'bg-[#0EA5E9]', border: 'border-none' }, // Celeste
+    { color: 'bg-[#84CC16]', colorBg: 'bg-[#84CC16]', border: 'border-none' }, // Lima
+    { color: 'bg-[#F59E0B]', colorBg: 'bg-[#F59E0B]', border: 'border-none' }, // Ámbar
+    { color: 'bg-[#EC4899]', colorBg: 'bg-[#EC4899]', border: 'border-none' }, // Rosa
+    { color: 'bg-[#6366F1]', colorBg: 'bg-[#6366F1]', border: 'border-none' }  // Indigo
   ];
 
   student: AcademicContextStudent | null = null;
   activeAcademicYearId = '';
-  activeAcademicYearLabel = 'Ano academico no disponible';
+  activeAcademicYearLabel = 'Año académico no disponible';
+
+  maxDays = 5;
+  gridStartHour = 7;
+  gridEndHour = 18;
 
   schedules: ScheduleBlock[] = [];
   weekSchedule: DaySchedule[] = [];
-  courseStyleMap: Record<string, { color: string; colorBg: string }> = {};
+  courseStyleMap: Record<string, { color: string; colorBg: string; border: string }> = {};
 
   loading = false;
   errorMessage = '';
@@ -205,124 +194,87 @@ export class ScheduleStudentComponent implements OnInit {
     this.loadAcademicContext();
   }
 
-  get studentName(): string {
-    return this.student?.full_name || 'Estudiante';
-  }
+  get studentName(): string { return this.student?.full_name || 'Estudiante'; }
 
   get sectionLabel(): string {
     const section = this.student?.section;
-    const grade = section?.grade_level;
-    const gradeLabel = grade?.name || (grade ? `${grade.level} ${grade.grade}` : '');
-    const sectionPart = section?.section_letter ? `Seccion ${section.section_letter}` : '';
+    const gradeLabel = section?.grade_level?.name || (section?.grade_level ? `${section.grade_level.level} ${section.grade_level.grade}°` : '');
+    const sectionPart = section?.section_letter ? `Sección ${section.section_letter}` : '';
     return [gradeLabel, sectionPart].filter(Boolean).join(' - ');
-  }
-
-  get totalBlocks(): number {
-    return this.schedules.length;
-  }
-
-  get totalHoursLabel(): string {
-    const totalMinutes = this.schedules.reduce((sum, block) => {
-      return sum + (this.timeToMinutes(block.end_time) - this.timeToMinutes(block.start_time));
-    }, 0);
-
-    return (totalMinutes / 60).toFixed(2) + 'h';
-  }
-
-  get totalCourses(): number {
-    return new Set(this.schedules.map((block) => block.course_id)).size;
   }
 
   private loadAcademicContext() {
     this.loading = true;
-    this.errorMessage = '';
-
     this.authService.getAcademicContext().subscribe({
       next: (context) => {
         this.activeAcademicYearId = context.active_academic_year?.id || '';
-        this.activeAcademicYearLabel = context.active_academic_year?.year
-          ? `Ano academico ${context.active_academic_year.year}`
-          : 'Ano academico no disponible';
-
+        this.activeAcademicYearLabel = context.active_academic_year?.year ? `Año Académico ${context.active_academic_year.year}` : 'Sin Año Activo';
         this.student = context.students?.[0] || null;
-
-        if (!this.activeAcademicYearId) {
-          this.loading = false;
-          this.errorMessage = 'No existe un ano academico activo para consultar tu horario.';
-          return;
-        }
-
-        if (!this.student?.section_id) {
-          this.loading = false;
-          this.errorMessage = 'Tu usuario no tiene una seccion academica asignada.';
-          return;
-        }
-
-        this.loadSchedules();
+        if (this.activeAcademicYearId && this.student?.section_id) this.loadSchedules();
+        else this.loading = false;
       },
-      error: () => {
-        this.loading = false;
-        this.errorMessage = 'No se pudo cargar tu contexto academico.';
-      }
+      error: () => this.loading = false
     });
   }
 
   private loadSchedules() {
-    if (!this.student?.section_id || !this.activeAcademicYearId) {
-      this.loading = false;
-      this.schedules = [];
-      this.weekSchedule = [];
-      return;
-    }
-
     this.scheduleService.getSchedules({
       academic_year_id: this.activeAcademicYearId,
-      section_id: this.student.section_id,
+      section_id: this.student?.section_id!,
       per_page: 200,
       sort: 'start_time',
       dir: 'asc'
     }).subscribe({
       next: (response) => {
-        this.schedules = this.extractItems<ScheduleBlock>(response).sort((left, right) => {
-          const dayDiff = Number(left.day_of_week) - Number(right.day_of_week);
-          if (dayDiff !== 0) {
-            return dayDiff;
-          }
-          return this.timeToMinutes(left.start_time) - this.timeToMinutes(right.start_time);
-        });
+        this.schedules = this.extractItems<ScheduleBlock>(response);
+        this.calculateMaxDays();
+        this.calculateGridRange();
         this.assignCourseStyles();
         this.weekSchedule = this.buildWeekSchedule();
         this.loading = false;
       },
-      error: (error) => {
-        this.loading = false;
-        this.schedules = [];
-        this.weekSchedule = [];
-        this.errorMessage = error?.error?.message || 'No se pudo cargar tu horario.';
-      }
+      error: () => this.loading = false
     });
   }
 
   private extractItems<T>(response: any): T[] {
-    if (Array.isArray(response)) {
-      return response;
+    if (Array.isArray(response)) return response;
+    return response?.data?.data || response?.data || [];
+  }
+
+  private calculateMaxDays() {
+    const daysInSchedules = this.schedules.map(s => Number(s.day_of_week));
+    const maxDayFound = Math.max(...daysInSchedules, 5); // Mínimo 5 días
+    this.maxDays = maxDayFound > 7 ? 7 : maxDayFound;
+  }
+
+  private calculateGridRange() {
+    if (this.schedules.length === 0) {
+      this.gridStartHour = 7;
+      this.gridEndHour = 18;
+      return;
     }
 
-    if (Array.isArray(response?.data)) {
-      return response.data;
-    }
+    const hours = this.schedules.flatMap(s => [
+      this.timeToMinutes(s.start_time) / 60,
+      this.timeToMinutes(s.end_time) / 60
+    ]);
 
-    if (Array.isArray(response?.data?.data)) {
-      return response.data.data;
-    }
+    const minH = Math.floor(Math.min(...hours));
+    const maxH = Math.ceil(Math.max(...hours));
 
-    return [];
+    this.gridStartHour = Math.max(0, minH - 1); // Una hora de margen antes
+    this.gridEndHour = Math.min(23, maxH + 1);  // Una hora de margen después
+    
+    // Asegurar un rango mínimo de 5 horas para que no se vea extraño
+    if (this.gridEndHour - this.gridStartHour < 5) {
+      this.gridEndHour = this.gridStartHour + 6;
+    }
   }
 
   private assignCourseStyles() {
     this.courseStyleMap = {};
     let colorIndex = 0;
-
     [...new Set(this.schedules.map((block) => block.course_id))].forEach((courseId) => {
       this.courseStyleMap[courseId] = this.palette[colorIndex % this.palette.length];
       colorIndex++;
@@ -330,13 +282,17 @@ export class ScheduleStudentComponent implements OnInit {
   }
 
   private buildWeekSchedule(): DaySchedule[] {
-    return [
-      { dayId: 1, day: 'Lunes', slots: [] },
-      { dayId: 2, day: 'Martes', slots: [] },
-      { dayId: 3, day: 'Miercoles', slots: [] },
-      { dayId: 4, day: 'Jueves', slots: [] },
-      { dayId: 5, day: 'Viernes', slots: [] }
-    ].map((day) => ({
+    const allDays = [
+      { dayId: 1, day: 'Lunes' },
+      { dayId: 2, day: 'Martes' },
+      { dayId: 3, day: 'Miércoles' },
+      { dayId: 4, day: 'Jueves' },
+      { dayId: 5, day: 'Viernes' },
+      { dayId: 6, day: 'Sábado' },
+      { dayId: 7, day: 'Domingo' }
+    ];
+
+    return allDays.slice(0, this.maxDays).map((day) => ({
       ...day,
       slots: this.schedules
         .filter((block) => Number(block.day_of_week) === day.dayId)
@@ -345,19 +301,41 @@ export class ScheduleStudentComponent implements OnInit {
           endTime: this.formatTime(block.end_time),
           course: block.course?.name || 'Curso',
           teacher: this.getTeacherName(block),
-          room: block.room_number ? `Aula ${block.room_number}` : 'Sin aula',
-          color: this.courseStyleMap[block.course_id]?.color || 'bg-slate-500',
-          colorBg: this.courseStyleMap[block.course_id]?.colorBg || 'bg-slate-50'
+          room: block.room_number ? `Aula ${block.room_number}` : 'Sin Aula',
+          color: this.courseStyleMap[block.course_id]?.color || 'bg-slate-600',
+          colorBg: this.courseStyleMap[block.course_id]?.colorBg || 'bg-slate-50',
+          borderColor: this.courseStyleMap[block.course_id]?.border || 'border-slate-200'
         }))
     }));
   }
 
   private getTeacherName(block: ScheduleBlock): string {
-    if (!block.teacher) {
-      return 'Sin docente';
-    }
-
+    if (!block.teacher) return 'Sin docente';
     return [block.teacher.first_name, block.teacher.last_name].filter(Boolean).join(' ') || 'Sin docente';
+  }
+
+  // HELPER FUNCTIONS FOR GRID LAYOUT
+  getHourLabels(): string[] {
+    const labels = [];
+    for (let i = this.gridStartHour; i <= this.gridEndHour; i++) {
+      labels.push(i.toString().padStart(2, '0'));
+    }
+    return labels;
+  }
+
+  getTopPosition(timeStr: string): number {
+    const totalMinutes = this.timeToMinutes(timeStr);
+    const startRange = this.gridStartHour * 60;
+    const endRange = this.gridEndHour * 60;
+    const range = endRange - startRange;
+    return ((totalMinutes - startRange) / range) * 100;
+  }
+
+  getHeightPercent(startStr: string, endStr: string): number {
+    const start = this.timeToMinutes(startStr);
+    const end = this.timeToMinutes(endStr);
+    const range = (this.gridEndHour - this.gridStartHour) * 60;
+    return ((end - start) / range) * 100;
   }
 
   private timeToMinutes(time: string): number {
@@ -365,7 +343,6 @@ export class ScheduleStudentComponent implements OnInit {
     return (hours * 60) + (minutes || 0);
   }
 
-  formatTime(time: string): string {
-    return time ? time.substring(0, 5) : '--:--';
-  }
+  formatTime(time: string): string { return time ? time.substring(0, 5) : '--:--'; }
+  printSchedule() { window.print(); }
 }

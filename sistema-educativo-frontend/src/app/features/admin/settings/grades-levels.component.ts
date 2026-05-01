@@ -27,6 +27,7 @@ interface GradeRelationDetail {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, BackButtonComponent, SettingMetricCardComponent],
   template: `
+    <app-back-button></app-back-button>
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-2">
         <div class="flex items-center gap-4">
@@ -282,7 +283,7 @@ interface GradeRelationDetail {
     :host { display: block; }
     .animate-fade-in { animation: fadeIn 0.4s ease-out; }
     .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   `]
 })

@@ -24,8 +24,19 @@ import Swal from 'sweetalert2';
           </div>
           <div class="flex flex-wrap items-center gap-4">
             <div class="flex items-center gap-3 bg-white/80 backdrop-blur border border-slate-200 rounded-2xl p-2 px-4 shadow-sm">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inicio:</span>
+              <select [(ngModel)]="gridStartHour" (change)="onViewPreferenceChange()" class="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none cursor-pointer">
+                <option *ngFor="let h of [5,6,7,8,9,10,11,12,13,14,15]" [ngValue]="h">{{ h }}:00</option>
+              </select>
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 border-l pl-3">Fin:</span>
+              <select [(ngModel)]="gridEndHour" (change)="onViewPreferenceChange()" class="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none cursor-pointer">
+                <option *ngFor="let h of [12,13,14,15,16,17,18,19,20,21,22]" [ngValue]="h">{{ h }}:00</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-3 bg-white/80 backdrop-blur border border-slate-200 rounded-2xl p-2 px-4 shadow-sm">
               <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vista:</span>
-              <select [(ngModel)]="maxDays" class="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none cursor-pointer">
+              <select [(ngModel)]="maxDays" (change)="onViewPreferenceChange()" class="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none cursor-pointer">
                 <option [ngValue]="5">Lunes a Viernes</option>
                 <option [ngValue]="6">Lunes a Sábado</option>
                 <option [ngValue]="7">Lunes a Domingo</option>
@@ -677,9 +688,28 @@ export class AdminScheduleComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.loadViewPreference();
     this.loadAcademicYears();
     this.loadGrades();
     this.loadTeachers();
+  }
+
+  private loadViewPreference() {
+    const savedDays = localStorage.getItem('admin_schedule_max_days');
+    if (savedDays) this.maxDays = parseInt(savedDays, 10);
+    
+    const savedStart = localStorage.getItem('admin_schedule_start_hour');
+    if (savedStart) this.gridStartHour = parseInt(savedStart, 10);
+    
+    const savedEnd = localStorage.getItem('admin_schedule_end_hour');
+    if (savedEnd) this.gridEndHour = parseInt(savedEnd, 10);
+  }
+
+  onViewPreferenceChange() {
+    localStorage.setItem('admin_schedule_max_days', this.maxDays.toString());
+    localStorage.setItem('admin_schedule_start_hour', this.gridStartHour.toString());
+    localStorage.setItem('admin_schedule_end_hour', this.gridEndHour.toString());
+    this.updateSuggestions();
   }
 
   getVisibleDays() {
