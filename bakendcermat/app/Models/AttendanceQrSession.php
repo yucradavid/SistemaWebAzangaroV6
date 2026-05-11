@@ -33,7 +33,6 @@ class AttendanceQrSession extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
         'opened_at' => 'datetime',
         'expires_at' => 'datetime',
         'closed_at' => 'datetime',
@@ -66,7 +65,7 @@ class AttendanceQrSession extends Model
             'CERMAT_ATTENDANCE|session=%s|checkpoint=%s|date=%s',
             (string) $this->session_code,
             (string) $this->checkpoint_type,
-            optional($this->date)->toDateString() ?? ''
+            (string) ($this->date ?? '')
         );
     }
 }

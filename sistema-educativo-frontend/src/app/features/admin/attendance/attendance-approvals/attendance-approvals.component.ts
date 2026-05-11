@@ -1,8 +1,10 @@
-import { AfterViewInit, Component, OnInit, inject } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { createIcons, icons } from 'lucide';
 import Swal from 'sweetalert2';
+import * as QRCode from 'qrcode';
+import { interval, Subscription } from 'rxjs';
 import {
   AdminAttendanceOverview,
   AttendanceAssignment,
@@ -35,18 +37,25 @@ interface AttendanceState {
   imports: [CommonModule, FormsModule, BackButtonComponent, AdminBackButtonComponent],
   templateUrl: './attendance-approvals.component.html',
 })
-export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
+export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDestroy {
   private attendanceService = inject(AttendanceService);
+  private timerSubscription?: Subscription;
+  qrCountdown = '';
 
   loading = false;
   saving = false;
   justificationsLoading = false;
   overviewLoading = false;
+  showInfoNote = true;
+  isAutoRefreshEnabled = false;
+  visualizationMode: 'full' | 'initials' = 'initials';
+  recentlyMarkedIds = new Set<string>();
+  private refreshSubscription?: Subscription;
 
   selectedCourseId = '';
   selectedSectionId = '';
   selectedAcademicYearId = '';
-  selectedDate = new Date().toISOString().split('T')[0];
+  selectedDate = new Date().toLocaleDateString('en-CA');
   selectedCheckpoint: DailyAttendanceCheckpoint = 'entrada';
   searchTerm = '';
   error = '';
@@ -70,6 +79,11 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.initIcons();
+  }
+
+  ngOnDestroy(): void {
+    this.stopTimer();
+    this.stopAutoRefresh();
   }
 
   get filteredStudents(): StudentSummary[] {
@@ -105,9 +119,41 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     return this.justifications.filter((item) => item.status === 'pendiente').length;
   }
 
+  handleOpenQr(): void {
+    if (!this.selectedAssignment) return;
+
+    // Buscar si ya existe una sesión activa para hoy y este checkpoint
+    const existingSession = this.dailyAttendance?.qr_sessions?.find(s => 
+      s.checkpoint_type === this.selectedCheckpoint && 
+      s.status === 'activo'
+    );
+
+    // Validar si la sesión encontrada realmente es válida por tiempo
+    if (existingSession && existingSession.expires_at) {
+      const expiration = this.parseUtcDate(existingSession.expires_at);
+      const now = new Date().getTime();
+      
+      if (now < expiration) {
+        this.openQrModal(existingSession);
+        return;
+      }
+      
+      // Si llegamos aquí, la sesión está marcada como activa pero ya expiró por tiempo
+      console.log('Sesión activa encontrada pero expirada por tiempo. Creando una nueva...');
+    }
+
+    this.createNewQrSession();
+  }
+
   get activeQrSession(): DailyAttendanceQrSession | null {
     return (this.dailyAttendance?.qr_sessions || []).find(
-      (session) => session.checkpoint_type === this.selectedCheckpoint && session.status === 'activo'
+      (session) => {
+        const isActive = session.status === 'activo' && session.checkpoint_type === this.selectedCheckpoint;
+        if (!isActive) return false;
+        
+        const expiry = this.parseUtcDate(session.expires_at);
+        return expiry > Date.now();
+      }
     ) || null;
   }
 
@@ -367,12 +413,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
     });
   }
 
-  createQrSession(): void {
-    if (!this.selectedSectionId || !this.selectedAcademicYearId || !this.selectedDate) {
-      void Swal.fire('Atención', 'Selecciona aula y fecha antes de abrir el QR.', 'warning');
-      return;
-    }
-
+  createNewQrSession(): void {
     this.attendanceService.createDailyQrSession({
       section_id: this.selectedSectionId,
       academic_year_id: this.selectedAcademicYearId,
@@ -382,24 +423,149 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
       expires_in_minutes: 20,
     }).subscribe({
       next: ({ data }) => {
-        void Swal.fire({
-          title: `${this.currentCheckpointLabel} abierto`,
-          html: `
-            <div style="text-align:left">
-              <p><strong>Código:</strong> ${data.session_code}</p>
-              <p><strong>Payload QR:</strong></p>
-              <code style="word-break:break-all;display:block;padding:12px;background:#f8fafc;border-radius:8px;">${data.qr_payload}</code>
-            </div>
-          `,
-          icon: 'success',
-          confirmButtonText: 'Cerrar'
-        });
+        this.openQrModal(data);
         this.loadDailyAttendance();
       },
       error: (err) => {
         void Swal.fire('Error', err.error?.message || 'No se pudo abrir la sesión QR.', 'error');
       }
     });
+  }
+
+  private async openQrModal(data: DailyAttendanceQrSession): Promise<void> {
+    try {
+      const payload = data.qr_payload || '';
+      const expiryTime = this.parseUtcDate(data.expires_at);
+
+      const qrDataUrl = await QRCode.toDataURL(payload, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#1e293b',
+          light: '#ffffff'
+        }
+      });
+
+      this.updateCountdown(expiryTime, data.session_code);
+      this.startTimer(expiryTime, data.session_code);
+
+      void Swal.fire({
+        title: `<span class="text-2xl font-black text-slate-800">${this.currentCheckpointLabel}</span>`,
+        html: `
+          <div class="flex flex-col items-center p-4">
+            <div class="relative bg-white p-4 rounded-3xl shadow-xl border border-slate-100 mb-6 group transition-all hover:scale-[1.02]">
+              <img src="${qrDataUrl}" alt="QR Code" class="w-64 h-64">
+              <div class="absolute inset-0 border-4 border-blue-600/10 rounded-3xl pointer-events-none"></div>
+            </div>
+
+            <div class="bg-slate-50 w-full rounded-2xl p-4 border border-slate-200/60 mb-4">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 text-center">Código de Respaldo</p>
+              <p class="text-3xl font-black text-blue-600 tracking-widest text-center tabular-nums">${data.session_code}</p>
+            </div>
+
+            <div class="flex items-center gap-3 text-slate-500">
+              <div class="flex flex-col items-center">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Expira en</span>
+                <span id="qr-timer-display" class="text-5xl font-black text-slate-800 tabular-nums">${this.qrCountdown}</span>
+              </div>
+            </div>
+            <button id="regenerate-btn" class="mt-6 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors">Regenerar QR</button>
+          </div>
+        `,
+        showConfirmButton: true,
+        confirmButtonText: 'Listo',
+        confirmButtonColor: '#4f46e5',
+        didOpen: () => {
+          const timerDisplay = document.getElementById('qr-timer-display');
+          const regenBtn = document.getElementById('regenerate-btn');
+          regenBtn?.addEventListener('click', () => this.regenerateQr());
+          
+          const intervalId = setInterval(() => {
+            if (timerDisplay) {
+              timerDisplay.innerText = this.qrCountdown;
+            } else {
+              clearInterval(intervalId);
+            }
+          }, 500); 
+        },
+        willClose: () => {
+          this.stopTimer();
+        }
+      });
+    } catch (err) {
+      void Swal.fire('Error', 'No se pudo generar el código QR visual.', 'error');
+    }
+  }
+
+  private parseUtcDate(dateStr: string | null | undefined): number {
+    if (!dateStr) return Date.now() + 20 * 60000;
+    
+    const p = dateStr.match(/\d+/g);
+    
+    if (p && p.length >= 6) {
+      return Date.UTC(
+        parseInt(p[0], 10),
+        parseInt(p[1], 10) - 1,
+        parseInt(p[2], 10),
+        parseInt(p[3], 10),
+        parseInt(p[4], 10),
+        parseInt(p[5], 10)
+      );
+    }
+    
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? Date.now() + 20 * 60000 : date.getTime();
+  }
+
+  private startTimer(expiryTime: number, sessionCode: string): void {
+    this.stopTimer();
+    
+    this.timerSubscription = interval(1000).subscribe(() => {
+      this.updateCountdown(expiryTime, sessionCode);
+    });
+  }
+
+  private updateCountdown(targetTime: number, sessionCode: string): void {
+    const now = new Date().getTime();
+    let distance = targetTime - now;
+
+    if (distance > 30 * 60 * 1000) {
+      distance -= 5 * 60 * 60 * 1000;
+    }
+
+    if (distance < 0) {
+      this.qrCountdown = '00:00';
+      this.stopTimer();
+      
+      const modal = Swal.getHtmlContainer();
+      if (modal) {
+        const timerEl = modal.querySelector('.text-5xl');
+        if (timerEl) {
+          timerEl.classList.remove('text-slate-800');
+          timerEl.classList.add('text-rose-500');
+        }
+        
+        const helpText = modal.querySelector('.text-slate-500');
+        if (helpText) helpText.innerHTML = '<span class="text-rose-600 font-bold">Sesión expirada</span>';
+      }
+      return;
+    }
+
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    this.qrCountdown = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  regenerateQr(): void {
+    Swal.close();
+    this.createNewQrSession();
+  }
+
+  private stopTimer(): void {
+    if (this.timerSubscription) {
+      this.timerSubscription.unsubscribe();
+      this.timerSubscription = undefined;
+    }
   }
 
   approve(item: AttendanceJustification): void {
@@ -586,8 +752,26 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
       this.selectedDate
     ).subscribe({
       next: (response) => {
-        this.dailyAttendance = response;
-        this.syncAttendanceStateFromDaily();
+        // Detectar nuevos marcados por QR para el efecto "glow"
+        if (this.isAutoRefreshEnabled) {
+          const oldRecords = { ...this.attendanceRecords };
+          this.dailyAttendance = response;
+          this.syncAttendanceStateFromDaily();
+          
+          (response.students || []).forEach(row => {
+            const wasNotMarked = !oldRecords[row.student_id]?.justification?.includes('Marcado por QR');
+            const isNowMarked = row.entry_note?.includes('Marcado por QR');
+            
+            if (wasNotMarked && isNowMarked) {
+              this.recentlyMarkedIds.add(row.student_id);
+              setTimeout(() => this.recentlyMarkedIds.delete(row.student_id), 10000); // 10 seg de brillo
+            }
+          });
+        } else {
+          this.dailyAttendance = response;
+          this.syncAttendanceStateFromDaily();
+        }
+        
         this.loading = false;
         this.refreshIcons();
       },
@@ -623,5 +807,92 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit {
         historyLoading: false,
       };
     });
+  }
+
+  toggleAutoRefresh(): void {
+    this.isAutoRefreshEnabled = !this.isAutoRefreshEnabled;
+    if (this.isAutoRefreshEnabled) {
+      this.startAutoRefresh();
+      void Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Auto-refresco activado (cada 10s)',
+        showConfirmButton: false,
+        timer: 2000
+      });
+    } else {
+      this.stopAutoRefresh();
+    }
+  }
+
+  private startAutoRefresh(): void {
+    this.stopAutoRefresh();
+    this.refreshSubscription = interval(10000).subscribe(() => {
+      if (this.selectedAssignment && !this.saving) {
+        this.loadDailyAttendance();
+      }
+    });
+  }
+
+  private stopAutoRefresh(): void {
+    if (this.refreshSubscription) {
+      this.refreshSubscription.unsubscribe();
+      this.refreshSubscription = undefined;
+    }
+  }
+
+  toggleVisualizationMode(): void {
+    this.visualizationMode = this.visualizationMode === 'full' ? 'initials' : 'full';
+  }
+
+  getStatusColorClass(studentId: string, type: 'bg' | 'text' | 'border'): string {
+    const status = this.recordFor(studentId).status;
+    const colors: Record<string, any> = {
+      presente: { 
+        bg: 'bg-emerald-500', 
+        text: 'text-emerald-700', 
+        border: 'border-emerald-200', 
+        bgLight: 'bg-emerald-100/90' 
+      },
+      tarde: { 
+        bg: 'bg-amber-500', 
+        text: 'text-amber-700', 
+        border: 'border-amber-200', 
+        bgLight: 'bg-amber-100/90' 
+      },
+      falta: { 
+        bg: 'bg-rose-500', 
+        text: 'text-rose-700', 
+        border: 'border-rose-200', 
+        bgLight: 'bg-rose-100/90' 
+      },
+      justificado: { 
+        bg: 'bg-indigo-500', 
+        text: 'text-indigo-700', 
+        border: 'border-indigo-200', 
+        bgLight: 'bg-indigo-100/90' 
+      }
+    };
+
+    const color = colors[status] || { bg: 'bg-slate-100', text: 'text-slate-400', border: 'border-slate-200', bgLight: 'bg-white' };
+    
+    if (type === 'bg') return this.visualizationMode === 'full' ? color.bgLight : color.bg;
+    return color[type];
+  }
+
+  hasQrMarking(studentId: string): boolean {
+    const record = this.recordFor(studentId);
+    return record.justification?.includes('Marcado por QR') || false;
+  }
+
+  isRecentlyMarked(studentId: string): boolean {
+    return this.recentlyMarkedIds.has(studentId);
+  }
+
+  unlockQr(studentId: string): void {
+    const record = this.recordFor(studentId);
+    record.justification = ''; // Limpiar la marca de QR
+    // Al limpiar la nota, el hasQrMarking será false y los botones se habilitarán
   }
 }

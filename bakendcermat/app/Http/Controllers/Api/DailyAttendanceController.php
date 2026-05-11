@@ -24,7 +24,7 @@ class DailyAttendanceController extends Controller
         $validated = $request->validate([
             'section_id' => 'required|uuid|exists:sections,id',
             'academic_year_id' => 'required|uuid|exists:academic_years,id',
-            'date' => 'required|date',
+            'date' => 'required|string|date_format:Y-m-d',
         ]);
 
         $this->ensureCanManageSection($request, $validated['section_id'], $validated['academic_year_id']);
@@ -43,7 +43,7 @@ class DailyAttendanceController extends Controller
         $validated = $request->validate([
             'section_id' => 'required|uuid|exists:sections,id',
             'academic_year_id' => 'required|uuid|exists:academic_years,id',
-            'date' => 'required|date',
+            'date' => 'required|string|date_format:Y-m-d',
             'checkpoint' => 'required|string|in:entrada,salida',
             'records' => 'required|array|min:1',
             'records.*.student_id' => 'required|uuid|exists:students,id',
@@ -86,7 +86,7 @@ class DailyAttendanceController extends Controller
         $validated = $request->validate([
             'section_id' => 'required|uuid|exists:sections,id',
             'academic_year_id' => 'required|uuid|exists:academic_years,id',
-            'date' => 'nullable|date',
+            'date' => 'nullable|string|date_format:Y-m-d',
         ]);
 
         $this->ensureCanManageSection($request, $validated['section_id'], $validated['academic_year_id']);
@@ -111,7 +111,7 @@ class DailyAttendanceController extends Controller
         $validated = $request->validate([
             'section_id' => 'required|uuid|exists:sections,id',
             'academic_year_id' => 'required|uuid|exists:academic_years,id',
-            'date' => 'required|date',
+            'date' => 'required|string|date_format:Y-m-d',
             'checkpoint' => 'required|string|in:entrada,salida',
             'expires_in_minutes' => 'nullable|integer|min:1|max:240',
             'late_after_minutes' => 'nullable|integer|min:0|max:120',
@@ -169,6 +169,8 @@ class DailyAttendanceController extends Controller
 
         $session = AttendanceQrSession::query()
             ->whereRaw('upper(session_code) = ?', [strtoupper($validated['session_code'])])
+            ->where('status', 'activo')
+            ->where('expires_at', '>', now())
             ->latest('created_at')
             ->first();
 

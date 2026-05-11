@@ -258,7 +258,7 @@ class DailyAttendanceService
         return $this->storeSectionCheckpoint(
             (string) $session->section_id,
             (string) $session->academic_year_id,
-            $session->date->toDateString(),
+            (string) $session->getRawOriginal('date'),
             (string) $session->checkpoint_type,
             [[
                 'student_id' => $studentId,
@@ -298,7 +298,7 @@ class DailyAttendanceService
                     'student_id' => (string) $record->student_id,
                     'section_id' => (string) $record->section_id,
                     'academic_year_id' => (string) $record->academic_year_id,
-                    'date' => $record->date->toDateString(),
+                    'date' => $record->date instanceof \Carbon\Carbon ? $record->date->toDateString() : (string) $record->date,
                     'entry_status' => $record->entry_status,
                     'entry_note' => $record->entry_note,
                     'entry_marked_at' => optional($record->entry_marked_at)?->toIso8601String(),

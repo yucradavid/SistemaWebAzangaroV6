@@ -86,7 +86,7 @@ export class AttendanceStudentComponent implements OnInit {
       ? this.attendance
       : this.attendance.filter((record) => record.course.id === this.selectedCourseId);
 
-    return records.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return records.slice().sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
   }
 
   get availableCourses(): Array<{ id: string; name: string; code: string }> {
@@ -103,7 +103,7 @@ export class AttendanceStudentComponent implements OnInit {
     if (!this.selectedCalendarDate) {
       return [];
     }
-    return this.filteredAttendance.filter((record) => this.toDateString(new Date(record.date)) === this.selectedCalendarDate);
+    return this.filteredAttendance.filter((record) => record.date === this.selectedCalendarDate);
   }
 
   get selectedDailyRecord(): StudentDailyAttendanceRecord | null {
@@ -203,7 +203,7 @@ export class AttendanceStudentComponent implements OnInit {
       const current = new Date(startDate);
       current.setDate(startDate.getDate() + index);
       const dateKey = this.toDateString(current);
-      const records = this.filteredAttendance.filter((record) => this.toDateString(new Date(record.date)) === dateKey);
+      const records = this.filteredAttendance.filter((record) => record.date === dateKey);
 
       return {
         date: dateKey,
@@ -425,13 +425,11 @@ export class AttendanceStudentComponent implements OnInit {
   }
 
   private syncSelectedCalendarDate(): void {
-    const availableDates = new Set(this.filteredAttendance.map((record) => this.toDateString(new Date(record.date))));
+    const availableDates = new Set(this.filteredAttendance.map((record) => record.date));
     if (this.selectedCalendarDate && availableDates.has(this.selectedCalendarDate)) {
       return;
     }
-    this.selectedCalendarDate = this.filteredAttendance[0]
-      ? this.toDateString(new Date(this.filteredAttendance[0].date))
-      : '';
+    this.selectedCalendarDate = this.filteredAttendance[0]?.date || '';
   }
 
   private mapRecord(record: StudentAttendanceRecord): AttendanceRecordView {

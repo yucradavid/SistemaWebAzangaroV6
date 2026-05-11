@@ -33,7 +33,6 @@ class AttendanceDailyRecord extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
         'entry_marked_at' => 'datetime',
         'exit_marked_at' => 'datetime',
         'created_at' => 'datetime',
