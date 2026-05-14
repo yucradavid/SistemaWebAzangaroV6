@@ -13,6 +13,8 @@ import {
   StudentAttendanceSummaryResponse,
   StudentDailyAttendanceRecord,
 } from '@core/services/report.service';
+import { ZXingScannerModule } from '@zxing/ngx-scanner';
+import { BarcodeFormat } from '@zxing/library';
 import localeEsPe from '@angular/common/locales/es-PE';
 
 registerLocaleData(localeEsPe);
@@ -44,11 +46,19 @@ interface CalendarDay {
 @Component({
   selector: 'app-attendance-student',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, ZXingScannerModule],
   templateUrl: './student-attendance.component.html',
   styles: [`
     :host { display: block; background: #F8FAFC; min-h: 100vh; }
     select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1.25rem; }
+    
+    @keyframes scan {
+      0%, 100% { top: 0%; }
+      50% { top: 100%; }
+    }
+    .animate-scan {
+      animation: scan 2s linear infinite;
+    }
   `]
 })
 export class AttendanceStudentComponent implements OnInit {
@@ -72,6 +82,14 @@ export class AttendanceStudentComponent implements OnInit {
   dailyAttendance: StudentDailyAttendanceRecord[] = [];
   studentContext: AcademicContextStudent | null = null;
   lastSummary: StudentAttendanceSummaryResponse | null = null;
+  
+  // QR Scanner State
+  showScanner = false;
+  hasDevices = false;
+  hasPermission = false;
+  qrFormats = [BarcodeFormat.QR_CODE];
+  availableDevices: MediaDeviceInfo[] = [];
+  currentDevice: MediaDeviceInfo | undefined;
 
   constructor() {
     this.generateMonths();
@@ -290,12 +308,58 @@ export class AttendanceStudentComponent implements OnInit {
         this.qrCodeInput = '';
         this.qrMessage = response.message;
         this.loadAttendance();
+        this.showScanner = false; // Close scanner if it was open
       },
       error: (error) => {
         this.qrSubmitting = false;
         this.qrMessage = error?.error?.message || 'No se pudo registrar tu marcación QR.';
       }
     });
+  }
+
+  // QR Scanner Methods
+  toggleScanner(): void {
+    this.showScanner = !this.showScanner;
+    if (!this.showScanner) {
+      this.qrMessage = '';
+    }
+  }
+
+  handleQrCodeScan(result: string): void {
+    if (!result) return;
+    
+    console.log('QR Escaneado:', result);
+    
+    // Parse Payload: CERMAT_ATTENDANCE|session=CODE|checkpoint=TYPE|date=YYYY-MM-DD
+    if (result.startsWith('CERMAT_ATTENDANCE|')) {
+      const parts = result.split('|');
+      const sessionPart = parts.find(p => p.startsWith('session='));
+      if (sessionPart) {
+        const code = sessionPart.split('=')[1];
+        if (code) {
+          this.qrCodeInput = code;
+          this.submitQrCheckpoint();
+        }
+      }
+    } else {
+      // Direct code or unknown format
+      this.qrCodeInput = result;
+      this.submitQrCheckpoint();
+    }
+  }
+
+  onCamerasFound(devices: MediaDeviceInfo[]): void {
+    this.availableDevices = devices;
+    this.hasDevices = devices && devices.length > 0;
+    if (this.hasDevices) {
+      // Default to back camera if available
+      const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
+      this.currentDevice = backCamera || devices[0];
+    }
+  }
+
+  onPermissionResponse(result: boolean): void {
+    this.hasPermission = result;
   }
 
   getSafeIcon(name: string): SafeHtml {
