@@ -7,7 +7,12 @@ use Illuminate\Validation\Rule;
 
 class StoreChargeRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        $role = optional($this->user()?->profile)->role;
+
+        return in_array($role, ['admin', 'director', 'coordinator', 'secretary', 'finance'], true);
+    }
 
     public function rules(): array
     {

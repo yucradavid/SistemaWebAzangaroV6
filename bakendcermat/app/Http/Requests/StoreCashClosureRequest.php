@@ -8,7 +8,9 @@ class StoreCashClosureRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $role = optional($this->user()?->profile)->role;
+
+        return in_array($role, ['admin', 'director', 'secretary', 'finance', 'cashier'], true);
     }
 
     public function rules(): array

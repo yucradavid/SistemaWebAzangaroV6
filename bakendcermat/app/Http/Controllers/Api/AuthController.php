@@ -64,14 +64,23 @@ class AuthController extends RoutingController
         }
 
         if (!$profile) {
-            $profile = Profile::create([
-                'id' => (string) $user->id,
+            // Seguridad: NO crear Profile con rol por defecto.
+            // Un usuario sin Profile no debe poder autenticarse — el rol debe
+            // ser asignado explícitamente por un administrador.
+            Log::warning('AuthController@login user without profile attempted login', [
+                'email' => $normalizedEmail,
                 'user_id' => (string) $user->id,
-                'role' => 'admin',
-                'full_name' => $user->name ?? 'Sin nombre',
-                'email' => $user->email,
-                'is_active' => true,
             ]);
+
+            return response()->json([
+                'message' => 'Tu cuenta no tiene un perfil asignado. Contacta al administrador.'
+            ], 403);
+        }
+
+        if (!$profile->is_active) {
+            return response()->json([
+                'message' => 'Tu cuenta está inactiva. Contacta al administrador.'
+            ], 403);
         }
 
         $token = $user->createToken('api-token')->plainTextToken;
