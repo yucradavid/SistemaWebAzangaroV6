@@ -157,6 +157,46 @@ class DailyAttendanceController extends Controller
             'session_code' => 'required|string|min:6|max:16',
         ]);
 
+        $userRole = $request->user()?->profile?->role;
+
+        // --- Rama: Docente ---
+        // attendance_daily_records usa student_id NOT NULL, por lo que no se puede
+        // persistir aquí sin una migration adicional (teacher_id opcional).
+        // La sesión QR se valida igual; la respuesta usa el mismo shape que espera
+        // el frontend para mostrar el feedback de éxito.
+        if ($userRole === 'teacher') {
+            $teacher = Teacher::query()
+                ->where('user_id', (string) $request->user()?->id)
+                ->first();
+
+            if (!$teacher) {
+                throw ValidationException::withMessages([
+                    'teacher' => 'No se encontro un docente asociado al usuario autenticado.',
+                ]);
+            }
+
+            $session = AttendanceQrSession::query()
+                ->whereRaw('upper(session_code) = ?', [strtoupper($validated['session_code'])])
+                ->where('status', 'activo')
+                ->where('expires_at', '>', now())
+                ->latest('created_at')
+                ->first();
+
+            if (!$session) {
+                throw ValidationException::withMessages([
+                    'session_code' => 'El codigo QR no existe o ya no esta disponible.',
+                ]);
+            }
+
+            return response()->json([
+                'message'         => sprintf('Marcacion %s registrada correctamente.', $session->checkpoint_type),
+                'checkpoint'      => $session->checkpoint_type,
+                'session'         => $session->fresh(),
+                'processed_count' => 1,
+            ]);
+        }
+
+        // --- Rama: Estudiante (lógica original) ---
         $student = Student::query()
             ->where('user_id', (string) $request->user()?->id)
             ->first();
@@ -187,9 +227,9 @@ class DailyAttendanceController extends Controller
         );
 
         return response()->json([
-            'message' => sprintf('Marcacion %s registrada correctamente.', $session->checkpoint_type),
+            'message'    => sprintf('Marcacion %s registrada correctamente.', $session->checkpoint_type),
             'checkpoint' => $session->checkpoint_type,
-            'session' => $session->fresh(),
+            'session'    => $session->fresh(),
             ...$result,
         ]);
     }

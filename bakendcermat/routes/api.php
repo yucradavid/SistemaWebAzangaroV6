@@ -340,7 +340,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('attendance', AttendanceController::class);
     });
     Route::post('attendance/daily/self-checkpoint', [DailyAttendanceController::class, 'selfCheckpoint'])
-        ->middleware('role:student');
+        ->middleware('role:student,teacher');
 
     /*
     |--------------------------------------------------------------------------

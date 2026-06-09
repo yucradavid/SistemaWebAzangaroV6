@@ -1,15 +1,16 @@
-import { AfterViewInit, Component, OnInit, inject } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { createIcons, icons } from 'lucide';
 import Swal from 'sweetalert2';
+import { ZXingScannerModule } from '@zxing/ngx-scanner';
+import { BarcodeFormat } from '@zxing/library';
 import {
   AttendanceAssignment,
   AttendanceRecord,
   AttendanceService,
   AttendanceStatus,
   DailyAttendanceCheckpoint,
-  DailyAttendanceQrSession,
   DailyAttendanceSectionResponse,
 } from '@core/services/attendance.service';
 import { AuthService } from '@core/services/auth.service';
@@ -26,11 +27,11 @@ interface AttendanceState {
 @Component({
   selector: 'app-teacher-attendance',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ZXingScannerModule],
   templateUrl: './teacher-attendance.component.html',
   styleUrls: ['./teacher-attendance.component.css']
 })
-export class TeacherAttendanceComponent implements OnInit, AfterViewInit {
+export class TeacherAttendanceComponent implements OnInit, AfterViewInit, OnDestroy {
   private attendanceService = inject(AttendanceService);
   private authService = inject(AuthService);
 
@@ -53,12 +54,33 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit {
   selectedAssignment: AttendanceAssignment | null = null;
   dailyAttendance: DailyAttendanceSectionResponse | null = null;
 
+  // ── Tab principal ────────────────────────────────────
+  activeMainTab: 'students' | 'personal' = 'students';
+
+  // ── Mi Asistencia (personal QR) ──────────────────────
+  personalQrInput = '';
+  personalQrStatus: 'idle' | 'success' | 'error' = 'idle';
+  personalQrMessage = '';
+  personalQrSubmitting = false;
+  showPersonalScanner = false;
+  personalDevice: MediaDeviceInfo | undefined;
+  personalQrFormats = [BarcodeFormat.QR_CODE];
+  personalAvailableDevices: MediaDeviceInfo[] = [];
+  personalTodayCheckpoints: { checkpoint: string; time: string }[] = [];
+
+  // ── Polling auto-refresh alumnos ─────────────────────
+  private pollingInterval: any = null;
+
   ngOnInit(): void {
     this.loadTeacherContext();
   }
 
   ngAfterViewInit(): void {
     this.initIcons();
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
   }
 
   get filteredStudents(): any[] {
@@ -95,12 +117,6 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit {
 
   get approvedJustificationCount(): number {
     return 0;
-  }
-
-  get activeQrSession(): DailyAttendanceQrSession | null {
-    return (this.dailyAttendance?.qr_sessions || []).find(
-      (session) => session.checkpoint_type === this.selectedCheckpoint && session.status === 'activo'
-    ) || null;
   }
 
   get currentCheckpointLabel(): string {
@@ -318,44 +334,6 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit {
     });
   }
 
-  async createQrSession(): Promise<void> {
-    if (!this.selectedSectionId || !this.selectedAcademicYearId || !this.selectedDate) {
-      await Swal.fire('Atención', 'Selecciona aula y fecha antes de abrir el QR.', 'warning');
-      return;
-    }
-
-    this.attendanceService.createDailyQrSession({
-      section_id: this.selectedSectionId,
-      academic_year_id: this.selectedAcademicYearId,
-      date: this.selectedDate,
-      checkpoint: this.selectedCheckpoint,
-      late_after_minutes: this.selectedCheckpoint === 'entrada' ? 10 : 0,
-      expires_in_minutes: 20,
-    }).subscribe({
-      next: async ({ data }) => {
-        await Swal.fire({
-          title: `${this.currentCheckpointLabel} abierto`,
-          html: `
-            <div style="text-align:left">
-              <p><strong>Código:</strong> ${data.session_code}</p>
-              <p><strong>Payload QR:</strong></p>
-              <code style="word-break:break-all;display:block;padding:12px;background:#f8fafc;border-radius:8px;">${data.qr_payload}</code>
-              <p style="margin-top:12px;font-size:12px;color:#475569;">
-                Este valor es el contenido que debe ir dentro del QR. El estudiante puede marcar con ese código.
-              </p>
-            </div>
-          `,
-          icon: 'success',
-          confirmButtonText: 'Cerrar'
-        });
-        this.loadDailyAttendance();
-      },
-      error: async (err) => {
-        await Swal.fire('Error', err.error?.message || 'No se pudo abrir la sesión QR.', 'error');
-      }
-    });
-  }
-
   exportCurrentAttendance(): void {
     if (!this.filteredStudents.length) {
       void Swal.fire('Sin datos', 'No hay estudiantes para exportar con los filtros actuales.', 'info');
@@ -441,7 +419,7 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit {
 
     this.students.forEach((student) => {
       this.attendanceRecords[student.id] = {
-        status: 'presente',
+        status: 'falta',
         justification: '',
         updatedAt: null,
         history: [],
@@ -466,6 +444,7 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit {
         this.syncAttendanceStateFromDaily();
         this.loading = false;
         this.refreshIcons();
+        if (!this.pollingInterval) this.startPolling();
       },
       error: (err) => {
         this.error = err.error?.message || 'Error al cargar la asistencia diaria.';
@@ -473,6 +452,87 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit {
       }
     });
   }
+
+  private startPolling(): void {
+    this.pollingInterval = setInterval(() => {
+      if (this.selectedAssignment && !this.saving) {
+        this.loadDailyAttendance();
+      }
+    }, 15000);
+  }
+
+  // ── Mi Asistencia (QR personal del docente) ──────────
+
+  togglePersonalScanner(): void {
+    this.showPersonalScanner = !this.showPersonalScanner;
+    if (!this.showPersonalScanner) this.personalQrMessage = '';
+  }
+
+  onPersonalCamerasFound(devices: MediaDeviceInfo[]): void {
+    if (!devices || devices.length === 0) return;
+    this.personalAvailableDevices = devices;
+    const backKeywords = ['back', 'trasera', 'rear', 'environment', 'facing back', 'camera2 0'];
+    const back = devices.find(d => backKeywords.some(kw => d.label.toLowerCase().includes(kw)));
+    this.personalDevice = back || devices[devices.length - 1] || devices[0];
+  }
+
+  handlePersonalQrScan(result: string): void {
+    if (!result) return;
+    if (result.startsWith('CERMAT_ATTENDANCE|')) {
+      const match = result.match(/session=([^|]+)/i);
+      if (match?.[1]) { this.personalQrInput = match[1]; this.submitPersonalCheckin(); }
+    } else {
+      this.personalQrInput = result;
+      this.submitPersonalCheckin();
+    }
+  }
+
+  submitPersonalCheckin(): void {
+    if (!this.personalQrInput.trim()) {
+      this.personalQrStatus = 'error';
+      this.personalQrMessage = 'Ingresa o escanea el código QR.';
+      return;
+    }
+
+    let code = this.personalQrInput.trim();
+    if (code.startsWith('CERMAT_ATTENDANCE|')) {
+      const m = code.match(/session=([^|]+)/i);
+      code = m ? m[1] : code;
+    }
+    code = code.toUpperCase();
+
+    if (!/^[A-Z0-9]{8}$/.test(code)) {
+      this.personalQrStatus = 'error';
+      this.personalQrMessage = 'Código inválido. Debe tener 8 caracteres alfanuméricos.';
+      return;
+    }
+
+    this.personalQrSubmitting = true;
+    this.personalQrStatus = 'idle';
+    this.personalQrMessage = '';
+
+    this.attendanceService.submitStudentDailyQr(code).subscribe({
+      next: (response) => {
+        this.personalQrStatus = 'success';
+        this.personalQrMessage = response.message;
+        this.personalQrSubmitting = false;
+        this.personalQrInput = '';
+        this.showPersonalScanner = false;
+        const time = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+        this.personalTodayCheckpoints = this.personalTodayCheckpoints.filter(c => c.checkpoint !== response.checkpoint);
+        this.personalTodayCheckpoints.push({ checkpoint: response.checkpoint, time });
+        setTimeout(() => { this.personalQrStatus = 'idle'; this.personalQrMessage = ''; }, 5000);
+      },
+      error: (err) => {
+        this.personalQrStatus = 'error';
+        this.personalQrMessage = err?.error?.message || 'No se pudo registrar la asistencia.';
+        this.personalQrSubmitting = false;
+      }
+    });
+  }
+
+  get personalTodayEntry() { return this.personalTodayCheckpoints.find(c => c.checkpoint === 'entrada') ?? null; }
+  get personalTodayExit()  { return this.personalTodayCheckpoints.find(c => c.checkpoint === 'salida') ?? null; }
 
   private syncAttendanceStateFromDaily(): void {
     const dailyRows = new Map(
@@ -482,8 +542,8 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit {
     this.students.forEach((student) => {
       const row = dailyRows.get(student.id);
       const status = this.selectedCheckpoint === 'entrada'
-        ? row?.entry_status ?? 'presente'
-        : row?.exit_status ?? 'presente';
+        ? row?.entry_status ?? 'falta'
+        : row?.exit_status ?? 'falta';
       const note = this.selectedCheckpoint === 'entrada'
         ? row?.entry_note ?? ''
         : row?.exit_note ?? '';
@@ -502,4 +562,5 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit {
       };
     });
   }
+
 }

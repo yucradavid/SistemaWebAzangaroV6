@@ -73,6 +73,7 @@ export class AttendanceStudentComponent implements OnInit {
   qrSubmitting = false;
   error = '';
   qrMessage = '';
+  qrStatus: 'idle' | 'loading' | 'success' | 'error' = 'idle';
   selectedMonth = new Date().toISOString().slice(0, 7);
   selectedCourseId = 'all';
   selectedCalendarDate = '';
@@ -295,24 +296,43 @@ export class AttendanceStudentComponent implements OnInit {
 
   submitQrCheckpoint(): void {
     if (!this.qrCodeInput.trim()) {
+      this.qrStatus = 'error';
       this.qrMessage = 'Ingresa o escanea el código QR.';
       return;
     }
 
+    let sessionCode = this.qrCodeInput.trim();
+    if (sessionCode.startsWith('CERMAT_ATTENDANCE|')) {
+      const match = sessionCode.match(/session=([^|]+)/i);
+      sessionCode = match ? match[1] : sessionCode;
+    }
+    sessionCode = sessionCode.toUpperCase();
+
+    const QR_PATTERN = /^[A-Z0-9]{8}$/;
+    if (!QR_PATTERN.test(sessionCode)) {
+      this.qrStatus = 'error';
+      this.qrMessage = 'Código inválido. Debe tener exactamente 8 caracteres alfanuméricos.';
+      return;
+    }
+
     this.qrSubmitting = true;
+    this.qrStatus = 'idle';
     this.qrMessage = '';
 
-    this.attendanceService.submitStudentDailyQr(this.qrCodeInput.trim()).subscribe({
+    this.attendanceService.submitStudentDailyQr(sessionCode).subscribe({
       next: (response) => {
+        this.qrStatus = 'success';
+        this.qrMessage = response.message;
         this.qrSubmitting = false;
         this.qrCodeInput = '';
-        this.qrMessage = response.message;
+        this.showScanner = false;
         this.loadAttendance();
-        this.showScanner = false; // Close scanner if it was open
+        setTimeout(() => { this.qrStatus = 'idle'; this.qrMessage = ''; }, 5000);
       },
       error: (error) => {
+        this.qrStatus = 'error';
+        this.qrMessage = error?.error?.message || 'No se pudo registrar la asistencia.';
         this.qrSubmitting = false;
-        this.qrMessage = error?.error?.message || 'No se pudo registrar tu marcación QR.';
       }
     });
   }
@@ -327,8 +347,6 @@ export class AttendanceStudentComponent implements OnInit {
 
   handleQrCodeScan(result: string): void {
     if (!result) return;
-    
-    console.log('QR Escaneado:', result);
     
     // Parse Payload: CERMAT_ATTENDANCE|session=CODE|checkpoint=TYPE|date=YYYY-MM-DD
     if (result.startsWith('CERMAT_ATTENDANCE|')) {
@@ -349,13 +367,20 @@ export class AttendanceStudentComponent implements OnInit {
   }
 
   onCamerasFound(devices: MediaDeviceInfo[]): void {
+    if (!devices || devices.length === 0) return;
+
     this.availableDevices = devices;
-    this.hasDevices = devices && devices.length > 0;
-    if (this.hasDevices) {
-      // Default to back camera if available
-      const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
-      this.currentDevice = backCamera || devices[0];
-    }
+    this.hasDevices = true;
+
+    const backKeywords = ['back', 'trasera', 'rear', 'environment',
+                          'facing back', 'camera2 0', '0,'];
+
+    const backCamera = devices.find(d => {
+      const label = d.label.toLowerCase();
+      return backKeywords.some(kw => label.includes(kw));
+    });
+
+    this.currentDevice = backCamera || devices[devices.length - 1] || devices[0];
   }
 
   onPermissionResponse(result: boolean): void {

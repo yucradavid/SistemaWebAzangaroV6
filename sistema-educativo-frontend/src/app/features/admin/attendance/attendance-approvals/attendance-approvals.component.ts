@@ -438,7 +438,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
       const expiryTime = this.parseUtcDate(data.expires_at);
 
       const qrDataUrl = await QRCode.toDataURL(payload, {
-        width: 300,
+        width: 450,
         margin: 2,
         color: {
           dark: '#1e293b',
@@ -453,10 +453,13 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
         title: `<span class="text-2xl font-black text-slate-800">${this.currentCheckpointLabel}</span>`,
         html: `
           <div class="flex flex-col items-center p-4">
-            <div class="relative bg-white p-4 rounded-3xl shadow-xl border border-slate-100 mb-6 group transition-all hover:scale-[1.02]">
-              <img src="${qrDataUrl}" alt="QR Code" class="w-64 h-64">
+            <div class="relative bg-white p-4 rounded-3xl shadow-xl border border-slate-100 mb-4 group transition-all hover:scale-[1.02]">
+              <img src="${qrDataUrl}" alt="QR Code" style="width:450px;height:450px;">
               <div class="absolute inset-0 border-4 border-blue-600/10 rounded-3xl pointer-events-none"></div>
             </div>
+            <p style="color:#64748b; font-size:13px; text-align:center; margin-top:8px; margin-bottom:16px;">
+              Muestra este código para que alumnos y docentes registren su asistencia
+            </p>
 
             <div class="bg-slate-50 w-full rounded-2xl p-4 border border-slate-200/60 mb-4">
               <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 text-center">Código de Respaldo</p>
@@ -731,7 +734,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
 
     this.students.forEach((student) => {
       this.attendanceRecords[student.id] = {
-        status: 'presente',
+        status: 'falta',
         justification: '',
         updatedAt: null,
         history: [],
@@ -788,8 +791,8 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
     this.students.forEach((student) => {
       const row = dailyRows.get(student.id);
       const status = this.selectedCheckpoint === 'entrada'
-        ? row?.entry_status ?? 'presente'
-        : row?.exit_status ?? 'presente';
+        ? row?.entry_status ?? 'falta'
+        : row?.exit_status ?? 'falta';
       const note = this.selectedCheckpoint === 'entrada'
         ? row?.entry_note ?? ''
         : row?.exit_note ?? '';

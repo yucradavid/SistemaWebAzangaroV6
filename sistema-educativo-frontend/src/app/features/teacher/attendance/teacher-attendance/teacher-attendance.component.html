@@ -1,5 +1,8 @@
-<div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
-  <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+<div class="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+
+  <!-- ══ HEADER siempre visible ══════════════════════════════════ -->
+  <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4
+              bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
     <div class="absolute -right-10 -top-10 w-40 h-40 bg-cermat-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="relative z-10 flex items-center gap-4">
@@ -7,40 +10,31 @@
         <i data-lucide="check-square" class="w-7 h-7 text-cermat-blue-600"></i>
       </div>
       <div>
-        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Asistencia diaria por QR</h1>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Asistencia diaria</h1>
         <p class="text-slate-500 mt-1 font-medium">
-          {{ teacher?.first_name || teacher?.last_name ? (teacher.first_name + ' ' + teacher.last_name) : 'Gestiona la entrada y salida QR por sección' }}
+          {{ teacher?.first_name || teacher?.last_name ? (teacher.first_name + ' ' + teacher.last_name) : 'Gestiona la asistencia de tu sección' }}
         </p>
       </div>
     </div>
 
-    <div class="relative z-10 flex flex-wrap gap-3">
+    <!-- Acciones: sólo en tab alumnos -->
+    <div *ngIf="activeMainTab === 'students'" class="relative z-10 flex flex-wrap gap-3">
       <button
         type="button"
         (click)="markFilteredStudentsPresent()"
         [disabled]="saving || filteredStudents.length === 0"
-        class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl transition border border-emerald-200 font-bold disabled:opacity-50"
-      >
+        class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700
+               rounded-xl transition border border-emerald-200 font-bold disabled:opacity-50">
         <i data-lucide="check-check" class="w-4 h-4"></i>
         Marcar filtrados presentes
       </button>
 
       <button
         type="button"
-        (click)="createQrSession()"
-        [disabled]="!selectedAssignment"
-        class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition border border-blue-200 font-bold disabled:opacity-50"
-      >
-        <i data-lucide="qr-code" class="w-4 h-4"></i>
-        Abrir {{ currentCheckpointLabel }}
-      </button>
-
-      <button
-        type="button"
         (click)="exportCurrentAttendance()"
         [disabled]="filteredStudents.length === 0"
-        class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition border border-slate-200 font-bold disabled:opacity-50"
-      >
+        class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700
+               rounded-xl transition border border-slate-200 font-bold disabled:opacity-50">
         <i data-lucide="download" class="w-4 h-4"></i>
         Exportar CSV
       </button>
@@ -48,8 +42,13 @@
       <button
         (click)="handleSaveAttendance()"
         [disabled]="saving || students.length === 0"
-        class="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-cermat-blue-600 to-cermat-blue-800 hover:from-cermat-blue-700 hover:to-cermat-blue-900 text-white rounded-xl transition-all duration-300 shadow-lg shadow-cermat-blue-500/30 font-bold hover:shadow-cermat-blue-500/50 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-      >
+        class="inline-flex items-center gap-2 px-6 py-2.5
+               bg-gradient-to-r from-cermat-blue-600 to-cermat-blue-800
+               hover:from-cermat-blue-700 hover:to-cermat-blue-900
+               text-white rounded-xl transition-all duration-300
+               shadow-lg shadow-cermat-blue-500/30 font-bold
+               hover:shadow-cermat-blue-500/50 hover:-translate-y-0.5
+               disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
         <i *ngIf="!saving" data-lucide="save" class="w-5 h-5"></i>
         <i *ngIf="saving" data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
         {{ saving ? 'Guardando...' : 'Guardar checkpoint' }}
@@ -57,297 +56,478 @@
     </div>
   </div>
 
-  <div *ngIf="error" class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex items-center gap-3 animate-fade-in-up">
-    <i data-lucide="alert-circle" class="w-5 h-5"></i>
-    <p class="font-bold">{{ error }}</p>
+  <!-- ══ TABS ════════════════════════════════════════════════════ -->
+  <div class="flex gap-3">
+    <button
+      type="button"
+      (click)="activeMainTab = 'students'"
+      [ngClass]="activeMainTab === 'students'
+        ? 'bg-cermat-blue-700 text-white shadow-md shadow-cermat-blue-500/25'
+        : 'bg-cermat-blue-50 text-cermat-blue-700 border border-cermat-blue-200 hover:bg-cermat-blue-100'"
+      class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95">
+      👥 Mis Alumnos
+    </button>
+    <button
+      type="button"
+      (click)="activeMainTab = 'personal'"
+      [ngClass]="activeMainTab === 'personal'
+        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/25'
+        : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'"
+      class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95">
+      🗓️ Mi Asistencia
+    </button>
   </div>
 
-  <div *ngIf="success" class="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl flex items-center gap-3 animate-fade-in-up">
-    <i data-lucide="check-circle-2" class="w-5 h-5"></i>
-    <p class="font-bold">{{ success }}</p>
-  </div>
+  <!-- ══════════════════════════════════════════════════════════════
+       TAB 1 — MIS ALUMNOS
+       ══════════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeMainTab === 'students'">
 
-  <div class="grid sm:grid-cols-2 xl:grid-cols-5 gap-4">
-    <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
-      <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Presentes</p>
-      <p class="mt-3 text-3xl font-black text-emerald-600">{{ presentCount }}</p>
+    <div *ngIf="error" class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex items-center gap-3">
+      <i data-lucide="alert-circle" class="w-5 h-5"></i>
+      <p class="font-bold">{{ error }}</p>
     </div>
-    <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
-      <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Tardanzas</p>
-      <p class="mt-3 text-3xl font-black text-amber-600">{{ lateCount }}</p>
-    </div>
-    <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
-      <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Faltas</p>
-      <p class="mt-3 text-3xl font-black text-rose-600">{{ absentCount }}</p>
-    </div>
-    <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
-      <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Justificados</p>
-      <p class="mt-3 text-3xl font-black text-indigo-600">{{ justifiedCount }}</p>
-    </div>
-    <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
-      <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Salidas registradas</p>
-      <p class="mt-3 text-3xl font-black text-slate-700">{{ dailyAttendance?.summary?.exit_recorded_count || 0 }}</p>
-    </div>
-  </div>
 
-  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 relative overflow-hidden">
-    <div class="grid xl:grid-cols-6 gap-6">
-      <div>
-        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Curso guía / Sección</label>
-        <div class="relative">
-          <select
-            [ngModel]="selectedAssignment?.id"
-            (change)="onAssignmentChange($event)"
-            class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300">
-            <option value="">Seleccionar asignación</option>
-            <option *ngFor="let assignment of assignments" [value]="assignment.id">
-              {{ assignment.course?.code }} - {{ assignment.course?.name }} ({{ assignment.section?.grade_level?.name }} {{ assignment.section?.section_letter }})
-            </option>
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+    <div *ngIf="success" class="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl flex items-center gap-3">
+      <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+      <p class="font-bold">{{ success }}</p>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="grid sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Presentes</p>
+        <p class="mt-3 text-3xl font-black text-emerald-600">{{ presentCount }}</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Tardanzas</p>
+        <p class="mt-3 text-3xl font-black text-amber-600">{{ lateCount }}</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Faltas</p>
+        <p class="mt-3 text-3xl font-black text-rose-600">{{ absentCount }}</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Justificados</p>
+        <p class="mt-3 text-3xl font-black text-indigo-600">{{ justifiedCount }}</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Salidas</p>
+        <p class="mt-3 text-3xl font-black text-slate-700">{{ dailyAttendance?.summary?.exit_recorded_count || 0 }}</p>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
+      <div class="grid xl:grid-cols-6 gap-6">
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Curso / Sección</label>
+          <div class="relative">
+            <select [ngModel]="selectedAssignment?.id" (change)="onAssignmentChange($event)"
+              class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700
+                     focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all
+                     outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300">
+              <option value="">Seleccionar asignación</option>
+              <option *ngFor="let a of assignments" [value]="a.id">
+                {{ a.course?.code }} - {{ a.course?.name }} ({{ a.section?.grade_level?.name }} {{ a.section?.section_letter }})
+              </option>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+              <i data-lucide="chevron-down" class="w-5 h-5"></i>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Checkpoint</label>
+          <div class="relative">
+            <select [(ngModel)]="selectedCheckpoint" (change)="onCheckpointChange()"
+              class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700
+                     focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all
+                     outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300">
+              <option value="entrada">Entrada QR</option>
+              <option value="salida">Salida QR</option>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+              <i data-lucide="scan-line" class="w-5 h-5"></i>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Fecha</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+              <i data-lucide="calendar" class="w-5 h-5"></i>
+            </div>
+            <input type="date" [(ngModel)]="selectedDate" (change)="onDateChange()"
+              class="w-full pl-11 rounded-xl border-2 border-slate-200 p-3 font-medium text-slate-700
+                     focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all
+                     outline-none bg-slate-50 focus:bg-white hover:border-slate-300" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Buscar</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+              <i data-lucide="search" class="w-5 h-5"></i>
+            </div>
+            <input type="text" [(ngModel)]="searchTerm" placeholder="Código o nombre"
+              class="w-full pl-11 rounded-xl border-2 border-slate-200 p-3 font-medium text-slate-700
+                     focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all
+                     outline-none bg-slate-50 focus:bg-white hover:border-slate-300" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Estado</label>
+          <div class="relative">
+            <select [(ngModel)]="statusFilter"
+              class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700
+                     focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all
+                     outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300">
+              <option value="todos">Todos</option>
+              <option value="presente">Presente</option>
+              <option value="tarde">Tarde</option>
+              <option value="falta">Falta</option>
+              <option value="justificado">Justificado</option>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+              <i data-lucide="filter" class="w-5 h-5"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-end">
+          <div class="inline-flex items-center px-5 py-3 bg-indigo-50 text-indigo-700 border border-indigo-100
+                      rounded-xl font-bold shadow-sm w-full justify-center">
+            <i data-lucide="users" class="w-5 h-5 mr-2"></i>
+            {{ filteredStudents.length }} / {{ students.length }}
           </div>
         </div>
       </div>
 
-      <div>
-        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Checkpoint</label>
-        <div class="relative">
-          <select
-            [(ngModel)]="selectedCheckpoint"
-            (change)="onCheckpointChange()"
-            class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300">
-            <option value="entrada">Entrada QR</option>
-            <option value="salida">Salida QR</option>
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-            <i data-lucide="scan-line" class="w-5 h-5"></i>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Fecha</label>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
-            <i data-lucide="calendar" class="w-5 h-5"></i>
-          </div>
-          <input
-            type="date"
-            [(ngModel)]="selectedDate"
-            (change)="onDateChange()"
-            class="w-full pl-11 rounded-xl border-2 border-slate-200 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white hover:border-slate-300" />
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Buscar estudiante</label>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
-            <i data-lucide="search" class="w-5 h-5"></i>
-          </div>
-          <input
-            type="text"
-            [(ngModel)]="searchTerm"
-            placeholder="Código o nombre"
-            class="w-full pl-11 rounded-xl border-2 border-slate-200 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white hover:border-slate-300" />
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Filtrar por estado</label>
-        <div class="relative">
-          <select
-            [(ngModel)]="statusFilter"
-            class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300">
-            <option value="todos">Todos</option>
-            <option value="presente">Presente</option>
-            <option value="tarde">Tarde</option>
-            <option value="falta">Falta</option>
-            <option value="justificado">Justificado</option>
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-            <i data-lucide="filter" class="w-5 h-5"></i>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex items-end">
-        <div class="inline-flex items-center px-5 py-3 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl font-bold shadow-sm w-full justify-center">
-          <i data-lucide="users" class="w-5 h-5 mr-2"></i>
-          {{ filteredStudents.length }} visibles / {{ students.length }} totales
-        </div>
-      </div>
-    </div>
-
-    <div class="mt-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm text-blue-900">
-      <p class="font-bold">Modo diario activo.</p>
-      <p class="mt-1">
-        La <strong>entrada</strong> se replica en todos los cursos programados del día para la sección.
-        La <strong>salida</strong> queda como control QR adicional.
-      </p>
-      <p *ngIf="activeQrSession" class="mt-2 font-semibold">
-        QR activo: {{ activeQrSession.session_code }} · vence {{ activeQrSession.expires_at | date:'shortTime' }}
-      </p>
-    </div>
-  </div>
-
-  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden" *ngIf="students.length > 0">
-    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3">
-      <div>
-        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-          <i data-lucide="list-checks" class="w-5 h-5 text-cermat-blue-600"></i>
-          Registro diario
-        </h2>
-        <p class="text-sm text-slate-500 mt-1">
-          {{ currentCheckpointLabel }} · {{ selectedAssignment?.section?.grade_level?.name }} {{ selectedAssignment?.section?.section_letter }} · {{ selectedDate }}
+      <div class="mt-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm text-blue-900">
+        <p class="font-bold">Modo diario activo.</p>
+        <p class="mt-1">
+          La <strong>entrada</strong> se replica en todos los cursos programados del día para la sección.
+          La <strong>salida</strong> queda como control QR adicional.
         </p>
       </div>
-      <div class="text-sm text-slate-500 font-medium">
-        La entrada impacta todos los cursos del día de esta sección.
-      </div>
     </div>
 
-    <div class="overflow-x-auto w-full">
-      <table class="w-full text-left border-collapse whitespace-nowrap">
-        <thead>
-          <tr class="bg-white border-b border-slate-100">
-            <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider w-16 text-center">#</th>
-            <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Estudiante</th>
-            <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider text-center">Estado</th>
-            <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Comentario</th>
-            <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Seguimiento</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          <ng-container *ngFor="let student of filteredStudents; let i = index">
-            <tr class="hover:bg-slate-50/80 transition-colors group align-top">
-              <td class="py-4 px-6 text-slate-400 font-bold text-center">{{ i + 1 }}</td>
-              <td class="py-4 px-6">
-                <div class="flex items-center gap-4">
-                  <div class="w-12 h-12 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center shadow-sm shrink-0">
-                    <span class="text-cermat-blue-700 font-extrabold">
-                      {{ student.first_name[0] }}{{ student.last_name[0] }}
+    <!-- Tabla de alumnos -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden" *ngIf="students.length > 0">
+      <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <i data-lucide="list-checks" class="w-5 h-5 text-cermat-blue-600"></i>
+            Registro diario
+          </h2>
+          <p class="text-sm text-slate-500 mt-1">
+            {{ currentCheckpointLabel }} · {{ selectedAssignment?.section?.grade_level?.name }} {{ selectedAssignment?.section?.section_letter }} · {{ selectedDate }}
+          </p>
+        </div>
+        <div class="text-sm text-slate-500 font-medium">
+          La entrada impacta todos los cursos del día de esta sección.
+        </div>
+      </div>
+
+      <div class="overflow-x-auto w-full">
+        <table class="w-full text-left border-collapse whitespace-nowrap">
+          <thead>
+            <tr class="bg-white border-b border-slate-100">
+              <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider w-16 text-center">#</th>
+              <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Estudiante</th>
+              <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider text-center">Estado</th>
+              <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Comentario</th>
+              <th class="py-4 px-6 font-bold text-slate-500 text-xs uppercase tracking-wider">Seguimiento</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <ng-container *ngFor="let student of filteredStudents; let i = index">
+              <tr class="hover:bg-slate-50/80 transition-colors group align-top">
+                <td class="py-4 px-6 text-slate-400 font-bold text-center">{{ i + 1 }}</td>
+                <td class="py-4 px-6">
+                  <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center shadow-sm shrink-0">
+                      <span class="text-cermat-blue-700 font-extrabold">
+                        {{ student.first_name[0] }}{{ student.last_name[0] }}
+                      </span>
+                    </div>
+                    <div>
+                      <p class="font-bold text-slate-900 leading-tight group-hover:text-cermat-blue-700 transition-colors">
+                        {{ student.last_name }}, {{ student.first_name }}
+                      </p>
+                      <p class="text-xs font-semibold text-slate-400 mt-0.5">Cod: {{ student.student_code }}</p>
+                    </div>
+                  </div>
+                </td>
+
+                <td class="py-4 px-6">
+                  <div class="flex flex-col items-center gap-3">
+                    <div class="flex justify-center gap-2">
+                      <button type="button" (click)="updateAttendance(student.id, 'status', 'presente')"
+                        [ngClass]="recordFor(student.id).status === 'presente' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                        class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300"
+                        title="Presente">P</button>
+
+                      <button type="button" (click)="updateAttendance(student.id, 'status', 'tarde')"
+                        [ngClass]="recordFor(student.id).status === 'tarde' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                        class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300"
+                        title="Tarde">T</button>
+
+                      <button type="button" (click)="updateAttendance(student.id, 'status', 'falta')"
+                        [ngClass]="recordFor(student.id).status === 'falta' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                        class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300"
+                        title="Falta">F</button>
+
+                      <button type="button" (click)="updateAttendance(student.id, 'status', 'justificado')"
+                        [ngClass]="recordFor(student.id).status === 'justificado' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                        class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300"
+                        title="Justificado">J</button>
+                    </div>
+
+                    <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold"
+                          [ngClass]="getStatusBadgeClass(recordFor(student.id).status)">
+                      {{ getStatusLabel(recordFor(student.id).status) }}
                     </span>
                   </div>
-                  <div>
-                    <p class="font-bold text-slate-900 leading-tight group-hover:text-cermat-blue-700 transition-colors">
-                      {{ student.last_name }}, {{ student.first_name }}
+                </td>
+
+                <td class="py-4 px-6 w-[28rem]">
+                  <div class="space-y-2">
+                    <div class="relative">
+                      <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                        <i data-lucide="message-square" class="w-4 h-4"></i>
+                      </div>
+                      <input type="text" placeholder="Añadir comentario..."
+                        [value]="recordFor(student.id).justification"
+                        (input)="updateAttendance(student.id, 'justification', $any($event.target).value)"
+                        class="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl
+                               focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20
+                               transition-all outline-none font-medium text-slate-700
+                               bg-slate-50 focus:bg-white placeholder:text-slate-400 placeholder:font-normal" />
+                    </div>
+
+                    <p *ngIf="needsJustification(student.id)" class="text-xs text-amber-600 font-semibold">
+                      Este estado requiere comentario antes de guardar.
                     </p>
-                    <p class="text-xs font-semibold text-slate-400 mt-0.5">Cod: {{ student.student_code }}</p>
+                    <p class="text-xs text-slate-400">
+                      Última actualización: {{ formatDateTime(recordFor(student.id).updatedAt || null) }}
+                    </p>
                   </div>
-                </div>
-              </td>
+                </td>
 
-              <td class="py-4 px-6">
-                <div class="flex flex-col items-center gap-3">
-                  <div class="flex justify-center gap-2">
-                    <button
-                      type="button"
-                      (click)="updateAttendance(student.id, 'status', 'presente')"
-                      [ngClass]="recordFor(student.id).status === 'presente' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent"
-                      title="Presente"
-                    >P</button>
+                <td class="py-4 px-6 w-[24rem]">
+                  <div class="space-y-3">
+                    <button type="button" (click)="toggleHistory(student.id)"
+                      class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200
+                             bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-sm transition">
+                      <i data-lucide="history" class="w-4 h-4"></i>
+                      {{ recordFor(student.id).historyOpen ? 'Ocultar historial' : 'Ver historial' }}
+                    </button>
 
-                    <button
-                      type="button"
-                      (click)="updateAttendance(student.id, 'status', 'tarde')"
-                      [ngClass]="recordFor(student.id).status === 'tarde' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent"
-                      title="Tarde"
-                    >T</button>
-
-                    <button
-                      type="button"
-                      (click)="updateAttendance(student.id, 'status', 'falta')"
-                      [ngClass]="recordFor(student.id).status === 'falta' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent"
-                      title="Falta"
-                    >F</button>
-
-                    <button
-                      type="button"
-                      (click)="updateAttendance(student.id, 'status', 'justificado')"
-                      [ngClass]="recordFor(student.id).status === 'justificado' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                      class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 border border-transparent"
-                      title="Justificado"
-                    >J</button>
-                  </div>
-
-                  <span
-                    class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold"
-                    [ngClass]="getStatusBadgeClass(recordFor(student.id).status)">
-                    {{ getStatusLabel(recordFor(student.id).status) }}
-                  </span>
-                </div>
-              </td>
-
-              <td class="py-4 px-6 w-[28rem]">
-                <div class="space-y-2">
-                  <div class="relative">
-                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                      <i data-lucide="message-square" class="w-4 h-4"></i>
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Añadir comentario..."
-                      [value]="recordFor(student.id).justification"
-                      (input)="updateAttendance(student.id, 'justification', $any($event.target).value)"
-                      class="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-500/20 transition-all outline-none font-medium text-slate-700 bg-slate-50 focus:bg-white placeholder:text-slate-400 placeholder:font-normal"
-                    />
-                  </div>
-
-                  <p *ngIf="needsJustification(student.id)" class="text-xs text-amber-600 font-semibold">
-                    Este estado requiere comentario antes de guardar.
-                  </p>
-
-                  <p class="text-xs text-slate-400">
-                    Última actualización: {{ formatDateTime(recordFor(student.id).updatedAt || null) }}
-                  </p>
-                </div>
-              </td>
-
-              <td class="py-4 px-6 w-[24rem]">
-                <div class="space-y-3">
-                  <button
-                    type="button"
-                    (click)="toggleHistory(student.id)"
-                    class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-sm transition">
-                    <i data-lucide="history" class="w-4 h-4"></i>
-                    {{ recordFor(student.id).historyOpen ? 'Ocultar historial' : 'Ver historial' }}
-                  </button>
-
-                  <div *ngIf="recordFor(student.id).historyOpen" class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                    <p *ngIf="recordFor(student.id).historyLoading" class="text-sm text-slate-500">Cargando historial...</p>
-
-                    <div *ngIf="!recordFor(student.id).historyLoading && recordFor(student.id).history.length === 0" class="text-sm text-slate-500">
-                      No hay historial previo para este estudiante.
-                    </div>
-
-                    <div *ngIf="!recordFor(student.id).historyLoading && recordFor(student.id).history.length > 0" class="space-y-2">
-                      <div
-                        *ngFor="let history of recordFor(student.id).history"
-                        class="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                        <div class="flex items-center justify-between gap-3">
-                          <span class="text-sm font-bold text-slate-700">{{ history.date }}</span>
-                          <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-bold"
-                                [ngClass]="getStatusBadgeClass(history.status)">
-                            {{ getStatusLabel(history.status) }}
-                          </span>
+                    <div *ngIf="recordFor(student.id).historyOpen" class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                      <p *ngIf="recordFor(student.id).historyLoading" class="text-sm text-slate-500">Cargando historial...</p>
+                      <div *ngIf="!recordFor(student.id).historyLoading && recordFor(student.id).history.length === 0"
+                           class="text-sm text-slate-500">No hay historial previo.</div>
+                      <div *ngIf="!recordFor(student.id).historyLoading && recordFor(student.id).history.length > 0"
+                           class="space-y-2">
+                        <div *ngFor="let h of recordFor(student.id).history"
+                             class="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                          <div class="flex items-center justify-between gap-3">
+                            <span class="text-sm font-bold text-slate-700">{{ h.date }}</span>
+                            <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-bold"
+                                  [ngClass]="getStatusBadgeClass(h.status)">
+                              {{ getStatusLabel(h.status) }}
+                            </span>
+                          </div>
+                          <p class="mt-1 text-xs text-slate-500">{{ h.justification || 'Sin comentario.' }}</p>
                         </div>
-                        <p class="mt-1 text-xs text-slate-500">
-                          {{ history.justification || 'Sin comentario registrado.' }}
-                        </p>
                       </div>
                     </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-          </ng-container>
-        </tbody>
-      </table>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+
+  </ng-container>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       TAB 2 — MI ASISTENCIA (personal)
+       ══════════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeMainTab === 'personal'">
+
+    <div class="max-w-2xl space-y-5">
+
+      <!-- Panel QR -->
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+
+        <!-- Tabs cámara / código -->
+        <div class="flex border-b border-slate-100">
+          <button type="button" (click)="showPersonalScanner = false"
+            [ngClass]="!showPersonalScanner
+              ? 'border-b-2 border-cermat-blue-600 text-cermat-blue-700 bg-cermat-blue-50/40'
+              : 'text-slate-500 hover:bg-slate-50'"
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-bold transition-all">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+            </svg>
+            Código manual
+          </button>
+          <button type="button" (click)="togglePersonalScanner()"
+            [ngClass]="showPersonalScanner
+              ? 'border-b-2 border-cermat-blue-600 text-cermat-blue-700 bg-cermat-blue-50/40'
+              : 'text-slate-500 hover:bg-slate-50'"
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-bold transition-all">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            Cámara
+          </button>
+        </div>
+
+        <!-- Código manual -->
+        <div *ngIf="!showPersonalScanner" class="p-5">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Código de respaldo</p>
+          <p class="text-sm text-slate-500 mb-4">Ingresa el código de 8 caracteres que muestra el auxiliar.</p>
+
+          <input
+            [(ngModel)]="personalQrInput"
+            type="text"
+            placeholder="Ej: AB3C9F2D"
+            maxlength="8"
+            aria-label="Código QR de asistencia personal"
+            class="w-full text-center text-2xl font-mono tracking-[0.4em]
+                   border-2 border-cermat-blue-200 rounded-xl p-4 mb-4
+                   focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-100
+                   outline-none uppercase placeholder:text-slate-300 placeholder:tracking-normal"
+          />
+
+          <button type="button" (click)="submitPersonalCheckin()" [disabled]="personalQrSubmitting"
+            class="w-full py-3.5 rounded-xl bg-cermat-blue-600 hover:bg-cermat-blue-700 text-white
+                   font-bold text-sm transition-colors shadow-lg shadow-cermat-blue-500/20
+                   disabled:opacity-50 disabled:cursor-not-allowed">
+            <span *ngIf="!personalQrSubmitting">Registrar mi asistencia</span>
+            <span *ngIf="personalQrSubmitting">Registrando...</span>
+          </button>
+        </div>
+
+        <!-- Cámara -->
+        <div *ngIf="showPersonalScanner" class="p-5 space-y-3">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Escanear QR del auxiliar</p>
+          <div class="relative rounded-2xl overflow-hidden border-2 border-cermat-blue-200 bg-black">
+            <zxing-scanner
+              [formats]="personalQrFormats"
+              [device]="personalDevice"
+              (camerasFound)="onPersonalCamerasFound($event)"
+              (scanSuccess)="handlePersonalQrScan($event)">
+            </zxing-scanner>
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div class="w-48 h-48 relative">
+                <span class="absolute -top-px -left-px w-7 h-7 border-t-4 border-l-4 border-cermat-blue-400 rounded-tl-xl"></span>
+                <span class="absolute -top-px -right-px w-7 h-7 border-t-4 border-r-4 border-cermat-blue-400 rounded-tr-xl"></span>
+                <span class="absolute -bottom-px -left-px w-7 h-7 border-b-4 border-l-4 border-cermat-blue-400 rounded-bl-xl"></span>
+                <span class="absolute -bottom-px -right-px w-7 h-7 border-b-4 border-r-4 border-cermat-blue-400 rounded-br-xl"></span>
+              </div>
+            </div>
+          </div>
+          <button type="button" (click)="togglePersonalScanner()"
+            class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold
+                   hover:bg-slate-50 transition-colors">
+            Cerrar cámara
+          </button>
+        </div>
+
+        <!-- Feedback -->
+        <div class="px-5 pb-5" *ngIf="personalQrStatus !== 'idle'">
+          <div *ngIf="personalQrStatus === 'success'"
+               class="flex items-start gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200 animate-slide-up">
+            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <div>
+              <p class="font-semibold text-emerald-800 text-sm">¡Asistencia registrada!</p>
+              <p class="text-emerald-600 text-xs mt-0.5">{{ personalQrMessage }}</p>
+            </div>
+          </div>
+          <div *ngIf="personalQrStatus === 'error'"
+               class="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 animate-slide-up">
+            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </div>
+            <div>
+              <p class="font-semibold text-red-800 text-sm">No se pudo registrar</p>
+              <p class="text-red-600 text-xs mt-0.5">{{ personalQrMessage }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historial de hoy -->
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Historial de hoy</p>
+        </div>
+        <div class="divide-y divide-slate-100">
+          <!-- Entrada -->
+          <div class="flex items-center justify-between px-5 py-4">
+            <div class="flex items-center gap-3">
+              <div [ngClass]="personalTodayEntry ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-400 border-slate-200'"
+                   class="w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-slate-700">Entrada</span>
+            </div>
+            <span *ngIf="personalTodayEntry" class="text-base font-black text-emerald-700 tabular-nums">
+              {{ personalTodayEntry.time }}
+            </span>
+            <span *ngIf="!personalTodayEntry" class="text-sm text-slate-400 italic">Pendiente</span>
+          </div>
+          <!-- Salida -->
+          <div class="flex items-center justify-between px-5 py-4">
+            <div class="flex items-center gap-3">
+              <div [ngClass]="personalTodayExit ? 'bg-cermat-blue-100 text-cermat-blue-600 border-cermat-blue-200' : 'bg-slate-100 text-slate-400 border-slate-200'"
+                   class="w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-slate-700">Salida</span>
+            </div>
+            <span *ngIf="personalTodayExit" class="text-base font-black text-cermat-blue-700 tabular-nums">
+              {{ personalTodayExit.time }}
+            </span>
+            <span *ngIf="!personalTodayExit" class="text-sm text-slate-400 italic">Pendiente</span>
+          </div>
+        </div>
+        <div class="px-5 py-3 bg-slate-50/50 border-t border-slate-100">
+          <p class="text-[10px] text-slate-400 italic">
+            Historial de sesión activa. La persistencia completa requiere actualización del servidor.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+  </ng-container>
+
 </div>
