@@ -271,8 +271,9 @@ class AcademicEvaluationService
                 'current_evaluation' => $currentEvaluation ? [
                     'id' => $currentEvaluation->id,
                     'grade' => $currentEvaluation->grade,
-                    'comments' => $currentEvaluation->observations ?? $currentEvaluation->comments,
+                    'observations' => $currentEvaluation->observations,
                     'status' => $currentEvaluation->status,
+                    'published_at' => $currentEvaluation->published_at,
                 ] : null,
                 'academic_summary' => [
                     'final_status' => $statusKey,

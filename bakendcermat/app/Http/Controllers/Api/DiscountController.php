@@ -43,7 +43,7 @@ class DiscountController extends Controller
         $data['scope'] = $data['scope'] ?? 'todos';
         $data['is_active'] = $data['is_active'] ?? true;
 
-        if (!in_array($data['scope'], ['especifico', 'concepto_especifico'], true)) {
+        if ($data['scope'] !== 'especifico') {
             $data['specific_concept_id'] = null;
         }
 
@@ -62,7 +62,7 @@ class DiscountController extends Controller
         $data = $request->validated();
         $scope = $data['scope'] ?? $discount->scope;
 
-        if (!in_array($scope, ['especifico', 'concepto_especifico'], true)) {
+        if ($scope !== 'especifico') {
             $data['specific_concept_id'] = null;
         }
 

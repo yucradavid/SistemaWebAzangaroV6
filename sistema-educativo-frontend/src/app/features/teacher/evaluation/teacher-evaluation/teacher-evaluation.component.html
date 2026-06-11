@@ -151,10 +151,10 @@
                   {{ competency.code || 'COMP' }}
                 </span>
               </div>
-              <div class="text-xs text-slate-600 font-medium leading-relaxed max-w-[180px] mx-auto" [title]="competency.name || competency.description">
-                {{ (competency.name || competency.description || '').length > 60
-                  ? (competency.name || competency.description || '').substring(0, 60) + '...'
-                  : (competency.name || competency.description) }}
+              <div class="text-xs text-slate-600 font-medium leading-relaxed max-w-[180px] mx-auto" [title]="competency.name">
+                {{ (competency.name || '').length > 60
+                  ? (competency.name || '').substring(0, 60) + '...'
+                  : competency.name }}
               </div>
             </th>
           </tr>

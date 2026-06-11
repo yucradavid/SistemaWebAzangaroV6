@@ -85,7 +85,7 @@ export class GradeEntryComponent implements OnInit {
 
   get selectedCompetencyName(): string {
     const competency = this.competencies.find((item) => item.id === this.selectedCompetencyId);
-    return competency?.name || competency?.description || '';
+    return competency?.name || '';
   }
 
   get selectedStudentConclusion(): string {
@@ -312,7 +312,7 @@ export class GradeEntryComponent implements OnInit {
           }
 
           student.grade = dashboardStudent.current_evaluation?.grade ?? student.grade;
-          student.observation = dashboardStudent.current_evaluation?.comments || student.observation;
+          student.observation = dashboardStudent.current_evaluation?.observations || student.observation;
           student.evaluation_id = dashboardStudent.current_evaluation?.id || student.evaluation_id;
           student.status = dashboardStudent.current_evaluation?.status || student.status;
           student.dirty = false;
@@ -660,7 +660,7 @@ export class GradeEntryComponent implements OnInit {
         period_id: this.selectedPeriodId,
         competency_id: this.selectedCompetencyId,
         grade: student.grade || null,
-        comments: student.observation,
+        observations: student.observation,
         status: 'borrador'
       };
 
@@ -683,7 +683,7 @@ export class GradeEntryComponent implements OnInit {
 
           student.evaluation_id = result.id;
           student.status = result.status || 'borrador';
-          student.observation = result.comments || result.observations || student.observation;
+          student.observation = result.observations || student.observation;
           student.grade = result.grade ?? student.grade;
           student.dirty = false;
         });

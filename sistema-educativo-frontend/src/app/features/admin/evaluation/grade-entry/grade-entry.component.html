@@ -53,7 +53,7 @@
       <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Competencia</label>
       <select [(ngModel)]="selectedCompetencyId" (change)="onFilterChange()" [disabled]="saving || recalculating" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
         <option [ngValue]="''">Seleccionar Competencia</option>
-        <option *ngFor="let comp of competencies" [ngValue]="comp.id">{{ comp.name || comp.description }}</option>
+        <option *ngFor="let comp of competencies" [ngValue]="comp.id">{{ comp.name }}</option>
       </select>
     </div>
   </div>

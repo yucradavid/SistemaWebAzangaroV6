@@ -396,7 +396,7 @@ export class GradesStudentComponent implements OnInit {
 
     return this.summary.descriptive_conclusions.map((conclusion) => ({
       id: conclusion.id,
-      competencyName: conclusion.competency?.name || conclusion.competency?.description || 'Competencia',
+      competencyName: conclusion.competency?.name || 'Competencia',
       periodName: conclusion.period?.name || 'Periodo',
       achievementLevel: (conclusion.achievement_level || '-') as GradeValue,
       conclusionText: conclusion.conclusion_text || '',
@@ -640,7 +640,7 @@ export class GradesStudentComponent implements OnInit {
         .sort((a, b) => (a.competency?.name || '').localeCompare(b.competency?.name || ''))
         .map((result) => ({
           id: result.competency?.id || result.competency_id,
-          name: result.competency?.name || result.competency?.description || 'Competencia',
+          name: result.competency?.name || 'Competencia',
           grade: (result.final_level || '-') as GradeValue,
           description: result.evidence_note || result.competency?.description || '',
           periodLabel: result.source_period?.name || 'Cierre anual',

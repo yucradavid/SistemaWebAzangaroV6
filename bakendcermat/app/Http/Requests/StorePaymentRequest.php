@@ -18,7 +18,7 @@ class StorePaymentRequest extends FormRequest
     {
         return [
             'charge_id' => ['nullable', 'uuid', 'exists:charges,id'],
-            'student_id' => ['nullable', 'uuid', 'exists:students,id'],
+            'student_id' => ['required_without:charge_id', 'nullable', 'uuid', 'exists:students,id'],
 
             'amount' => ['required', 'numeric', 'min:0.01'],
             'method' => ['required', 'string', Rule::in(['efectivo', 'transferencia', 'tarjeta', 'yape', 'plin', 'pasarela'])],

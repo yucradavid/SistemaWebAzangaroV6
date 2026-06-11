@@ -10,7 +10,7 @@ export interface Evaluation {
   period_id: string;
   competency_id: string;
   grade: 'AD' | 'A' | 'B' | 'C' | null;
-  comments?: string;
+  observations?: string;
   status: 'borrador' | 'publicada' | 'cerrada';
   evaluated_by?: string;
   evaluated_at?: string;
@@ -164,8 +164,9 @@ export interface SectionEvaluationDashboardStudent {
   current_evaluation?: {
     id: string;
     grade: 'AD' | 'A' | 'B' | 'C' | null;
-    comments?: string;
+    observations?: string;
     status?: string;
+    published_at?: string | null;
   } | null;
   academic_summary: {
     final_status: 'promociona' | 'recuperacion' | 'permanece' | 'pendiente';

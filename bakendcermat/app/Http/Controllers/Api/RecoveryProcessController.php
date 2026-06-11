@@ -34,7 +34,7 @@ class RecoveryProcessController extends Controller
             'updated_by' => $request->user()?->id,
         ]);
 
-        return response()->json($row->load(['student', 'academicYear', 'gradeLevel', 'results']), 201);
+        return response()->json($row->load(['student', 'academicYear', 'gradeLevel', 'results.competency', 'results.course']), 201);
     }
 
     public function show(RecoveryProcess $recoveryProcess)
