@@ -1,5 +1,5 @@
+<app-back-button></app-back-button>
 <div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
-  <app-back-button></app-back-button>
 
   <!-- Header con acciones y estado QR -->
   <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 relative overflow-hidden">
@@ -19,16 +19,32 @@
       <div class="flex flex-col items-end gap-1">
         <button
           type="button"
-          (click)="handleOpenQr()"
+          (click)="handleOpenQr('entrada')"
           [disabled]="!selectedAssignment"
           class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-300 shadow-lg shadow-blue-200 font-semibold text-sm disabled:opacity-50 active:scale-95"
         >
           <i data-lucide="qr-code" class="w-4 h-4"></i>
-          Abrir {{ currentCheckpointLabel }}
+          Abrir Entrada QR
         </button>
-        <div *ngIf="activeQrSession" class="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 animate-pulse">
+        <div *ngIf="getActiveQrSession('entrada')" class="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 animate-pulse">
           <span class="text-[10px] font-bold uppercase tracking-tighter">Sesión activa:</span>
-          <span class="text-xs font-mono font-bold">{{ activeQrSession.session_code }}</span>
+          <span class="text-xs font-mono font-bold">{{ getActiveQrSession('entrada')?.session_code }}</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col items-end gap-1">
+        <button
+          type="button"
+          (click)="handleOpenQr('salida')"
+          [disabled]="!selectedAssignment"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all duration-300 shadow-lg shadow-indigo-200 font-semibold text-sm disabled:opacity-50 active:scale-95"
+        >
+          <i data-lucide="qr-code" class="w-4 h-4"></i>
+          Abrir Salida QR
+        </button>
+        <div *ngIf="getActiveQrSession('salida')" class="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 animate-pulse">
+          <span class="text-[10px] font-bold uppercase tracking-tighter">Sesión activa:</span>
+          <span class="text-xs font-mono font-bold">{{ getActiveQrSession('salida')?.session_code }}</span>
         </div>
       </div>
 

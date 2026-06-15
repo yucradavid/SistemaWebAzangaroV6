@@ -9,16 +9,16 @@ export interface StudentModuleEntry {
 
 export const STUDENT_MODULES_LIST: StudentModuleEntry[] = [
   {
-    title: 'Asistencia',
-    description: 'Consulta tu récord de asistencia diario',
-    icon: ICONS.calendar,
-    path: '/app/attendance/student'
+    title: 'Marcar Asistencia',
+    description: 'Registra tu entrada y salida',
+    icon: ICONS.qrCode,
+    path: '/app/attendance/mark'
   },
   {
-    title: 'Mis Notas',
-    description: 'Visualiza tus calificaciones y promedios',
-    icon: ICONS.graduationCap,
-    path: '/app/evaluation/student'
+    title: 'Mis Cursos',
+    description: 'Notas, asistencia y horario en un solo lugar',
+    icon: ICONS.layoutGrid,
+    path: '/app/courses/student'
   },
   {
     title: 'Historial',
@@ -43,11 +43,5 @@ export const STUDENT_MODULES_LIST: StudentModuleEntry[] = [
     description: 'Estadísticas de tu rendimiento académico',
     icon: ICONS.activity,
     path: '/app/dashboard/metrics/student'
-  },
-  {
-    title: 'Mi Horario',
-    description: 'Consulta tu programación de clases',
-    icon: ICONS.clock,
-    path: '/app/schedule/my'
   }
 ];

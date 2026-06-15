@@ -4,8 +4,23 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { SettingFilterDropdownComponent, FilterOption } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
-import { AcademicService, Competency, Course } from '@core/services/academic.service';
+import { AcademicService, Competency, Course, GradeLevel } from '@core/services/academic.service';
 import Swal from 'sweetalert2';
+
+interface CourseCompetencyGroup {
+  courseId: string;
+  courseName: string;
+  courseCode: string;
+  gradeLevelId: string;
+  competencies: Competency[];
+}
+
+interface GradeCompetencyGroup {
+  gradeId: string;
+  gradeName: string;
+  courses: CourseCompetencyGroup[];
+  totalCompetencies: number;
+}
 
 @Component({
   selector: 'app-competencies',
@@ -39,9 +54,15 @@ import Swal from 'sweetalert2';
 
       <!-- Filter Pill -->
       <!-- Filter Pill -->
-      <div class="md:max-w-xl mx-auto">
+      <div class="md:max-w-xl mx-auto space-y-3">
+        <div class="flex items-center gap-3 flex-wrap justify-center">
+          <select [(ngModel)]="filterGradeId" [ngModelOptions]="{standalone: true}" (ngModelChange)="onFilterGradeChange()" class="border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-700 bg-white focus:outline-none focus:border-cermat-blue-400">
+            <option value="">Todos los grados</option>
+            <option *ngFor="let g of gradeLevels" [value]="g.id">{{ g.name }}</option>
+          </select>
+        </div>
         <app-setting-filter-dropdown
-          [options]="courseFilterOptions"
+          [options]="filteredCourseFilterOptions"
           [selectedId]="selectedCourseFilter"
           placeholder="Todos los cursos"
           (selectionChange)="filterByCourse($event)">
@@ -53,47 +74,56 @@ import Swal from 'sweetalert2';
         <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent flex items-center justify-center rounded-full animate-spin"></div>
       </div>
 
-      <!-- Competencies by Course -->
+      <!-- Competencies by Grade -->
       <div *ngIf="!loading" class="space-y-6">
-        <div *ngFor="let courseGroup of filteredGroupedCompetencies" class="space-y-6">
-          <h2 class="text-xl font-bold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-[#0E3A8A] pl-4 tracking-tight uppercase leading-none">
-            {{ courseGroup.courseName }}
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter ml-1">({{ courseGroup.courseCode }})</span>
-          </h2>
-          
-          <div class="space-y-4">
-            <div *ngFor="let competency of courseGroup.competencies; let i = index" class="bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm hover:shadow-lg transition-all flex flex-col md:flex-row md:items-center gap-6 md:gap-8 group relative overflow-hidden">
-              
-              <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-slate-50 rounded-full blur-2xl group-hover:bg-blue-50 transition-colors pointer-events-none"></div>
+        <div *ngFor="let gradeGroup of competenciesByGrade" class="space-y-6">
 
-              <!-- Content Area -->
-              <div class="flex items-start gap-4 flex-1 relative z-10">
-                <!-- Number Square -->
-                <div class="w-16 h-16 bg-gradient-to-br from-[#0E3A8A] to-[#1D4ED8] rounded-[1.25rem] flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:-rotate-3 transition-all flex-shrink-0">
-                  <span class="text-2xl font-bold text-white">C{{ i + 1 }}</span>
+          <div *ngIf="!filterGradeId" class="flex items-center gap-3 mb-4 mt-6">
+            <div class="w-1 h-6 bg-cermat-blue-700 rounded-full"></div>
+            <h2 class="font-black text-slate-800 text-lg uppercase tracking-wide">{{ gradeGroup.gradeName }}</h2>
+            <span class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full">{{ gradeGroup.totalCompetencies }} competencia(s)</span>
+          </div>
+
+          <div *ngFor="let courseGroup of gradeGroup.courses" class="space-y-6">
+            <h2 class="text-xl font-bold text-[#0F172A] flex items-center gap-3 border-l-[3px] border-[#0E3A8A] pl-4 tracking-tight uppercase leading-none">
+              {{ courseGroup.courseName }}
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter ml-1">({{ courseGroup.courseCode }})</span>
+            </h2>
+
+            <div class="space-y-4">
+              <div *ngFor="let competency of courseGroup.competencies; let i = index" class="bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm hover:shadow-lg transition-all flex flex-col md:flex-row md:items-center gap-6 md:gap-8 group relative overflow-hidden">
+
+                <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-slate-50 rounded-full blur-2xl group-hover:bg-blue-50 transition-colors pointer-events-none"></div>
+
+                <!-- Content Area -->
+                <div class="flex items-start gap-4 flex-1 relative z-10">
+                  <!-- Number Square -->
+                  <div class="w-16 h-16 bg-gradient-to-br from-[#0E3A8A] to-[#1D4ED8] rounded-[1.25rem] flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:-rotate-3 transition-all flex-shrink-0">
+                    <span class="text-2xl font-bold text-white">C{{ i + 1 }}</span>
+                  </div>
+
+                  <!-- Content -->
+                  <div class="flex-1 space-y-2">
+                    <h4 class="text-sm font-bold text-[#0F172A] leading-tight tracking-tight uppercase">
+                      {{ competency.name || ('Competencia ' + (i + 1)) }}
+                    </h4>
+                    <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                      {{ competency.description }}
+                    </p>
+                  </div>
                 </div>
 
-                <!-- Content -->
-                <div class="flex-1 space-y-2">
-                  <h4 class="text-sm font-bold text-[#0F172A] leading-tight tracking-tight uppercase">
-                    {{ competency.name || ('Competencia ' + (i + 1)) }}
-                  </h4>
-                  <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                    {{ competency.description }}
-                  </p>
+                <!-- Actions -->
+                <div class="flex gap-2 relative z-10 w-full md:w-auto">
+                  <button (click)="openModal(competency)" class="flex-1 md:flex-none p-3.5 bg-white text-[#0E3A8A] border-2 border-slate-100 hover:border-[#0E3A8A] rounded-2xl transition-all active:scale-95 shadow-sm group/edit flex justify-center items-center">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button (click)="deleteCompetency(competency.id)" class="flex-1 md:flex-none p-3.5 bg-red-50 text-red-600 border-2 border-transparent hover:bg-red-600 hover:text-white rounded-2xl transition-all active:scale-95 flex justify-center items-center">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                  </button>
                 </div>
-              </div>
 
-              <!-- Actions -->
-              <div class="flex gap-2 relative z-10 w-full md:w-auto">
-                <button (click)="openModal(competency)" class="flex-1 md:flex-none p-3.5 bg-white text-[#0E3A8A] border-2 border-slate-100 hover:border-[#0E3A8A] rounded-2xl transition-all active:scale-95 shadow-sm group/edit flex justify-center items-center">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button (click)="deleteCompetency(competency.id)" class="flex-1 md:flex-none p-3.5 bg-red-50 text-red-600 border-2 border-transparent hover:bg-red-600 hover:text-white rounded-2xl transition-all active:scale-95 flex justify-center items-center">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                </button>
               </div>
-
             </div>
           </div>
         </div>
@@ -119,12 +149,20 @@ import Swal from 'sweetalert2';
           </div>
 
           <form [formGroup]="competencyForm" (ngSubmit)="saveCompetency()" class="p-8 space-y-5">
-            
+
+            <div class="space-y-1.5 focus-within:text-blue-600">
+              <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Grado académico</label>
+              <select [(ngModel)]="selectedGradeId" [ngModelOptions]="{standalone: true}" (ngModelChange)="onGradeChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold mt-1 focus:outline-none focus:border-blue-500">
+                <option value="">Selecciona un grado...</option>
+                <option *ngFor="let g of gradeLevels" [value]="g.id">{{ g.name }}</option>
+              </select>
+            </div>
+
             <div class="space-y-1.5 focus-within:text-blue-600">
               <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Curso Asociado</label>
-              <select formControlName="course_id" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500">
+              <select formControlName="course_id" [disabled]="!selectedGradeId" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
                 <option value="">Selecciona un Curso...</option>
-                <option *ngFor="let c of courses" [value]="c.id">{{ c.code }} - {{ c.name }}</option>
+                <option *ngFor="let c of filteredCourses" [value]="c.id">{{ c.code }} - {{ c.name }}</option>
               </select>
             </div>
 
@@ -169,9 +207,9 @@ import Swal from 'sweetalert2';
 export class CompetenciesComponent implements OnInit {
   competencies: Competency[] = [];
   courses: Course[] = [];
-  groupedCompetencies: { courseId: string, courseName: string, courseCode: string, competencies: Competency[] }[] = [];
-  filteredGroupedCompetencies: any[] = [];
-  
+  groupedCompetencies: CourseCompetencyGroup[] = [];
+  filteredGroupedCompetencies: CourseCompetencyGroup[] = [];
+
   loading = false;
   showModal = false;
   isEditing = false;
@@ -180,6 +218,13 @@ export class CompetenciesComponent implements OnInit {
   competencyForm: FormGroup;
   selectedCourseFilter: string = '';
   courseFilterOptions: FilterOption[] = [];
+  filteredCourseFilterOptions: FilterOption[] = [];
+
+  selectedGradeId: string = '';
+  gradeLevels: GradeLevel[] = [];
+  filteredCourses: Course[] = [];
+  allCourses: Course[] = [];
+  filterGradeId: string = '';
 
   constructor(
     private fb: FormBuilder,
@@ -200,28 +245,93 @@ export class CompetenciesComponent implements OnInit {
 
   ngOnInit() {
     this.loadData();
+    this.loadGradeLevels();
+  }
+
+  loadGradeLevels(): void {
+    this.academicService.getGradeLevels({ per_page: 100 }).subscribe({
+      next: (res) => {
+        this.gradeLevels = res.data || res;
+        if (this.gradeLevels.length === 1 && !this.filterGradeId) {
+          this.filterGradeId = this.gradeLevels[0].id;
+        }
+        this.applyCourseFilterOptions();
+        this.applyFilters();
+      },
+      error: () => {}
+    });
+  }
+
+  onGradeChange(): void {
+    this.competencyForm.patchValue({ course_id: '' });
+    if (!this.selectedGradeId) {
+      this.filteredCourses = [];
+      return;
+    }
+    this.filteredCourses = this.allCourses.filter(c => c.grade_level_id === this.selectedGradeId);
+  }
+
+  onFilterGradeChange(): void {
+    this.selectedCourseFilter = '';
+    this.applyCourseFilterOptions();
+    this.applyFilters();
+  }
+
+  applyCourseFilterOptions(): void {
+    if (!this.filterGradeId) {
+      this.filteredCourseFilterOptions = [...this.courseFilterOptions];
+    } else {
+      this.filteredCourseFilterOptions = this.courseFilterOptions.filter(opt => {
+        const course = this.allCourses.find(c => c.id === opt.id);
+        return course?.grade_level_id === this.filterGradeId;
+      });
+    }
   }
 
   filterByCourse(val: string) {
     this.selectedCourseFilter = val;
-    if (!val) {
-      this.filteredGroupedCompetencies = [...this.groupedCompetencies];
-    } else {
-      this.filteredGroupedCompetencies = this.groupedCompetencies.filter(g => g.courseId === val);
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    this.filteredGroupedCompetencies = this.groupedCompetencies.filter(g => {
+      const matchGrade = !this.filterGradeId || g.gradeLevelId === this.filterGradeId;
+      const matchCourse = !this.selectedCourseFilter || g.courseId === this.selectedCourseFilter;
+      return matchGrade && matchCourse;
+    });
+  }
+
+  get competenciesByGrade(): GradeCompetencyGroup[] {
+    const groups = new Map<string, GradeCompetencyGroup>();
+
+    for (const courseGroup of this.filteredGroupedCompetencies) {
+      const gradeId = courseGroup.gradeLevelId || '';
+      const gradeName = this.gradeLevels.find(g => g.id === gradeId)?.name || 'Sin grado';
+
+      if (!groups.has(gradeId)) {
+        groups.set(gradeId, { gradeId, gradeName, courses: [], totalCompetencies: 0 });
+      }
+      const group = groups.get(gradeId)!;
+      group.courses.push(courseGroup);
+      group.totalCompetencies += courseGroup.competencies.length;
     }
+
+    return Array.from(groups.values()).sort((a, b) => a.gradeName.localeCompare(b.gradeName));
   }
 
   loadData() {
     this.loading = true;
     this.academicService.getCourses({ per_page: 100 }).subscribe((resC) => {
       this.courses = resC.data || resC;
+      this.allCourses = this.courses;
       this.courseFilterOptions = this.courses.map(c => ({ id: c.id, name: c.name, level: c.code }));
       
       this.academicService.getCompetencies({ per_page: 200 }).subscribe({
         next: (resComp) => {
           this.competencies = resComp.data || resComp;
           this.groupCompetencies();
-          this.filterByCourse(this.selectedCourseFilter);
+          this.applyCourseFilterOptions();
+          this.applyFilters();
           this.loading = false;
         },
         error: () => this.loading = false
@@ -230,10 +340,10 @@ export class CompetenciesComponent implements OnInit {
   }
 
   groupCompetencies() {
-    const groups: { [key: string]: { courseId: string, courseName: string, courseCode: string, competencies: Competency[] } } = {};
-    
+    const groups: { [key: string]: CourseCompetencyGroup } = {};
+
     this.courses.forEach(c => {
-      groups[c.id] = { courseId: c.id, courseName: c.name, courseCode: c.code, competencies: [] };
+      groups[c.id] = { courseId: c.id, courseName: c.name, courseCode: c.code, gradeLevelId: c.grade_level_id || '', competencies: [] };
     });
 
     this.competencies.forEach(comp => {
@@ -256,6 +366,11 @@ export class CompetenciesComponent implements OnInit {
     this.isEditing = !!competency;
     if (competency) {
       this.currentEditId = competency.id;
+      const course = this.allCourses.find(c => c.id === competency.course_id);
+      this.selectedGradeId = course?.grade_level_id || '';
+      this.filteredCourses = this.selectedGradeId
+        ? this.allCourses.filter(c => c.grade_level_id === this.selectedGradeId)
+        : [];
       this.competencyForm.patchValue(competency);
     } else {
       this.currentEditId = null;
@@ -266,10 +381,15 @@ export class CompetenciesComponent implements OnInit {
             nextOrder = Math.max(...group.competencies.map(c => c.order || 0)) + 1;
          }
       }
-      this.competencyForm.reset({ 
-        course_id: this.selectedCourseFilter || '', 
+      const preselectedCourse = this.allCourses.find(c => c.id === this.selectedCourseFilter);
+      this.selectedGradeId = preselectedCourse?.grade_level_id || '';
+      this.filteredCourses = this.selectedGradeId
+        ? this.allCourses.filter(c => c.grade_level_id === this.selectedGradeId)
+        : [];
+      this.competencyForm.reset({
+        course_id: this.selectedCourseFilter || '',
         name: '',
-        description: '', 
+        description: '',
         order: nextOrder
       });
     }

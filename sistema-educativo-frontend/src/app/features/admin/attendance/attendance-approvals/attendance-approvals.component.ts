@@ -119,46 +119,42 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
     return this.justifications.filter((item) => item.status === 'pendiente').length;
   }
 
-  handleOpenQr(): void {
+  handleOpenQr(checkpoint: DailyAttendanceCheckpoint = this.selectedCheckpoint): void {
     if (!this.selectedAssignment) return;
 
     // Buscar si ya existe una sesión activa para hoy y este checkpoint
-    const existingSession = this.dailyAttendance?.qr_sessions?.find(s => 
-      s.checkpoint_type === this.selectedCheckpoint && 
-      s.status === 'activo'
-    );
+    const existingSession = this.getActiveQrSession(checkpoint);
 
-    // Validar si la sesión encontrada realmente es válida por tiempo
-    if (existingSession && existingSession.expires_at) {
-      const expiration = this.parseUtcDate(existingSession.expires_at);
-      const now = new Date().getTime();
-      
-      if (now < expiration) {
-        this.openQrModal(existingSession);
-        return;
-      }
-      
-      // Si llegamos aquí, la sesión está marcada como activa pero ya expiró por tiempo
-      console.log('Sesión activa encontrada pero expirada por tiempo. Creando una nueva...');
+    if (existingSession) {
+      this.openQrModal(existingSession, checkpoint);
+      return;
     }
 
-    this.createNewQrSession();
+    this.createNewQrSession(checkpoint);
   }
 
-  get activeQrSession(): DailyAttendanceQrSession | null {
+  getActiveQrSession(checkpoint: DailyAttendanceCheckpoint): DailyAttendanceQrSession | null {
     return (this.dailyAttendance?.qr_sessions || []).find(
       (session) => {
-        const isActive = session.status === 'activo' && session.checkpoint_type === this.selectedCheckpoint;
+        const isActive = session.status === 'activo' && session.checkpoint_type === checkpoint;
         if (!isActive) return false;
-        
+
         const expiry = this.parseUtcDate(session.expires_at);
         return expiry > Date.now();
       }
     ) || null;
   }
 
+  get activeQrSession(): DailyAttendanceQrSession | null {
+    return this.getActiveQrSession(this.selectedCheckpoint);
+  }
+
+  checkpointLabel(checkpoint: DailyAttendanceCheckpoint): string {
+    return checkpoint === 'entrada' ? 'Entrada QR' : 'Salida QR';
+  }
+
   get currentCheckpointLabel(): string {
-    return this.selectedCheckpoint === 'entrada' ? 'Entrada QR' : 'Salida QR';
+    return this.checkpointLabel(this.selectedCheckpoint);
   }
 
   recordFor(studentId: string): AttendanceState {
@@ -413,17 +409,17 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
     });
   }
 
-  createNewQrSession(): void {
+  createNewQrSession(checkpoint: DailyAttendanceCheckpoint = this.selectedCheckpoint): void {
     this.attendanceService.createDailyQrSession({
       section_id: this.selectedSectionId,
       academic_year_id: this.selectedAcademicYearId,
       date: this.selectedDate,
-      checkpoint: this.selectedCheckpoint,
-      late_after_minutes: this.selectedCheckpoint === 'entrada' ? 10 : 0,
+      checkpoint,
+      late_after_minutes: checkpoint === 'entrada' ? 10 : 0,
       expires_in_minutes: 20,
     }).subscribe({
       next: ({ data }) => {
-        this.openQrModal(data);
+        this.openQrModal(data, checkpoint);
         this.loadDailyAttendance();
       },
       error: (err) => {
@@ -432,7 +428,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
     });
   }
 
-  private async openQrModal(data: DailyAttendanceQrSession): Promise<void> {
+  private async openQrModal(data: DailyAttendanceQrSession, checkpoint: DailyAttendanceCheckpoint = this.selectedCheckpoint): Promise<void> {
     try {
       const payload = data.qr_payload || '';
       const expiryTime = this.parseUtcDate(data.expires_at);
@@ -450,7 +446,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
       this.startTimer(expiryTime, data.session_code);
 
       void Swal.fire({
-        title: `<span class="text-2xl font-black text-slate-800">${this.currentCheckpointLabel}</span>`,
+        title: `<span class="text-2xl font-black text-slate-800">${this.checkpointLabel(checkpoint)}</span>`,
         html: `
           <div class="flex flex-col items-center p-4">
             <div class="relative bg-white p-4 rounded-3xl shadow-xl border border-slate-100 mb-4 group transition-all hover:scale-[1.02]">
@@ -481,7 +477,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
         didOpen: () => {
           const timerDisplay = document.getElementById('qr-timer-display');
           const regenBtn = document.getElementById('regenerate-btn');
-          regenBtn?.addEventListener('click', () => this.regenerateQr());
+          regenBtn?.addEventListener('click', () => this.regenerateQr(checkpoint));
           
           const intervalId = setInterval(() => {
             if (timerDisplay) {
@@ -559,9 +555,9 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
     this.qrCountdown = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }
 
-  regenerateQr(): void {
+  regenerateQr(checkpoint: DailyAttendanceCheckpoint = this.selectedCheckpoint): void {
     Swal.close();
-    this.createNewQrSession();
+    this.createNewQrSession(checkpoint);
   }
 
   private stopTimer(): void {

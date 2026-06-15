@@ -160,10 +160,6 @@ class DailyAttendanceController extends Controller
         $userRole = $request->user()?->profile?->role;
 
         // --- Rama: Docente ---
-        // attendance_daily_records usa student_id NOT NULL, por lo que no se puede
-        // persistir aquí sin una migration adicional (teacher_id opcional).
-        // La sesión QR se valida igual; la respuesta usa el mismo shape que espera
-        // el frontend para mostrar el feedback de éxito.
         if ($userRole === 'teacher') {
             $teacher = Teacher::query()
                 ->where('user_id', (string) $request->user()?->id)
@@ -188,10 +184,31 @@ class DailyAttendanceController extends Controller
                 ]);
             }
 
+            $status = 'presente';
+            if (
+                $session->checkpoint_type === 'entrada'
+                && $session->opened_at
+                && now()->greaterThan($session->opened_at->copy()->addMinutes((int) $session->late_after_minutes))
+            ) {
+                $status = 'tarde';
+            }
+
+            $dailyRecord = $this->dailyAttendanceService->storeTeacherCheckpoint(
+                (string) $teacher->id,
+                (string) $session->section_id,
+                (string) $session->academic_year_id,
+                (string) $session->getRawOriginal('date'),
+                (string) $session->checkpoint_type,
+                $status,
+                sprintf('Marcado por QR %s.', $session->session_code),
+                'qr'
+            );
+
             return response()->json([
                 'message'         => sprintf('Marcacion %s registrada correctamente.', $session->checkpoint_type),
                 'checkpoint'      => $session->checkpoint_type,
                 'session'         => $session->fresh(),
+                'daily_record'    => $dailyRecord,
                 'processed_count' => 1,
             ]);
         }
@@ -231,6 +248,48 @@ class DailyAttendanceController extends Controller
             'checkpoint' => $session->checkpoint_type,
             'session'    => $session->fresh(),
             ...$result,
+        ]);
+    }
+
+    /**
+     * GET /api/attendance/daily/my-history?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD
+     * Historial de marcaciones diarias (entrada/salida) del docente autenticado.
+     */
+    public function myDailyHistory(Request $request): JsonResponse
+    {
+        $teacher = Teacher::query()
+            ->where('user_id', (string) $request->user()?->id)
+            ->first();
+
+        if (!$teacher) {
+            throw ValidationException::withMessages([
+                'teacher' => 'No se encontro un docente asociado al usuario autenticado.',
+            ]);
+        }
+
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+
+        $dailyRecords = $this->dailyAttendanceService->getTeacherDailyRecords(
+            (string) $teacher->id,
+            $dateFrom ? (string) $dateFrom : null,
+            $dateTo ? (string) $dateTo : null
+        );
+
+        $countsByStatus = $dailyRecords
+            ->groupBy('entry_status')
+            ->filter(fn ($group, $status) => !empty($status))
+            ->map(fn ($group, $status) => ['status' => $status, 'total' => $group->count()])
+            ->values();
+
+        return response()->json([
+            'teacher_id' => (string) $teacher->id,
+            'filters' => [
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
+            'counts_by_status' => $countsByStatus,
+            'daily_records' => $dailyRecords,
         ]);
     }
 

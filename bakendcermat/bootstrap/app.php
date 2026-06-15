@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\StudentGuardianAccessMiddleware;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -28,6 +29,13 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\HandleCors::class,
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
+    })
+    ->withSchedule(function (Schedule $schedule) {
+        // Revisa periodos vencidos cada dia a las 00:01 y los cierra
+        // automaticamente (lo que genera su snapshot historico).
+        $schedule->command('periods:auto-close')
+            ->dailyAt('00:01')
+            ->appendOutputTo(storage_path('logs/auto-close-periods.log'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

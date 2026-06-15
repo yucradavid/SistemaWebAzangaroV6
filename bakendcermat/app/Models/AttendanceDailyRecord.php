@@ -18,6 +18,7 @@ class AttendanceDailyRecord extends Model
 
     protected $fillable = [
         'student_id',
+        'teacher_id',
         'section_id',
         'academic_year_id',
         'date',
@@ -42,6 +43,11 @@ class AttendanceDailyRecord extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class, 'student_id');
+    }
+
+    public function teacher(): BelongsTo
+    {
+        return $this->belongsTo(Teacher::class, 'teacher_id');
     }
 
     public function section(): BelongsTo

@@ -1,3 +1,4 @@
+<app-back-button link="/app/attendance/teacher/menu"></app-back-button>
 <div class="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
 
   <!-- ══ HEADER siempre visible ══════════════════════════════════ -->
@@ -17,8 +18,8 @@
       </div>
     </div>
 
-    <!-- Acciones: sólo en tab alumnos -->
-    <div *ngIf="activeMainTab === 'students'" class="relative z-10 flex flex-wrap gap-3">
+    <!-- Acciones -->
+    <div class="relative z-10 flex flex-wrap gap-3">
       <button
         type="button"
         (click)="markFilteredStudentsPresent()"
@@ -55,33 +56,6 @@
       </button>
     </div>
   </div>
-
-  <!-- ══ TABS ════════════════════════════════════════════════════ -->
-  <div class="flex gap-3">
-    <button
-      type="button"
-      (click)="activeMainTab = 'students'"
-      [ngClass]="activeMainTab === 'students'
-        ? 'bg-cermat-blue-700 text-white shadow-md shadow-cermat-blue-500/25'
-        : 'bg-cermat-blue-50 text-cermat-blue-700 border border-cermat-blue-200 hover:bg-cermat-blue-100'"
-      class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95">
-      👥 Mis Alumnos
-    </button>
-    <button
-      type="button"
-      (click)="activeMainTab = 'personal'"
-      [ngClass]="activeMainTab === 'personal'
-        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/25'
-        : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'"
-      class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95">
-      🗓️ Mi Asistencia
-    </button>
-  </div>
-
-  <!-- ══════════════════════════════════════════════════════════════
-       TAB 1 — MIS ALUMNOS
-       ══════════════════════════════════════════════════════════════ -->
-  <ng-container *ngIf="activeMainTab === 'students'">
 
     <div *ngIf="error" class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex items-center gap-3">
       <i data-lucide="alert-circle" class="w-5 h-5"></i>
@@ -356,178 +330,4 @@
         </table>
       </div>
     </div>
-
-  </ng-container>
-
-  <!-- ══════════════════════════════════════════════════════════════
-       TAB 2 — MI ASISTENCIA (personal)
-       ══════════════════════════════════════════════════════════════ -->
-  <ng-container *ngIf="activeMainTab === 'personal'">
-
-    <div class="max-w-2xl space-y-5">
-
-      <!-- Panel QR -->
-      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-
-        <!-- Tabs cámara / código -->
-        <div class="flex border-b border-slate-100">
-          <button type="button" (click)="showPersonalScanner = false"
-            [ngClass]="!showPersonalScanner
-              ? 'border-b-2 border-cermat-blue-600 text-cermat-blue-700 bg-cermat-blue-50/40'
-              : 'text-slate-500 hover:bg-slate-50'"
-            class="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-bold transition-all">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
-            </svg>
-            Código manual
-          </button>
-          <button type="button" (click)="togglePersonalScanner()"
-            [ngClass]="showPersonalScanner
-              ? 'border-b-2 border-cermat-blue-600 text-cermat-blue-700 bg-cermat-blue-50/40'
-              : 'text-slate-500 hover:bg-slate-50'"
-            class="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-bold transition-all">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-            Cámara
-          </button>
-        </div>
-
-        <!-- Código manual -->
-        <div *ngIf="!showPersonalScanner" class="p-5">
-          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Código de respaldo</p>
-          <p class="text-sm text-slate-500 mb-4">Ingresa el código de 8 caracteres que muestra el auxiliar.</p>
-
-          <input
-            [(ngModel)]="personalQrInput"
-            type="text"
-            placeholder="Ej: AB3C9F2D"
-            maxlength="8"
-            aria-label="Código QR de asistencia personal"
-            class="w-full text-center text-2xl font-mono tracking-[0.4em]
-                   border-2 border-cermat-blue-200 rounded-xl p-4 mb-4
-                   focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-100
-                   outline-none uppercase placeholder:text-slate-300 placeholder:tracking-normal"
-          />
-
-          <button type="button" (click)="submitPersonalCheckin()" [disabled]="personalQrSubmitting"
-            class="w-full py-3.5 rounded-xl bg-cermat-blue-600 hover:bg-cermat-blue-700 text-white
-                   font-bold text-sm transition-colors shadow-lg shadow-cermat-blue-500/20
-                   disabled:opacity-50 disabled:cursor-not-allowed">
-            <span *ngIf="!personalQrSubmitting">Registrar mi asistencia</span>
-            <span *ngIf="personalQrSubmitting">Registrando...</span>
-          </button>
-        </div>
-
-        <!-- Cámara -->
-        <div *ngIf="showPersonalScanner" class="p-5 space-y-3">
-          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Escanear QR del auxiliar</p>
-          <div class="relative rounded-2xl overflow-hidden border-2 border-cermat-blue-200 bg-black">
-            <zxing-scanner
-              [formats]="personalQrFormats"
-              [device]="personalDevice"
-              (camerasFound)="onPersonalCamerasFound($event)"
-              (scanSuccess)="handlePersonalQrScan($event)">
-            </zxing-scanner>
-            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div class="w-48 h-48 relative">
-                <span class="absolute -top-px -left-px w-7 h-7 border-t-4 border-l-4 border-cermat-blue-400 rounded-tl-xl"></span>
-                <span class="absolute -top-px -right-px w-7 h-7 border-t-4 border-r-4 border-cermat-blue-400 rounded-tr-xl"></span>
-                <span class="absolute -bottom-px -left-px w-7 h-7 border-b-4 border-l-4 border-cermat-blue-400 rounded-bl-xl"></span>
-                <span class="absolute -bottom-px -right-px w-7 h-7 border-b-4 border-r-4 border-cermat-blue-400 rounded-br-xl"></span>
-              </div>
-            </div>
-          </div>
-          <button type="button" (click)="togglePersonalScanner()"
-            class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold
-                   hover:bg-slate-50 transition-colors">
-            Cerrar cámara
-          </button>
-        </div>
-
-        <!-- Feedback -->
-        <div class="px-5 pb-5" *ngIf="personalQrStatus !== 'idle'">
-          <div *ngIf="personalQrStatus === 'success'"
-               class="flex items-start gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200 animate-slide-up">
-            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-              </svg>
-            </div>
-            <div>
-              <p class="font-semibold text-emerald-800 text-sm">¡Asistencia registrada!</p>
-              <p class="text-emerald-600 text-xs mt-0.5">{{ personalQrMessage }}</p>
-            </div>
-          </div>
-          <div *ngIf="personalQrStatus === 'error'"
-               class="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 animate-slide-up">
-            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-              <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-            </div>
-            <div>
-              <p class="font-semibold text-red-800 text-sm">No se pudo registrar</p>
-              <p class="text-red-600 text-xs mt-0.5">{{ personalQrMessage }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Historial de hoy -->
-      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Historial de hoy</p>
-        </div>
-        <div class="divide-y divide-slate-100">
-          <!-- Entrada -->
-          <div class="flex items-center justify-between px-5 py-4">
-            <div class="flex items-center gap-3">
-              <div [ngClass]="personalTodayEntry ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-400 border-slate-200'"
-                   class="w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-                </svg>
-              </div>
-              <span class="text-sm font-semibold text-slate-700">Entrada</span>
-            </div>
-            <span *ngIf="personalTodayEntry" class="text-base font-black text-emerald-700 tabular-nums">
-              {{ personalTodayEntry.time }}
-            </span>
-            <span *ngIf="!personalTodayEntry" class="text-sm text-slate-400 italic">Pendiente</span>
-          </div>
-          <!-- Salida -->
-          <div class="flex items-center justify-between px-5 py-4">
-            <div class="flex items-center gap-3">
-              <div [ngClass]="personalTodayExit ? 'bg-cermat-blue-100 text-cermat-blue-600 border-cermat-blue-200' : 'bg-slate-100 text-slate-400 border-slate-200'"
-                   class="w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                </svg>
-              </div>
-              <span class="text-sm font-semibold text-slate-700">Salida</span>
-            </div>
-            <span *ngIf="personalTodayExit" class="text-base font-black text-cermat-blue-700 tabular-nums">
-              {{ personalTodayExit.time }}
-            </span>
-            <span *ngIf="!personalTodayExit" class="text-sm text-slate-400 italic">Pendiente</span>
-          </div>
-        </div>
-        <div class="px-5 py-3 bg-slate-50/50 border-t border-slate-100">
-          <p class="text-[10px] text-slate-400 italic">
-            Historial de sesión activa. La persistencia completa requiere actualización del servidor.
-          </p>
-        </div>
-      </div>
-
-    </div>
-
-  </ng-container>
-
 </div>

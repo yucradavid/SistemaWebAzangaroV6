@@ -1,4 +1,5 @@
 <!-- //src/app/features/teacher/evaluation/teacher-evaluation/teacher-evaluation.component.html -->
+<app-back-button link="/app/dashboard/teacher"></app-back-button>
 <div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
   <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
     <div class="absolute -right-10 -top-10 w-40 h-40 bg-cermat-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -35,9 +36,17 @@
           [disabled]="saving || !canPublish()"
           class="flex-1 lg:flex-none inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl transition-all duration-300 shadow-lg shadow-emerald-500/30 font-bold hover:shadow-emerald-500/50 hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none"
         >
-          <i *ngIf="!saving" data-lucide="send" class="w-5 h-5"></i>
-          <i *ngIf="saving" data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
-          {{ saving ? 'Procesando...' : 'Publicar calificaciones' }}
+          <svg *ngIf="!saving" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <span *ngIf="saving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+          {{ saving ? 'Procesando...' : 'Publicar este curso' }}
+        </button>
+        <button
+          (click)="publishAllCourses()"
+          [disabled]="publishing"
+          class="flex-1 lg:flex-none inline-flex justify-center items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-800 text-white font-bold rounded-xl text-sm hover:from-purple-700 hover:to-purple-900 disabled:opacity-50 transition-all duration-200"
+        >
+          <span *ngIf="!publishing">🚀 Publicar todos</span>
+          <span *ngIf="publishing">⏳ Publicando...</span>
         </button>
       </ng-container>
       <ng-template #closedPeriod>
@@ -184,6 +193,34 @@
 
             <td *ngFor="let competency of competencies" class="py-4 px-5 align-top border-r border-slate-100 bg-white group-hover:bg-slate-50/50 transition-colors">
               <div class="flex flex-col gap-3">
+                <!-- Conversion automatica: nota numerica -> EBR -->
+                <div class="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="20"
+                    [disabled]="isCellLocked(recordFor(student.id, competency.id))"
+                    [value]="recordFor(student.id, competency.id).numericScore ?? ''"
+                    (input)="onScoreInput(student.id, competency.id, $any($event.target).value)"
+                    placeholder="0-20"
+                    class="w-16 text-center text-sm font-bold border-2 border-slate-200 rounded-lg p-1.5 focus:border-cermat-blue-400 focus:outline-none focus:ring-2 focus:ring-cermat-blue-100 disabled:bg-slate-50/50 disabled:cursor-not-allowed"
+                  />
+
+                  <span *ngIf="recordFor(student.id, competency.id).grade"
+                        class="inline-flex flex-col items-center justify-center w-12 h-12 rounded-xl border-2 font-black text-sm transition-all duration-200"
+                        [class]="getGradeColorClass(recordFor(student.id, competency.id).grade)">
+                    <span class="text-base leading-none">{{ recordFor(student.id, competency.id).grade }}</span>
+                    <span class="text-[9px] leading-none mt-0.5 opacity-70">
+                      {{ getScorePreview(recordFor(student.id, competency.id).grade) }}
+                    </span>
+                  </span>
+
+                  <span *ngIf="!recordFor(student.id, competency.id).grade"
+                        class="w-12 h-12 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 text-xs">
+                    —
+                  </span>
+                </div>
+
                 <div class="flex justify-center gap-1.5 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/50 shadow-inner">
                   <button
                     *ngFor="let grade of grades"
@@ -225,6 +262,14 @@
                       ? 'Publicada'
                       : 'Borrador' }}
                   </span>
+
+                  <button
+                    *ngIf="recordFor(student.id, competency.id).status === 'publicada'"
+                    (click)="revertCellToDraft(student.id, competency.id)"
+                    class="text-[10px] font-bold text-amber-600 hover:text-amber-800 underline cursor-pointer ml-1"
+                    title="Reabrir para edición">
+                    ✏️ Reabrir
+                  </button>
                 </div>
               </div>
             </td>

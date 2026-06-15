@@ -8,7 +8,6 @@ use App\Models\Section;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class CourseController extends Controller
 {
@@ -26,37 +25,10 @@ class CourseController extends Controller
                 ], 404);
             }
 
-            $academicYearId = $request->filled('academic_year_id')
-                ? (string) $request->input('academic_year_id')
-                : (string) $section->academic_year_id;
-
+            // Todos los cursos del grado de la seccion, sin importar si ya tienen
+            // horario/asignacion previa (de lo contrario un curso nuevo no podria
+            // programarse por primera vez).
             $query->where('grade_level_id', $section->grade_level_id);
-            $query->where(function ($subQuery) use ($section, $academicYearId) {
-                $subQuery
-                    ->whereExists(function ($existsQuery) use ($section, $academicYearId) {
-                        $existsQuery->select(DB::raw(1))
-                            ->from('course_assignments as ca')
-                            ->whereColumn('ca.course_id', 'courses.id')
-                            ->where('ca.section_id', $section->id)
-                            ->where('ca.academic_year_id', $academicYearId);
-                    })
-                    ->orWhereExists(function ($existsQuery) use ($section, $academicYearId) {
-                        $existsQuery->select(DB::raw(1))
-                            ->from('teacher_course_assignments as tca')
-                            ->whereColumn('tca.course_id', 'courses.id')
-                            ->where('tca.section_id', $section->id)
-                            ->where('tca.academic_year_id', $academicYearId)
-                            ->where('tca.is_active', true);
-                    })
-                    ->orWhereExists(function ($existsQuery) use ($section, $academicYearId) {
-                        $existsQuery->select(DB::raw(1))
-                            ->from('student_course_enrollments as sce')
-                            ->whereColumn('sce.course_id', 'courses.id')
-                            ->where('sce.section_id', $section->id)
-                            ->where('sce.academic_year_id', $academicYearId)
-                            ->where('sce.status', 'active');
-                    });
-            });
         }
 
         if ($request->has('grade_level_id')) {

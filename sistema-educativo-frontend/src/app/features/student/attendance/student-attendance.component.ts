@@ -1,11 +1,13 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule, registerLocaleData } from '@angular/common';
+import { CommonModule, Location, registerLocaleData } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { ICONS } from '@core/constants/icons';
 import { AcademicContextStudent, AuthService } from '@core/services/auth.service';
-import { AttendanceService } from '@core/services/attendance.service';
+import { Period } from '@core/services/academic.service';
+import { PeriodContextService } from '@core/services/period-context.service';
 import {
   ReportService,
   StudentAttendanceJustificationData,
@@ -13,8 +15,6 @@ import {
   StudentAttendanceSummaryResponse,
   StudentDailyAttendanceRecord,
 } from '@core/services/report.service';
-import { ZXingScannerModule } from '@zxing/ngx-scanner';
-import { BarcodeFormat } from '@zxing/library';
 import localeEsPe from '@angular/common/locales/es-PE';
 
 registerLocaleData(localeEsPe);
@@ -43,61 +43,70 @@ interface CalendarDay {
   dominantStatus: AttendanceStatus | null;
 }
 
+interface SessionItem {
+  sessionNumber: number;
+  courseId: string;
+  courseName: string;
+  date: string;
+  status: AttendanceStatus;
+  sessionType: string;
+  justification: StudentAttendanceJustificationData | null;
+}
+
 @Component({
   selector: 'app-attendance-student',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ZXingScannerModule],
+  imports: [CommonModule, FormsModule, RouterModule, BackButtonComponent],
   templateUrl: './student-attendance.component.html',
   styles: [`
     :host { display: block; background: #F8FAFC; min-h: 100vh; }
     select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1.25rem; }
-    
-    @keyframes scan {
-      0%, 100% { top: 0%; }
-      50% { top: 100%; }
-    }
-    .animate-scan {
-      animation: scan 2s linear infinite;
-    }
   `]
 })
 export class AttendanceStudentComponent implements OnInit {
   private sanitizer = inject(DomSanitizer);
   private authService = inject(AuthService);
   private reportService = inject(ReportService);
-  private attendanceService = inject(AttendanceService);
+  private periodCtx = inject(PeriodContextService);
+  private route = inject(ActivatedRoute);
+  private location = inject(Location);
 
   readonly dayLabels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
 
   loading = false;
-  qrSubmitting = false;
   error = '';
-  qrMessage = '';
-  qrStatus: 'idle' | 'loading' | 'success' | 'error' = 'idle';
   selectedMonth = new Date().toISOString().slice(0, 7);
   selectedCourseId = 'all';
   selectedCalendarDate = '';
-  qrCodeInput = '';
   months: { value: string, label: string }[] = [];
   attendance: AttendanceRecordView[] = [];
   dailyAttendance: StudentDailyAttendanceRecord[] = [];
   studentContext: AcademicContextStudent | null = null;
   lastSummary: StudentAttendanceSummaryResponse | null = null;
-  
-  // QR Scanner State
-  showScanner = false;
-  hasDevices = false;
-  hasPermission = false;
-  qrFormats = [BarcodeFormat.QR_CODE];
-  availableDevices: MediaDeviceInfo[] = [];
-  currentDevice: MediaDeviceInfo | undefined;
 
   constructor() {
     this.generateMonths();
   }
 
+  goBack(): void {
+    this.location.back();
+  }
+
   ngOnInit() {
     this.loadAcademicContext();
+    this.route.queryParams.subscribe((params) => {
+      if (params['course_id']) {
+        this.selectedCourseId = params['course_id'];
+      }
+    });
+
+    // Selector global de trimestre: al cambiar, recarga la asistencia
+    // usando el rango de fechas del periodo (solo si ya hay contexto cargado).
+    this.periodCtx.selectedPeriod$.subscribe((period) => {
+      if (period && this.studentContext?.id) {
+        this.loadAttendanceForPeriod(period);
+      }
+    });
   }
 
   get filteredAttendance(): AttendanceRecordView[] {
@@ -123,6 +132,43 @@ export class AttendanceStudentComponent implements OnInit {
       return [];
     }
     return this.filteredAttendance.filter((record) => record.date === this.selectedCalendarDate);
+  }
+
+  get sessionList(): SessionItem[] {
+    const byCourse = new Map<string, AttendanceRecordView[]>();
+    for (const record of this.attendance) {
+      if (!byCourse.has(record.course.id)) {
+        byCourse.set(record.course.id, []);
+      }
+      byCourse.get(record.course.id)!.push(record);
+    }
+
+    const result: SessionItem[] = [];
+    byCourse.forEach((records) => {
+      const sorted = [...records].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+      sorted.forEach((record, index) => {
+        result.push({
+          sessionNumber: index + 1,
+          courseId: record.course.id,
+          courseName: record.course.name,
+          date: record.date,
+          status: record.status,
+          sessionType: 'Teoria',
+          justification: record.justification_data || null,
+        });
+      });
+    });
+
+    return result;
+  }
+
+  get filteredSessions(): SessionItem[] {
+    if (this.selectedCourseId === 'all') {
+      return this.sessionList;
+    }
+    return this.sessionList.filter((session) => session.courseId === this.selectedCourseId);
   }
 
   get selectedDailyRecord(): StudentDailyAttendanceRecord | null {
@@ -255,13 +301,36 @@ export class AttendanceStudentComponent implements OnInit {
   }
 
   loadAttendance() {
+    const { dateFrom, dateTo } = this.getMonthRange(this.selectedMonth);
+    this.fetchAttendance(dateFrom, dateTo);
+  }
+
+  /**
+   * Carga la asistencia para el rango de fechas del periodo global seleccionado.
+   * Alinea ademas el mes visible del calendario con el inicio del periodo.
+   */
+  private loadAttendanceForPeriod(period: Period): void {
+    const dateFrom = (period.start_date || '').slice(0, 10);
+    const dateTo = (period.end_date || '').slice(0, 10);
+    if (!dateFrom || !dateTo) {
+      return;
+    }
+
+    const startMonth = dateFrom.slice(0, 7);
+    if (this.months.some((m) => m.value === startMonth)) {
+      this.selectedMonth = startMonth;
+    }
+
+    this.fetchAttendance(dateFrom, dateTo);
+  }
+
+  private fetchAttendance(dateFrom: string, dateTo: string) {
     if (!this.studentContext?.id) {
       return;
     }
 
     this.loading = true;
     this.error = '';
-    const { dateFrom, dateTo } = this.getMonthRange(this.selectedMonth);
 
     this.reportService.getAttendanceSummary(this.studentContext.id, dateFrom, dateTo).subscribe({
       next: (response) => {
@@ -292,99 +361,6 @@ export class AttendanceStudentComponent implements OnInit {
       return;
     }
     this.selectedCalendarDate = day.date;
-  }
-
-  submitQrCheckpoint(): void {
-    if (!this.qrCodeInput.trim()) {
-      this.qrStatus = 'error';
-      this.qrMessage = 'Ingresa o escanea el código QR.';
-      return;
-    }
-
-    let sessionCode = this.qrCodeInput.trim();
-    if (sessionCode.startsWith('CERMAT_ATTENDANCE|')) {
-      const match = sessionCode.match(/session=([^|]+)/i);
-      sessionCode = match ? match[1] : sessionCode;
-    }
-    sessionCode = sessionCode.toUpperCase();
-
-    const QR_PATTERN = /^[A-Z0-9]{8}$/;
-    if (!QR_PATTERN.test(sessionCode)) {
-      this.qrStatus = 'error';
-      this.qrMessage = 'Código inválido. Debe tener exactamente 8 caracteres alfanuméricos.';
-      return;
-    }
-
-    this.qrSubmitting = true;
-    this.qrStatus = 'idle';
-    this.qrMessage = '';
-
-    this.attendanceService.submitStudentDailyQr(sessionCode).subscribe({
-      next: (response) => {
-        this.qrStatus = 'success';
-        this.qrMessage = response.message;
-        this.qrSubmitting = false;
-        this.qrCodeInput = '';
-        this.showScanner = false;
-        this.loadAttendance();
-        setTimeout(() => { this.qrStatus = 'idle'; this.qrMessage = ''; }, 5000);
-      },
-      error: (error) => {
-        this.qrStatus = 'error';
-        this.qrMessage = error?.error?.message || 'No se pudo registrar la asistencia.';
-        this.qrSubmitting = false;
-      }
-    });
-  }
-
-  // QR Scanner Methods
-  toggleScanner(): void {
-    this.showScanner = !this.showScanner;
-    if (!this.showScanner) {
-      this.qrMessage = '';
-    }
-  }
-
-  handleQrCodeScan(result: string): void {
-    if (!result) return;
-    
-    // Parse Payload: CERMAT_ATTENDANCE|session=CODE|checkpoint=TYPE|date=YYYY-MM-DD
-    if (result.startsWith('CERMAT_ATTENDANCE|')) {
-      const parts = result.split('|');
-      const sessionPart = parts.find(p => p.startsWith('session='));
-      if (sessionPart) {
-        const code = sessionPart.split('=')[1];
-        if (code) {
-          this.qrCodeInput = code;
-          this.submitQrCheckpoint();
-        }
-      }
-    } else {
-      // Direct code or unknown format
-      this.qrCodeInput = result;
-      this.submitQrCheckpoint();
-    }
-  }
-
-  onCamerasFound(devices: MediaDeviceInfo[]): void {
-    if (!devices || devices.length === 0) return;
-
-    this.availableDevices = devices;
-    this.hasDevices = true;
-
-    const backKeywords = ['back', 'trasera', 'rear', 'environment',
-                          'facing back', 'camera2 0', '0,'];
-
-    const backCamera = devices.find(d => {
-      const label = d.label.toLowerCase();
-      return backKeywords.some(kw => label.includes(kw));
-    });
-
-    this.currentDevice = backCamera || devices[devices.length - 1] || devices[0];
-  }
-
-  onPermissionResponse(result: boolean): void {
-    this.hasPermission = result;
   }
 
   getSafeIcon(name: string): SafeHtml {
@@ -438,10 +414,13 @@ export class AttendanceStudentComponent implements OnInit {
     }[status];
   }
 
-  getOptionalCalendarBadgeClass(status?: AttendanceStatus | null): string {
-    return status
-      ? this.getCalendarBadgeClass(status)
-      : 'bg-slate-200 text-slate-600 border border-slate-300';
+  getSessionStatusIcon(status: AttendanceStatus): string {
+    return {
+      presente: '✓',
+      tarde: '⏱',
+      falta: '✗',
+      justificado: '✓',
+    }[status];
   }
 
   private loadAcademicContext(): void {
@@ -456,7 +435,13 @@ export class AttendanceStudentComponent implements OnInit {
           this.loading = false;
           return;
         }
-        this.loadAttendance();
+        // Si ya hay un trimestre global seleccionado, respetarlo en la carga inicial.
+        const currentPeriod = this.periodCtx.currentPeriod;
+        if (currentPeriod) {
+          this.loadAttendanceForPeriod(currentPeriod);
+        } else {
+          this.loadAttendance();
+        }
       },
       error: () => {
         this.error = 'No se pudo obtener el contexto academico del estudiante.';

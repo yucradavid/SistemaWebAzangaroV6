@@ -7,6 +7,7 @@ import { createIcons, icons } from 'lucide';
 import { AcademicService, Course, Section, TeacherCourseAssignment } from '@core/services/academic.service';
 import { AuthService } from '@core/services/auth.service';
 import { Message, MessageThreadSummary, MessagingService } from '@core/services/messaging.service';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 
 interface TeacherMessageStudent {
   id: string;
@@ -26,7 +27,7 @@ interface TeacherMessageStudent {
 @Component({
   selector: 'app-teacher-messages',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BackButtonComponent],
   templateUrl: './teacher-messages.component.html',
   styleUrls: ['./teacher-messages.component.css']
 })

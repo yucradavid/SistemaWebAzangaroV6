@@ -498,7 +498,7 @@ export class ApoderadoFinanceComponent implements OnInit {
         this.activeAcademicYearLabel = context.active_academic_year
           ? `Ano ${context.active_academic_year.year}`
           : 'Todo el historial';
-        this.selectedScope = this.activeAcademicYearId ? 'active' : 'all';
+        this.selectedScope = 'all';
 
         if (!this.students.length) {
           this.loading = false;

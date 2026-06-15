@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -10,7 +10,7 @@ import { AuthService } from '@core/services/auth.service';
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './login-mock.component.html',
 })
-export class LoginMockComponent {
+export class LoginMockComponent implements OnInit {
   email = '';
   password = '';
   error = '';
@@ -20,6 +20,12 @@ export class LoginMockComponent {
     private authService: AuthService,
     private router: Router
   ) {}
+
+  ngOnInit(): void {
+    if (this.authService.isAuthenticated()) {
+      this.router.navigateByUrl(this.authService.getHomeRoute());
+    }
+  }
 
   async handleSubmit() {
     if (!this.email || !this.password) {

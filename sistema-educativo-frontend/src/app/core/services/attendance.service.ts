@@ -249,6 +249,33 @@ export interface DailyAttendanceSectionResponse {
   qr_sessions: DailyAttendanceQrSession[];
 }
 
+export interface TeacherDailyAttendanceRecord {
+  id: string;
+  teacher_id: string;
+  section_id: string;
+  academic_year_id: string;
+  date: string;
+  entry_status?: AttendanceStatus | null;
+  entry_note?: string | null;
+  entry_marked_at?: string | null;
+  entry_source?: string | null;
+  exit_status?: AttendanceStatus | null;
+  exit_note?: string | null;
+  exit_marked_at?: string | null;
+  exit_source?: string | null;
+  effective_status?: AttendanceStatus | null;
+}
+
+export interface TeacherDailyHistoryResponse {
+  teacher_id: string;
+  filters: {
+    date_from?: string | null;
+    date_to?: string | null;
+  };
+  counts_by_status: Array<{ status: string; total: number }>;
+  daily_records: TeacherDailyAttendanceRecord[];
+}
+
 export interface DailyAttendanceBatchResponse {
   message: string;
   processed_count: number;
@@ -390,6 +417,13 @@ export class AttendanceService {
       session: DailyAttendanceQrSession;
       processed_count: number;
     }>(`${this.apiUrl}/attendance/daily/self-checkpoint`, { session_code: sessionCode });
+  }
+
+  getMyDailyHistory(dateFrom?: string, dateTo?: string): Observable<TeacherDailyHistoryResponse> {
+    let params = new HttpParams();
+    if (dateFrom) params = params.set('date_from', dateFrom);
+    if (dateTo) params = params.set('date_to', dateTo);
+    return this.http.get<TeacherDailyHistoryResponse>(`${this.apiUrl}/attendance/daily/my-history`, { params });
   }
 
   createJustification(payload: {

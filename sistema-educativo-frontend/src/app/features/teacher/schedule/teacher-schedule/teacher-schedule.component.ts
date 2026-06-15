@@ -5,6 +5,7 @@ import { createIcons, icons } from 'lucide';
 import { AcademicService } from '@core/services/academic.service';
 import { AuthService } from '@core/services/auth.service';
 import { ScheduleService } from '@core/services/schedule.service';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 
 interface TeacherScheduleBlock {
   id: string;
@@ -36,7 +37,7 @@ interface TeacherScheduleRow {
 @Component({
   selector: 'app-teacher-schedule',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, BackButtonComponent],
   templateUrl: './teacher-schedule.component.html',
   styleUrls: ['./teacher-schedule.component.css']
 })

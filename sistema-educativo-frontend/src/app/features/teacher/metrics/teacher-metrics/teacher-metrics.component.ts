@@ -1,12 +1,13 @@
 import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { createIcons, icons } from 'lucide';
 
 @Component({
   selector: 'app-teacher-metrics',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, BackButtonComponent],
   templateUrl: './teacher-metrics.component.html',
   styleUrls: ['./teacher-metrics.component.css']
 })

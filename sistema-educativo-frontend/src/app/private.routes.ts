@@ -42,9 +42,19 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Mi Asistencia'
       },
       {
+        path: 'attendance/mark',
+        loadComponent: () => import('./features/student/attendance/mark-attendance/mark-attendance.component').then(m => m.MarkAttendanceComponent),
+        title: 'CERMAT - Marcar Asistencia'
+      },
+      {
         path: 'evaluation/student',
         loadComponent: () => import('./features/student/evaluation/student-grades.component').then(m => m.GradesStudentComponent),
         title: 'CERMAT - Mis Notas'
+      },
+      {
+        path: 'courses/student',
+        loadComponent: () => import('./features/student/courses/student-courses.component').then(m => m.StudentCoursesComponent),
+        title: 'CERMAT - Mis Cursos'
       },
       {
         path: 'history/student',
@@ -120,6 +130,21 @@ export const PRIVATE_ROUTES: Routes = [
       },
 
       // ── Módulos del Docente ───────────────────────────
+      {
+        path: 'attendance/mark/teacher',
+        loadComponent: () => import('./features/teacher/attendance/teacher-mark-attendance/teacher-mark-attendance.component').then(m => m.TeacherMarkAttendanceComponent),
+        title: 'CERMAT - Marcar Asistencia'
+      },
+      {
+        path: 'attendance/teacher/menu',
+        loadComponent: () => import('./features/teacher/attendance/teacher-attendance-menu/teacher-attendance-menu.component').then(m => m.TeacherAttendanceMenuComponent),
+        title: 'CERMAT - Asistencia'
+      },
+      {
+        path: 'attendance/teacher/my',
+        loadComponent: () => import('./features/teacher/attendance/teacher-my-attendance/teacher-my-attendance.component').then(m => m.TeacherMyAttendanceComponent),
+        title: 'CERMAT - Mi Asistencia'
+      },
       {
         path: 'attendance/teacher',
         loadComponent: () => import('./features/teacher/attendance/teacher-attendance/teacher-attendance.component').then(m => m.TeacherAttendanceComponent),

@@ -1,0 +1,58 @@
+<app-back-button link="/app/dashboard/teacher"></app-back-button>
+
+<div class="space-y-6 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════ -->
+  <div class="flex items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-cermat-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 flex items-center gap-4">
+      <div class="w-14 h-14 bg-cermat-blue-50 rounded-2xl flex items-center justify-center border border-cermat-blue-100 shadow-sm shrink-0">
+        <svg class="w-7 h-7 text-cermat-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Asistencia</h1>
+        <p class="text-slate-500 mt-1 font-medium">Selecciona una opción</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ GRID DE SUBMODULOS ══════════════════════════════════════ -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
+
+    <!-- Submodulo 1: Asistencia Estudiantes -->
+    <div (click)="goToStudentAttendance()"
+         class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 cursor-pointer hover:shadow-md hover:border-cermat-blue-300 transition-all duration-200 group">
+      <div class="w-12 h-12 rounded-2xl bg-cermat-blue-100 flex items-center justify-center mb-4 group-hover:bg-cermat-blue-200 transition-colors">
+        <svg class="w-6 h-6 text-cermat-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </div>
+      <h2 class="font-black text-slate-900 text-lg mb-1">Asistencia Estudiantes</h2>
+      <p class="text-sm text-slate-500">Registra y gestiona la asistencia de tus alumnos</p>
+      <div class="mt-4 text-cermat-blue-600 text-sm font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
+        Ir al módulo →
+      </div>
+    </div>
+
+    <!-- Submodulo 2: Mi Asistencia -->
+    <div (click)="goToMyAttendance()"
+         class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 cursor-pointer hover:shadow-md hover:border-emerald-300 transition-all duration-200 group">
+      <div class="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center mb-4 group-hover:bg-emerald-200 transition-colors">
+        <svg class="w-6 h-6 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <h2 class="font-black text-slate-900 text-lg mb-1">Mi Asistencia</h2>
+      <p class="text-sm text-slate-500">Consulta tu historial personal de asistencia</p>
+      <div class="mt-4 text-emerald-600 text-sm font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
+        Ver historial →
+      </div>
+    </div>
+  </div>
+</div>

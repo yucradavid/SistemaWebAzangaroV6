@@ -1,0 +1,248 @@
+<app-back-button link="/app/dashboard/teacher"></app-back-button>
+<div class="space-y-6 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════ -->
+  <div class="flex items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 flex items-center gap-4">
+      <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center border border-emerald-100 shadow-sm shrink-0">
+        <i data-lucide="qr-code" class="w-7 h-7 text-emerald-600"></i>
+      </div>
+      <div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Marcar Asistencia</h1>
+        <p class="text-slate-500 mt-1 font-medium">
+          Registra tu entrada y salida diaria escaneando o ingresando el código QR.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paneles Entrada / Salida -->
+  <div class="grid md:grid-cols-2 gap-5">
+
+    <!-- ── ENTRADA ── -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 bg-emerald-50/60 flex items-center gap-2">
+        <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+        </svg>
+        <p class="text-sm font-bold text-emerald-700">Registrar entrada</p>
+        <span *ngIf="personalTodayEntry" class="ml-auto text-xs font-black text-emerald-700 tabular-nums">{{ personalTodayEntry.time }}</span>
+      </div>
+
+      <!-- Tabs cámara / código -->
+      <div class="flex border-b border-slate-100">
+        <button type="button" (click)="showPersonalScannerEntrada = false"
+          [ngClass]="!showPersonalScannerEntrada
+            ? 'border-b-2 border-cermat-blue-600 text-cermat-blue-700 bg-cermat-blue-50/40'
+            : 'text-slate-500 hover:bg-slate-50'"
+          class="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold transition-all">
+          Código manual
+        </button>
+        <button type="button" (click)="togglePersonalScanner('entrada')"
+          [ngClass]="showPersonalScannerEntrada
+            ? 'border-b-2 border-cermat-blue-600 text-cermat-blue-700 bg-cermat-blue-50/40'
+            : 'text-slate-500 hover:bg-slate-50'"
+          class="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold transition-all">
+          Cámara
+        </button>
+      </div>
+
+      <!-- Código manual -->
+      <div *ngIf="!showPersonalScannerEntrada" class="p-5">
+        <p class="text-sm text-slate-500 mb-4">Ingresa el código de 8 caracteres del QR de entrada.</p>
+
+        <input
+          [(ngModel)]="personalQrInputEntrada"
+          type="text"
+          placeholder="Ej: AB3C9F2D"
+          maxlength="8"
+          aria-label="Código QR de entrada"
+          class="w-full text-center text-2xl font-mono tracking-[0.4em]
+                 border-2 border-emerald-200 rounded-xl p-4 mb-4
+                 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100
+                 outline-none uppercase placeholder:text-slate-300 placeholder:tracking-normal"
+        />
+
+        <button type="button" (click)="submitPersonalCheckin('entrada')" [disabled]="personalQrSubmittingEntrada"
+          class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white
+                 font-bold text-sm transition-colors shadow-lg shadow-emerald-500/20
+                 disabled:opacity-50 disabled:cursor-not-allowed">
+          <span *ngIf="!personalQrSubmittingEntrada">Registrar asistencia de entrada</span>
+          <span *ngIf="personalQrSubmittingEntrada">Registrando...</span>
+        </button>
+      </div>
+
+      <!-- Cámara -->
+      <div *ngIf="showPersonalScannerEntrada" class="p-5 space-y-3">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Escanear QR de entrada</p>
+        <div class="relative rounded-2xl overflow-hidden border-2 border-emerald-200 bg-black">
+          <zxing-scanner
+            [formats]="personalQrFormats"
+            [device]="personalDevice"
+            (camerasFound)="onPersonalCamerasFound($event)"
+            (scanSuccess)="handlePersonalQrScan($event, 'entrada')">
+          </zxing-scanner>
+          <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div class="w-40 h-40 relative">
+              <span class="absolute -top-px -left-px w-7 h-7 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl"></span>
+              <span class="absolute -top-px -right-px w-7 h-7 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl"></span>
+              <span class="absolute -bottom-px -left-px w-7 h-7 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl"></span>
+              <span class="absolute -bottom-px -right-px w-7 h-7 border-b-4 border-r-4 border-emerald-400 rounded-br-xl"></span>
+            </div>
+          </div>
+        </div>
+        <button type="button" (click)="togglePersonalScanner('entrada')"
+          class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold
+                 hover:bg-slate-50 transition-colors">
+          Cerrar cámara
+        </button>
+      </div>
+
+      <!-- Feedback -->
+      <div class="px-5 pb-5" *ngIf="personalQrStatusEntrada !== 'idle'">
+        <div *ngIf="personalQrStatusEntrada === 'success'"
+             class="flex items-start gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200 animate-slide-up">
+          <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-semibold text-emerald-800 text-sm">¡Asistencia registrada!</p>
+            <p class="text-emerald-600 text-xs mt-0.5">{{ personalQrMessageEntrada }}</p>
+          </div>
+        </div>
+        <div *ngIf="personalQrStatusEntrada === 'error'"
+             class="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 animate-slide-up">
+          <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-semibold text-red-800 text-sm">No se pudo registrar</p>
+            <p class="text-red-600 text-xs mt-0.5">{{ personalQrMessageEntrada }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SALIDA ── -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 bg-cermat-blue-50/60 flex items-center gap-2">
+        <svg class="w-5 h-5 text-cermat-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+        </svg>
+        <p class="text-sm font-bold text-cermat-blue-700">Registrar salida</p>
+        <span *ngIf="personalTodayExit" class="ml-auto text-xs font-black text-cermat-blue-700 tabular-nums">{{ personalTodayExit.time }}</span>
+      </div>
+
+      <!-- Tabs cámara / código -->
+      <div class="flex border-b border-slate-100">
+        <button type="button" (click)="showPersonalScannerSalida = false"
+          [ngClass]="!showPersonalScannerSalida
+            ? 'border-b-2 border-cermat-blue-600 text-cermat-blue-700 bg-cermat-blue-50/40'
+            : 'text-slate-500 hover:bg-slate-50'"
+          class="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold transition-all">
+          Código manual
+        </button>
+        <button type="button" (click)="togglePersonalScanner('salida')"
+          [ngClass]="showPersonalScannerSalida
+            ? 'border-b-2 border-cermat-blue-600 text-cermat-blue-700 bg-cermat-blue-50/40'
+            : 'text-slate-500 hover:bg-slate-50'"
+          class="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold transition-all">
+          Cámara
+        </button>
+      </div>
+
+      <!-- Código manual -->
+      <div *ngIf="!showPersonalScannerSalida" class="p-5">
+        <p class="text-sm text-slate-500 mb-4">Ingresa el código de 8 caracteres del QR de salida.</p>
+
+        <input
+          [(ngModel)]="personalQrInputSalida"
+          type="text"
+          placeholder="Ej: AB3C9F2D"
+          maxlength="8"
+          aria-label="Código QR de salida"
+          class="w-full text-center text-2xl font-mono tracking-[0.4em]
+                 border-2 border-cermat-blue-200 rounded-xl p-4 mb-4
+                 focus:border-cermat-blue-500 focus:ring-4 focus:ring-cermat-blue-100
+                 outline-none uppercase placeholder:text-slate-300 placeholder:tracking-normal"
+        />
+
+        <button type="button" (click)="submitPersonalCheckin('salida')" [disabled]="personalQrSubmittingSalida"
+          class="w-full py-3.5 rounded-xl bg-cermat-blue-600 hover:bg-cermat-blue-700 text-white
+                 font-bold text-sm transition-colors shadow-lg shadow-cermat-blue-500/20
+                 disabled:opacity-50 disabled:cursor-not-allowed">
+          <span *ngIf="!personalQrSubmittingSalida">Registrar asistencia de salida</span>
+          <span *ngIf="personalQrSubmittingSalida">Registrando...</span>
+        </button>
+      </div>
+
+      <!-- Cámara -->
+      <div *ngIf="showPersonalScannerSalida" class="p-5 space-y-3">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Escanear QR de salida</p>
+        <div class="relative rounded-2xl overflow-hidden border-2 border-cermat-blue-200 bg-black">
+          <zxing-scanner
+            [formats]="personalQrFormats"
+            [device]="personalDevice"
+            (camerasFound)="onPersonalCamerasFound($event)"
+            (scanSuccess)="handlePersonalQrScan($event, 'salida')">
+          </zxing-scanner>
+          <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div class="w-40 h-40 relative">
+              <span class="absolute -top-px -left-px w-7 h-7 border-t-4 border-l-4 border-cermat-blue-400 rounded-tl-xl"></span>
+              <span class="absolute -top-px -right-px w-7 h-7 border-t-4 border-r-4 border-cermat-blue-400 rounded-tr-xl"></span>
+              <span class="absolute -bottom-px -left-px w-7 h-7 border-b-4 border-l-4 border-cermat-blue-400 rounded-bl-xl"></span>
+              <span class="absolute -bottom-px -right-px w-7 h-7 border-b-4 border-r-4 border-cermat-blue-400 rounded-br-xl"></span>
+            </div>
+          </div>
+        </div>
+        <button type="button" (click)="togglePersonalScanner('salida')"
+          class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold
+                 hover:bg-slate-50 transition-colors">
+          Cerrar cámara
+        </button>
+      </div>
+
+      <!-- Feedback -->
+      <div class="px-5 pb-5" *ngIf="personalQrStatusSalida !== 'idle'">
+        <div *ngIf="personalQrStatusSalida === 'success'"
+             class="flex items-start gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200 animate-slide-up">
+          <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-semibold text-emerald-800 text-sm">¡Asistencia registrada!</p>
+            <p class="text-emerald-600 text-xs mt-0.5">{{ personalQrMessageSalida }}</p>
+          </div>
+        </div>
+        <div *ngIf="personalQrStatusSalida === 'error'"
+             class="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 animate-slide-up">
+          <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-semibold text-red-800 text-sm">No se pudo registrar</p>
+            <p class="text-red-600 text-xs mt-0.5">{{ personalQrMessageSalida }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="text-[11px] text-slate-400 italic px-1">
+    Historial de sesión activa. La persistencia completa requiere actualización del servidor.
+  </p>
+
+</div>

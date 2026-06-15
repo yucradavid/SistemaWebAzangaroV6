@@ -7,6 +7,9 @@ import { catchError, finalize } from 'rxjs/operators';
 import { createIcons, icons } from 'lucide';
 import { AcademicService, Competency } from '@core/services/academic.service';
 import { EvaluationService } from '@core/services/evaluation.service';
+import { numberToEBR, ebrToRange, getEBRColor } from '../../../../shared/utils/grade-converter';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import Swal from 'sweetalert2';
 
 type GradeValue = 'AD' | 'A' | 'B' | 'C' | null;
 type EvaluationStatus = 'borrador' | 'publicada' | 'cerrada';
@@ -23,6 +26,7 @@ interface TeacherEvaluationStudent {
 interface EvaluationCellState {
   id?: string;
   grade: GradeValue;
+  numericScore?: number | null;
   observations: string;
   status: EvaluationStatus;
   dirty: boolean;
@@ -39,7 +43,7 @@ interface TeacherEvaluationPeriod {
 @Component({
   selector: 'app-teacher-evaluation',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BackButtonComponent],
   templateUrl: './teacher-evaluation.component.html',
   styleUrls: ['./teacher-evaluation.component.css']
 })
@@ -49,6 +53,7 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
 
   loading = false;
   saving = false;
+  publishing = false;
   error = '';
   success = '';
 
@@ -67,6 +72,13 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
   selectedPeriodId = '';
 
   readonly grades: Array<Exclude<GradeValue, null>> = ['AD', 'A', 'B', 'C'];
+
+  private readonly GRADE_MAX: Record<string, number> = {
+    'AD': 20,
+    'A': 17,
+    'B': 13,
+    'C': 10
+  };
 
   ngOnInit(): void {
     this.loadContext();
@@ -145,8 +157,18 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
   }
 
   onAssignmentChange(): void {
+    if (this.hasUnsavedChanges()) {
+      this.persistEvaluations('borrador');
+    }
+
     this.syncSelectedAssignment();
     this.loadGradebook();
+  }
+
+  hasUnsavedChanges(): boolean {
+    return Object.values(this.evaluations).some(
+      (cell) => cell.grade !== null && cell.status === 'borrador' && cell.dirty
+    );
   }
 
   onPeriodChange(): void {
@@ -168,6 +190,7 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
     if (!this.evaluations[key]) {
       this.evaluations[key] = {
         grade: null,
+        numericScore: null,
         observations: '',
         status: 'borrador',
         dirty: false,
@@ -186,6 +209,7 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
 
     if (field === 'grade') {
       record.grade = value as Exclude<GradeValue, null>;
+      record.numericScore = this.GRADE_MAX[value] ?? null;
     } else {
       record.observations = value;
     }
@@ -193,6 +217,34 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
     record.status = 'borrador';
     record.dirty = true;
     this.success = '';
+  }
+
+  onScoreInput(studentId: string, competencyId: string, value: string): void {
+    const record = this.recordFor(studentId, competencyId);
+
+    if (this.isCellLocked(record)) {
+      return;
+    }
+
+    const num = parseInt(value, 10);
+    record.numericScore = isNaN(num) ? null : num;
+
+    const ebr = numberToEBR(record.numericScore);
+    if (ebr) {
+      record.grade = ebr;
+      record.status = 'borrador';
+      record.dirty = true;
+      this.success = '';
+    }
+  }
+
+  getScorePreview(grade: GradeValue): string {
+    if (!grade) return '';
+    return ebrToRange(grade);
+  }
+
+  getGradeColorClass(grade: GradeValue): string {
+    return getEBRColor(grade);
   }
 
   handleSaveDraft(): void {
@@ -205,9 +257,68 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    if (confirm('Estas seguro de publicar las calificaciones cargadas?')) {
-      this.persistEvaluations('publicada');
+    Swal.fire({
+      icon: 'question',
+      title: '¿Publicar calificaciones?',
+      text: 'Las notas cargadas de este curso quedarán visibles para los estudiantes.',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, publicar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#059669',
+      cancelButtonColor: '#64748b'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.persistEvaluations('publicada');
+      }
+    });
+  }
+
+  async publishAllCourses(): Promise<void> {
+    const confirmation = await Swal.fire({
+      icon: 'warning',
+      title: '¿Publicar TODOS los cursos?',
+      text: 'Se publicarán las calificaciones de todas tus asignaciones y quedarán visibles para los estudiantes.',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, publicar todos',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#7c3aed',
+      cancelButtonColor: '#64748b'
+    });
+
+    if (!confirmation.isConfirmed) {
+      return;
     }
+
+    this.publishing = true;
+    this.error = '';
+    this.success = '';
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const assignment of this.assignments) {
+      try {
+        await this.publishCourse(assignment.id);
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+
+    this.publishing = false;
+    this.success = `Publicados: ${successCount} curso(s)` + (errorCount > 0 ? ` | Errores: ${errorCount}` : '');
+
+    Swal.fire({
+      icon: errorCount > 0 ? 'warning' : 'success',
+      title: errorCount > 0 ? 'Publicación parcial' : 'Publicación completa',
+      text: this.success,
+      toast: true,
+      position: 'top-end',
+      timer: 4000,
+      showConfirmButton: false
+    });
+
+    this.loadGradebook();
   }
 
   canSaveDraft(): boolean {
@@ -220,6 +331,49 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
 
   isCellLocked(record: EvaluationCellState): boolean {
     return this.isPeriodClosed || record.status === 'publicada' || record.status === 'cerrada';
+  }
+
+  revertCellToDraft(studentId: string, competencyId: string): void {
+    const record = this.recordFor(studentId, competencyId);
+
+    if (record.status !== 'publicada' || !record.id) {
+      return;
+    }
+
+    Swal.fire({
+      icon: 'warning',
+      title: '¿Reabrir evaluación?',
+      text: 'La nota volverá a estado borrador para que puedas editarla.',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, reabrir',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d97706',
+      cancelButtonColor: '#64748b'
+    }).then((result) => {
+      if (!result.isConfirmed) {
+        return;
+      }
+
+      this.evaluationService.revertToDraft(record.id!).subscribe({
+        next: () => {
+          record.status = 'borrador';
+          this.success = 'Evaluación reabierta para edición.';
+          Swal.fire({
+            icon: 'success',
+            title: 'Evaluación reabierta',
+            toast: true,
+            position: 'top-end',
+            timer: 3000,
+            showConfirmButton: false
+          });
+        },
+        error: (error: HttpErrorResponse) => {
+          const message = this.formatApiError(error, 'No se pudo reabrir la evaluación.');
+          this.error = message;
+          Swal.fire({ icon: 'error', title: 'Error', text: message });
+        }
+      });
+    });
   }
 
   formatAssignmentLabel(assignment: any): string {
@@ -389,6 +543,101 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
       this.success = targetStatus === 'publicada'
         ? 'Calificaciones publicadas correctamente.'
         : 'Borrador guardado correctamente.';
+    });
+  }
+
+  private publishCourse(assignmentId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const assignment = this.assignments.find((item) => item.id === assignmentId);
+      const courseId = assignment?.course_id;
+      const sectionId = assignment?.section_id;
+
+      if (!courseId || !sectionId || !this.selectedPeriodId || !this.activeAcademicYearId) {
+        reject(new Error('Datos incompletos para publicar.'));
+        return;
+      }
+
+      forkJoin({
+        competencies: this.academicService.getCompetencies({ course_id: courseId }),
+        enrollments: this.academicService.getEnrolledStudents({
+          course_id: courseId,
+          section_id: sectionId,
+          academic_year_id: this.activeAcademicYearId,
+          status: 'active',
+          per_page: 200,
+        }),
+        evaluations: this.evaluationService.getEvaluations({
+          course_id: courseId,
+          section_id: sectionId,
+          period_id: this.selectedPeriodId,
+          per_page: 1000,
+        }).pipe(
+          catchError(() => of({ data: [] }))
+        )
+      }).subscribe({
+        next: ({ competencies, enrollments, evaluations }) => {
+          const comps = this.normalizeCollection<Competency>(competencies);
+          const students = this.mapStudents(enrollments);
+          const evalMap: Record<string, EvaluationCellState> = {};
+
+          this.normalizeCollection<any>(evaluations).forEach((evaluation) => {
+            const key = this.cellKey(String(evaluation.student_id), String(evaluation.competency_id));
+            evalMap[key] = {
+              id: evaluation.id,
+              grade: evaluation.grade ?? null,
+              observations: evaluation.comments || evaluation.observations || '',
+              status: evaluation.status || 'borrador',
+              dirty: false,
+              publishedAt: evaluation.published_at || null,
+            };
+          });
+
+          const payloads: any[] = [];
+
+          students.forEach((student) => {
+            comps.forEach((competency) => {
+              const record = evalMap[this.cellKey(student.id, competency.id)];
+
+              if (!record || record.grade === null || record.status === 'cerrada' || record.status === 'publicada') {
+                return;
+              }
+
+              payloads.push({
+                student_id: student.id,
+                course_id: courseId,
+                period_id: this.selectedPeriodId,
+                competency_id: competency.id,
+                grade: record.grade,
+                comments: record.observations,
+                status: 'publicada',
+              });
+            });
+          });
+
+          if (payloads.length === 0) {
+            resolve();
+            return;
+          }
+
+          forkJoin(
+            payloads.map((payload) =>
+              this.evaluationService.saveEvaluation(payload).pipe(
+                catchError((error: HttpErrorResponse) => of({ __error: true, payload, error }))
+              )
+            )
+          ).subscribe((results: any[]) => {
+            const failures = results.filter((result) => result?.__error);
+
+            if (failures.length > 0) {
+              reject(new Error(`Errores al publicar ${failures.length} registro(s).`));
+              return;
+            }
+
+            resolve();
+          });
+        },
+        error: (error) => reject(error)
+      });
     });
   }
 

@@ -69,7 +69,7 @@ export class AuthService {
 
   private getStoredUser(): User | null {
     if (typeof window === 'undefined') return null;
-    const stored = localStorage.getItem(this.USER_KEY);
+    const stored = sessionStorage.getItem(this.USER_KEY);
     return stored ? JSON.parse(stored) : null;
   }
 
@@ -90,7 +90,7 @@ export class AuthService {
 
   private checkSession() {
     if (typeof window === 'undefined') return;
-    const token = localStorage.getItem(this.TOKEN_KEY);
+    const token = sessionStorage.getItem(this.TOKEN_KEY);
     if (!token) return;
 
     this.http.get<{user: any}>(`${environment.apiUrl}/me`, {
@@ -139,8 +139,8 @@ export class AuthService {
   }
 
   private setSession(token: string, user: User): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    sessionStorage.setItem(this.TOKEN_KEY, token);
+    sessionStorage.setItem(this.USER_KEY, JSON.stringify(user));
     this.updateUserState(user);
   }
 
@@ -170,8 +170,8 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
+    sessionStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.USER_KEY);
     this.updateUserState(null);
     this.router.navigate(['/login']);
   }
@@ -185,6 +185,6 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+    return sessionStorage.getItem(this.TOKEN_KEY);
   }
 }

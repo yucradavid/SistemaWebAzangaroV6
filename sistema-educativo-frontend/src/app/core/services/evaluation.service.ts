@@ -271,6 +271,10 @@ export class EvaluationService {
     return this.http.post<Evaluation>(`${this.apiUrl}/${id}/close`, {});
   }
 
+  revertToDraft(evaluationId: string): Observable<Evaluation> {
+    return this.http.post<Evaluation>(`${this.apiUrl}/${evaluationId}/draft`, {});
+  }
+
   getFinalCompetencyResults(params: any = {}): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}/final-competency-results`, { params });
   }

@@ -6,6 +6,7 @@ import { createIcons, icons } from 'lucide';
 import Swal from 'sweetalert2';
 import { AcademicService, TeacherCourseAssignment } from '@core/services/academic.service';
 import { Announcement, MessagingService } from '@core/services/messaging.service';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 
 interface TeacherSectionOption {
   id: string;
@@ -15,7 +16,7 @@ interface TeacherSectionOption {
 @Component({
   selector: 'app-teacher-communications',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BackButtonComponent],
   templateUrl: './teacher-communications.component.html',
   styleUrls: ['./teacher-communications.component.css']
 })

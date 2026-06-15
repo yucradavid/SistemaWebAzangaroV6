@@ -341,6 +341,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::post('attendance/daily/self-checkpoint', [DailyAttendanceController::class, 'selfCheckpoint'])
         ->middleware('role:student,teacher');
+    Route::get('attendance/daily/my-history', [DailyAttendanceController::class, 'myDailyHistory'])
+        ->middleware('role:teacher');
 
     /*
     |--------------------------------------------------------------------------
@@ -390,6 +392,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('evaluations/{evaluation}/publish', [EvaluationController::class, 'publish']);
         Route::post('evaluations/{evaluation}/close', [EvaluationController::class, 'close']);
+        Route::post('evaluations/{evaluation}/draft', [EvaluationController::class, 'draft']);
 
         Route::apiResource('descriptive-conclusions', DescriptiveConclusionController::class);
         Route::get('final-competency-results', [FinalCompetencyResultController::class, 'index']);

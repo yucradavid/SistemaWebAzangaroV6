@@ -1,11 +1,14 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { ebrToRange } from '@shared/utils/grade-converter';
 import { ICONS } from '@core/constants/icons';
 import { AcademicService, Period } from '@core/services/academic.service';
+import { PeriodContextService } from '@core/services/period-context.service';
 import { AcademicContextStudent, AuthService } from '@core/services/auth.service';
 import {
   DescriptiveConclusion,
@@ -20,6 +23,29 @@ import {
 } from '@core/services/report.service';
 
 type GradeValue = 'AD' | 'A' | 'B' | 'C' | '-';
+
+interface CompetencyRow {
+  competencyId: string;
+  competencyName: string;
+  grade: 'AD' | 'A' | 'B' | 'C' | null;
+  status: 'publicada' | 'borrador' | null;
+  evaluationId: string | null;
+}
+
+interface TrimestreRow {
+  periodId: string;
+  periodName: string;
+  periodEndDate: string;
+  periodNumber: number;
+  competencies: CompetencyRow[];
+}
+
+interface CourseTableView {
+  courseId: string;
+  courseName: string;
+  teacherName: string;
+  trimestres: TrimestreRow[];
+}
 
 interface StudentEvaluationItemView {
   id: string;
@@ -67,7 +93,9 @@ interface StudentFocusItem {
   template: `
     <div class="min-h-[calc(100vh-80px)] bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto space-y-6">
-        <app-back-button link="/app/dashboard/student"></app-back-button>
+        <div class="flex items-center gap-4">
+          <app-back-button (onClick)="goBack()"></app-back-button>
+        </div>
 
         <section class="bg-white border border-slate-200 rounded-3xl shadow-sm p-6 space-y-5">
           <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-5">
@@ -232,48 +260,73 @@ interface StudentFocusItem {
             </p>
           </section>
 
-          <section *ngIf="filteredCourses.length > 0" class="space-y-5">
-            <article *ngFor="let course of filteredCourses" class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-              <div class="p-5 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                <div>
-                  <h2 class="text-xl font-black text-slate-900">{{ course.courseName }}</h2>
-                  <p class="mt-1 text-xs font-black uppercase tracking-widest text-slate-400">
-                    {{ course.courseCode || 'Sin codigo' }} · {{ course.items.length }} competencia(s)
-                  </p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <span class="px-3 py-2 rounded-2xl border text-xs font-black uppercase tracking-widest" [class]="getGradeChipClass(course.average)">
-                    Resultado {{ course.average }}
-                  </span>
-                  <span *ngIf="course.supportCount > 0" class="px-3 py-2 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-black uppercase tracking-widest">
-                    {{ course.supportCount }} en soporte
-                  </span>
-                </div>
+          <section *ngIf="filteredCourseTableViews.length > 0" class="space-y-5">
+            <article *ngFor="let course of filteredCourseTableViews" class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+              <div class="p-5 border-b border-slate-100">
+                <h2 class="text-xl font-black text-slate-900">{{ course.courseName }}</h2>
+                <p *ngIf="course.teacherName" class="mt-1 text-xs font-black uppercase tracking-widest text-slate-400">
+                  Docente: {{ course.teacherName }}
+                </p>
               </div>
 
-              <div class="p-5 grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <div *ngFor="let item of course.items" class="rounded-3xl border border-slate-200 p-4 bg-slate-50/50">
-                  <div class="flex items-start justify-between gap-4">
-                    <div class="space-y-2">
-                      <div class="flex flex-wrap gap-2">
-                        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest">{{ item.periodLabel }}</span>
-                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [class]="item.statusTone">{{ item.statusLabel }}</span>
-                        <span *ngIf="item.supportRequired" class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-black uppercase tracking-widest">
-                          Soporte
-                        </span>
-                      </div>
-                      <h3 class="text-base font-black text-slate-900">{{ item.name }}</h3>
-                      <p *ngIf="item.description" class="text-sm font-medium text-slate-500">{{ item.description }}</p>
-                      <p *ngIf="item.conclusionText" class="text-sm font-medium text-cyan-700">{{ item.conclusionText }}</p>
-                    </div>
-                    <div class="shrink-0 flex flex-col items-center gap-2">
-                      <div class="w-14 h-14 rounded-2xl border flex items-center justify-center text-xl font-black shadow-sm" [class]="getGradeColorClass(item.grade)">
-                        {{ item.grade }}
-                      </div>
-                      <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ getGradeLabel(item.grade) }}</span>
-                    </div>
-                  </div>
-                </div>
+              <div class="p-5 overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="bg-cermat-blue-700 text-white">
+                      <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Trimestre</th>
+                      <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">Fecha fin</th>
+                      <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Competencia</th>
+                      <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider w-20">Nivel</th>
+                      <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <ng-container *ngFor="let trim of course.trimestres">
+                      <tr *ngFor="let comp of trim.competencies; let ci = index">
+                        <td *ngIf="ci === 0"
+                            [attr.rowspan]="trim.competencies.length"
+                            class="px-4 py-3 font-bold text-white text-sm align-top"
+                            [ngClass]="{
+                              'bg-cermat-blue-700': trim.periodNumber === 1,
+                              'bg-emerald-700': trim.periodNumber === 2,
+                              'bg-amber-700': trim.periodNumber === 3
+                            }">
+                          {{ trim.periodName }}
+                        </td>
+                        <td *ngIf="ci === 0"
+                            [attr.rowspan]="trim.competencies.length"
+                            class="px-4 py-3 text-sm text-slate-500 align-top text-center">
+                          {{ trim.periodEndDate | date:'dd/MM/yyyy' }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-slate-700">
+                          {{ comp.competencyName }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                          <div *ngIf="comp.grade" class="inline-flex flex-col items-center gap-0.5">
+                            <span class="inline-flex w-9 h-9 rounded-xl border-2 items-center justify-center text-sm font-black" [class]="getGradeColorClass(comp.grade)">
+                              {{ comp.grade }}
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-medium">
+                              {{ getGradeRange(comp.grade) }}
+                            </span>
+                          </div>
+                          <span *ngIf="!comp.grade" class="text-slate-300 font-bold">—</span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                          <span *ngIf="comp.status === 'publicada'" class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                            ✓ Publicada
+                          </span>
+                          <span *ngIf="comp.status === 'borrador'" class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500">
+                            Borrador
+                          </span>
+                          <span *ngIf="!comp.status" class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200">
+                            Pendiente
+                          </span>
+                        </td>
+                      </tr>
+                    </ng-container>
+                  </tbody>
+                </table>
               </div>
             </article>
           </section>
@@ -305,6 +358,9 @@ export class GradesStudentComponent implements OnInit {
   private academicService = inject(AcademicService);
   private evaluationService = inject(EvaluationService);
   private reportService = inject(ReportService);
+  private periodCtx = inject(PeriodContextService);
+  private route = inject(ActivatedRoute);
+  private location = inject(Location);
 
   loading = false;
   error = '';
@@ -312,6 +368,7 @@ export class GradesStudentComponent implements OnInit {
   selectedCourseId = 'all';
   periods: Period[] = [];
   courses: StudentCourseView[] = [];
+  courseTableViews: CourseTableView[] = [];
   summary: EvaluationSummary | null = null;
   studentContext: AcademicContextStudent | null = null;
   activeAcademicYearId = '';
@@ -324,7 +381,29 @@ export class GradesStudentComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    // Sincronizar con el selector global de trimestre del navbar.
+    // Antes de cargar el contexto: solo fija selectedPeriod (sin recargar todavia).
+    // Despues de cargado: un cambio global recarga las notas del periodo.
+    this.periodCtx.selectedPeriod$.subscribe((period) => {
+      if (!period) {
+        return;
+      }
+      this.selectedPeriod = period.id;
+      if (this.studentContext?.id && this.activeAcademicYearId) {
+        this.loadGrades();
+      }
+    });
+
     this.loadAcademicContext();
+    this.route.queryParams.subscribe((params) => {
+      if (params['course_id']) {
+        this.selectedCourseId = params['course_id'];
+      }
+    });
+  }
+
+  goBack(): void {
+    this.location.back();
   }
 
   get isAnnualView(): boolean {
@@ -358,6 +437,14 @@ export class GradesStudentComponent implements OnInit {
     }
 
     return this.courses.filter((course) => course.id === this.selectedCourseId);
+  }
+
+  get filteredCourseTableViews(): CourseTableView[] {
+    if (this.selectedCourseId === 'all') {
+      return this.courseTableViews;
+    }
+
+    return this.courseTableViews.filter((course) => course.courseId === this.selectedCourseId);
   }
 
   get annualCards(): Array<{ label: string; value: string; helper: string }> {
@@ -558,6 +645,11 @@ export class GradesStudentComponent implements OnInit {
     return map[grade] || 'Sin nota';
   }
 
+  getGradeRange(grade: GradeValue): string {
+    if (grade === '-') return '';
+    return ebrToRange(grade);
+  }
+
   getFinalStatusLabel(status?: string | null): string {
     const map: Record<string, string> = {
       promociona: 'Promociona',
@@ -605,6 +697,7 @@ export class GradesStudentComponent implements OnInit {
           next: (response) => {
             this.periods = response.data || response || [];
             this.loadGrades();
+            this.loadCourseTableViews();
           },
           error: () => {
             this.error = 'No se pudo cargar la lista de periodos academicos.';
@@ -745,6 +838,94 @@ export class GradesStudentComponent implements OnInit {
     if (!hasSelected) {
       this.selectedCourseId = 'all';
     }
+  }
+
+  private loadCourseTableViews(): void {
+    if (!this.studentContext?.id) {
+      return;
+    }
+
+    const trimestrePeriods = this.periods
+      .filter((period) => period.name.toLowerCase().includes('trimestre'))
+      .sort((a, b) => (a.period_number || 0) - (b.period_number || 0));
+
+    if (trimestrePeriods.length === 0) {
+      this.courseTableViews = [];
+      return;
+    }
+
+    forkJoin(
+      trimestrePeriods.map((period) => this.reportService.getReportCard(this.studentContext!.id, period.id))
+    ).subscribe({
+      next: (responses) => {
+        this.courseTableViews = this.buildCourseTableViews(trimestrePeriods, responses);
+      },
+      error: () => {
+        this.courseTableViews = [];
+      }
+    });
+  }
+
+  private buildCourseTableViews(periods: Period[], responses: StudentReportCardResponse[]): CourseTableView[] {
+    const courseMap = new Map<string, CourseTableView>();
+
+    responses.forEach((response, index) => {
+      (response.report || []).forEach((course: StudentReportCardCourse) => {
+        if (!courseMap.has(course.course_id)) {
+          courseMap.set(course.course_id, {
+            courseId: course.course_id,
+            courseName: course.course_name || 'Curso',
+            teacherName: '',
+            trimestres: periods.map((period) => ({
+              periodId: period.id,
+              periodName: period.name,
+              periodEndDate: period.end_date,
+              periodNumber: period.period_number,
+              competencies: [],
+            })),
+          });
+        }
+
+        const trimestre = courseMap.get(course.course_id)!.trimestres[index];
+        (course.competencies || []).forEach((comp) => {
+          trimestre.competencies.push({
+            competencyId: comp.competency_id,
+            competencyName: comp.competency_name || 'Competencia',
+            grade: comp.grade,
+            status: this.normalizeCompetencyStatus(comp.status),
+            evaluationId: comp.evaluation_id || null,
+          });
+        });
+      });
+    });
+
+    courseMap.forEach((courseView) => {
+      courseView.trimestres.forEach((trimestre) => {
+        if (trimestre.competencies.length === 0) {
+          trimestre.competencies.push({
+            competencyId: '',
+            competencyName: 'Sin competencias registradas',
+            grade: null,
+            status: null,
+            evaluationId: null,
+          });
+        }
+      });
+    });
+
+    return Array.from(courseMap.values()).sort((a, b) => a.courseName.localeCompare(b.courseName));
+  }
+
+  private normalizeCompetencyStatus(status?: string | null): 'publicada' | 'borrador' | null {
+    if (status === 'publicada' || status === 'cerrada') {
+      return 'publicada';
+    }
+
+    if (status === 'borrador') {
+      return 'borrador';
+    }
+
+    return null;
   }
 
   private aggregateLevels(levels: GradeValue[]): GradeValue {

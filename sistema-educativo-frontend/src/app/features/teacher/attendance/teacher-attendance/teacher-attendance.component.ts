@@ -3,8 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { createIcons, icons } from 'lucide';
 import Swal from 'sweetalert2';
-import { ZXingScannerModule } from '@zxing/ngx-scanner';
-import { BarcodeFormat } from '@zxing/library';
 import {
   AttendanceAssignment,
   AttendanceRecord,
@@ -14,6 +12,7 @@ import {
   DailyAttendanceSectionResponse,
 } from '@core/services/attendance.service';
 import { AuthService } from '@core/services/auth.service';
+import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 
 interface AttendanceState {
   status: AttendanceStatus;
@@ -27,7 +26,7 @@ interface AttendanceState {
 @Component({
   selector: 'app-teacher-attendance',
   standalone: true,
-  imports: [CommonModule, FormsModule, ZXingScannerModule],
+  imports: [CommonModule, FormsModule, BackButtonComponent],
   templateUrl: './teacher-attendance.component.html',
   styleUrls: ['./teacher-attendance.component.css']
 })
@@ -53,20 +52,6 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit, OnDest
   attendanceRecords: Record<string, AttendanceState> = {};
   selectedAssignment: AttendanceAssignment | null = null;
   dailyAttendance: DailyAttendanceSectionResponse | null = null;
-
-  // ── Tab principal ────────────────────────────────────
-  activeMainTab: 'students' | 'personal' = 'students';
-
-  // ── Mi Asistencia (personal QR) ──────────────────────
-  personalQrInput = '';
-  personalQrStatus: 'idle' | 'success' | 'error' = 'idle';
-  personalQrMessage = '';
-  personalQrSubmitting = false;
-  showPersonalScanner = false;
-  personalDevice: MediaDeviceInfo | undefined;
-  personalQrFormats = [BarcodeFormat.QR_CODE];
-  personalAvailableDevices: MediaDeviceInfo[] = [];
-  personalTodayCheckpoints: { checkpoint: string; time: string }[] = [];
 
   // ── Polling auto-refresh alumnos ─────────────────────
   private pollingInterval: any = null;
@@ -460,79 +445,6 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit, OnDest
       }
     }, 15000);
   }
-
-  // ── Mi Asistencia (QR personal del docente) ──────────
-
-  togglePersonalScanner(): void {
-    this.showPersonalScanner = !this.showPersonalScanner;
-    if (!this.showPersonalScanner) this.personalQrMessage = '';
-  }
-
-  onPersonalCamerasFound(devices: MediaDeviceInfo[]): void {
-    if (!devices || devices.length === 0) return;
-    this.personalAvailableDevices = devices;
-    const backKeywords = ['back', 'trasera', 'rear', 'environment', 'facing back', 'camera2 0'];
-    const back = devices.find(d => backKeywords.some(kw => d.label.toLowerCase().includes(kw)));
-    this.personalDevice = back || devices[devices.length - 1] || devices[0];
-  }
-
-  handlePersonalQrScan(result: string): void {
-    if (!result) return;
-    if (result.startsWith('CERMAT_ATTENDANCE|')) {
-      const match = result.match(/session=([^|]+)/i);
-      if (match?.[1]) { this.personalQrInput = match[1]; this.submitPersonalCheckin(); }
-    } else {
-      this.personalQrInput = result;
-      this.submitPersonalCheckin();
-    }
-  }
-
-  submitPersonalCheckin(): void {
-    if (!this.personalQrInput.trim()) {
-      this.personalQrStatus = 'error';
-      this.personalQrMessage = 'Ingresa o escanea el código QR.';
-      return;
-    }
-
-    let code = this.personalQrInput.trim();
-    if (code.startsWith('CERMAT_ATTENDANCE|')) {
-      const m = code.match(/session=([^|]+)/i);
-      code = m ? m[1] : code;
-    }
-    code = code.toUpperCase();
-
-    if (!/^[A-Z0-9]{8}$/.test(code)) {
-      this.personalQrStatus = 'error';
-      this.personalQrMessage = 'Código inválido. Debe tener 8 caracteres alfanuméricos.';
-      return;
-    }
-
-    this.personalQrSubmitting = true;
-    this.personalQrStatus = 'idle';
-    this.personalQrMessage = '';
-
-    this.attendanceService.submitStudentDailyQr(code).subscribe({
-      next: (response) => {
-        this.personalQrStatus = 'success';
-        this.personalQrMessage = response.message;
-        this.personalQrSubmitting = false;
-        this.personalQrInput = '';
-        this.showPersonalScanner = false;
-        const time = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-        this.personalTodayCheckpoints = this.personalTodayCheckpoints.filter(c => c.checkpoint !== response.checkpoint);
-        this.personalTodayCheckpoints.push({ checkpoint: response.checkpoint, time });
-        setTimeout(() => { this.personalQrStatus = 'idle'; this.personalQrMessage = ''; }, 5000);
-      },
-      error: (err) => {
-        this.personalQrStatus = 'error';
-        this.personalQrMessage = err?.error?.message || 'No se pudo registrar la asistencia.';
-        this.personalQrSubmitting = false;
-      }
-    });
-  }
-
-  get personalTodayEntry() { return this.personalTodayCheckpoints.find(c => c.checkpoint === 'entrada') ?? null; }
-  get personalTodayExit()  { return this.personalTodayCheckpoints.find(c => c.checkpoint === 'salida') ?? null; }
 
   private syncAttendanceStateFromDaily(): void {
     const dailyRows = new Map(

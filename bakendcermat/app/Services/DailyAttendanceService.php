@@ -270,6 +270,85 @@ class DailyAttendanceService
         );
     }
 
+    public function storeTeacherCheckpoint(
+        string $teacherId,
+        string $sectionId,
+        string $academicYearId,
+        string $date,
+        string $checkpoint,
+        string $status,
+        ?string $note,
+        string $source = 'qr'
+    ): AttendanceDailyRecord {
+        /** @var AttendanceDailyRecord $dailyRecord */
+        $dailyRecord = AttendanceDailyRecord::query()->firstOrNew([
+            'teacher_id' => $teacherId,
+            'date' => $date,
+        ]);
+
+        $dailyRecord->section_id = $sectionId;
+        $dailyRecord->academic_year_id = $academicYearId;
+
+        if ($checkpoint === 'entrada') {
+            $dailyRecord->entry_status = $status;
+            $dailyRecord->entry_note = $note;
+            $dailyRecord->entry_marked_at = now();
+            $dailyRecord->entry_source = $source;
+        } else {
+            $dailyRecord->exit_status = $status;
+            $dailyRecord->exit_note = $note;
+            $dailyRecord->exit_marked_at = now();
+            $dailyRecord->exit_source = $source;
+        }
+
+        $dailyRecord->save();
+
+        return $dailyRecord;
+    }
+
+    public function getTeacherDailyRecords(string $teacherId, ?string $dateFrom = null, ?string $dateTo = null): Collection
+    {
+        return AttendanceDailyRecord::query()
+            ->where('teacher_id', $teacherId)
+            ->when($dateFrom, fn ($query) => $query->whereDate('date', '>=', $dateFrom))
+            ->when($dateTo, fn ($query) => $query->whereDate('date', '<=', $dateTo))
+            ->orderByDesc('date')
+            ->get([
+                'id',
+                'teacher_id',
+                'section_id',
+                'academic_year_id',
+                'date',
+                'entry_status',
+                'entry_note',
+                'entry_marked_at',
+                'entry_source',
+                'exit_status',
+                'exit_note',
+                'exit_marked_at',
+                'exit_source',
+            ])
+            ->map(function (AttendanceDailyRecord $record) {
+                return [
+                    'id' => (string) $record->id,
+                    'teacher_id' => (string) $record->teacher_id,
+                    'section_id' => (string) $record->section_id,
+                    'academic_year_id' => (string) $record->academic_year_id,
+                    'date' => $record->date instanceof \Carbon\Carbon ? $record->date->toDateString() : (string) $record->date,
+                    'entry_status' => $record->entry_status,
+                    'entry_note' => $record->entry_note,
+                    'entry_marked_at' => optional($record->entry_marked_at)?->toIso8601String(),
+                    'entry_source' => $record->entry_source,
+                    'exit_status' => $record->exit_status,
+                    'exit_note' => $record->exit_note,
+                    'exit_marked_at' => optional($record->exit_marked_at)?->toIso8601String(),
+                    'exit_source' => $record->exit_source,
+                    'effective_status' => $record->entry_status,
+                ];
+            })
+            ->values();
+    }
+
     public function getStudentDailyRecords(string $studentId, ?string $dateFrom = null, ?string $dateTo = null): Collection
     {
         return AttendanceDailyRecord::query()

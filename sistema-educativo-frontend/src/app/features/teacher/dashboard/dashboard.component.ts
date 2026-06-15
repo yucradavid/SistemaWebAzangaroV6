@@ -13,10 +13,17 @@ export class DashboardComponent implements OnInit {
 
   modules = [
     {
+        title: 'Marcar Asistencia',
+        description: 'Registra tu entrada y salida con QR o codigo',
+        icon: 'qr-code',
+        path: '/app/attendance/mark/teacher',
+        color: 'bg-[#059669]'
+    },
+    {
         title: 'Asistencia',
         description: 'Registro diario de asistencia por seccion',
         icon: 'calendar-check',
-        path: '/app/attendance/teacher',
+        path: '/app/attendance/teacher/menu',
         color: 'bg-[#1e40af]'
     },
     {
