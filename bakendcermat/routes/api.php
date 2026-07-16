@@ -83,6 +83,7 @@ Route::pattern('announcement', '[0-9a-fA-F-]{36}');
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/public/enrollment-options', [EnrollmentApplicationController::class, 'publicOptions']);
 Route::post('/public/enrollment-applications', [EnrollmentApplicationController::class, 'store']);
+Route::get('/public/guardian-lookup', [EnrollmentApplicationController::class, 'guardianLookup']);
 
 // Noticias públicas (sin autenticación)
 Route::get('/public/news', [PublicNewsController::class, 'published']);

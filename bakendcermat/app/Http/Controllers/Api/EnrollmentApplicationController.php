@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
 use Carbon\Carbon;
 
 use App\Models\Profile;
@@ -35,6 +37,76 @@ class EnrollmentApplicationController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name', 'level', 'grade']),
         ]);
+    }
+
+    // GET /api/public/guardian-lookup?dni=########
+    // Endpoint PÚBLICO (sin auth) para autocompletar datos del apoderado
+    // y detectar hermanos ya matriculados en el sistema.
+    public function guardianLookup(Request $request): JsonResponse
+    {
+        $dni = trim((string) $request->query('dni', ''));
+
+        if (strlen($dni) < 7) {
+            return response()->json(['found' => false]);
+        }
+
+        $guardian = Guardian::query()
+            ->where('dni', $dni)
+            ->with(['students' => function ($q) {
+                $q->select('students.id', 'students.first_name', 'students.last_name', 'students.student_code');
+            }])
+            ->first();
+
+        if (! $guardian) {
+            return response()->json(['found' => false]);
+        }
+
+        $siblings = $this->mapSiblings($guardian);
+
+        // Solo se devuelven datos necesarios para autocompletar.
+        // No se exponen IDs internos del apoderado ni de los estudiantes.
+        return response()->json([
+            'found' => true,
+            'first_name' => $guardian->first_name,
+            'last_name' => $guardian->last_name,
+            'phone' => $guardian->phone,
+            'email' => $guardian->email,
+            'address' => $guardian->address,
+            'relationship' => $guardian->relationship,
+            'siblings_count' => $siblings->count(),
+            'siblings' => $siblings,
+        ]);
+    }
+
+    // Mapea los estudiantes de un apoderado a {name, code} sin exponer IDs.
+    private function mapSiblings(Guardian $guardian)
+    {
+        return $guardian->students->map(function ($student) {
+            $name = trim(($student->first_name ?? '') . ' ' . ($student->last_name ?? ''));
+
+            return [
+                'name' => $name !== '' ? $name : 'Estudiante',
+                'code' => $student->student_code,
+            ];
+        })->values();
+    }
+
+    // Calcula los hermanos detectados para el apoderado de una solicitud,
+    // buscando por el DNI registrado en la pre matricula.
+    private function siblingsForApplication(EnrollmentApplication $app)
+    {
+        $guardian = Guardian::query()
+            ->where('dni', $app->guardian_document_number)
+            ->with(['students' => function ($q) {
+                $q->select('students.id', 'students.first_name', 'students.last_name', 'students.student_code');
+            }])
+            ->first();
+
+        if (! $guardian) {
+            return collect([]);
+        }
+
+        return $this->mapSiblings($guardian);
     }
 
     // =========================
@@ -130,7 +202,15 @@ class EnrollmentApplicationController extends Controller
     public function show(string $id)
     {
         $app = EnrollmentApplication::findOrFail($id);
-        return response()->json($app);
+
+        $siblings = $this->siblingsForApplication($app);
+
+        // Se adjuntan los hermanos detectados al detalle sin alterar el flujo.
+        $payload = $app->toArray();
+        $payload['siblings_detected'] = $siblings;
+        $payload['siblings_count'] = $siblings->count();
+
+        return response()->json($payload);
     }
 
     // PUT/PATCH /api/enrollment-applications/{id}
@@ -396,9 +476,29 @@ class EnrollmentApplicationController extends Controller
             throw new RuntimeException('La solicitud fue aprobada, pero no se encontro el apoderado registrado.');
         }
 
+        $studentResult = $this->accountProvisioningService->provisionStudent($student);
+
+        // Solo se provisiona la cuenta del apoderado si NO existe ya una
+        // en public.users. Si ya tiene cuenta, no se regenera ni se duplica:
+        // las credenciales se entregan unicamente al hijo.
+        $guardianEmail = strtolower(trim((string) $guardian->email));
+        $existingGuardianUser = $guardianEmail !== ''
+            ? User::query()->whereRaw('lower(email) = ?', [$guardianEmail])->first()
+            : null;
+
+        $guardianResult = $existingGuardianUser
+            ? [
+                'email' => $existingGuardianUser->email,
+                'password' => null,
+                'generated' => false,
+                'user_id' => (string) $existingGuardianUser->id,
+                'message' => 'El apoderado ya tiene cuenta',
+            ]
+            : $this->accountProvisioningService->provisionGuardian($guardian);
+
         return [
-            'student' => $this->accountProvisioningService->provisionStudent($student),
-            'guardian' => $this->accountProvisioningService->provisionGuardian($guardian),
+            'student' => $studentResult,
+            'guardian' => $guardianResult,
         ];
     }
 }

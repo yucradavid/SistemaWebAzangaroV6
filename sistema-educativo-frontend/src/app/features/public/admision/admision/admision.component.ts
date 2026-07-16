@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SeoService } from '@core/services/seo/seo.service';
-import { EnrollmentService } from '@core/services/enrollment.service';
+import { EnrollmentService, EnrollmentSibling } from '@core/services/enrollment.service';
 
 @Component({
   selector: 'app-admision',
@@ -20,6 +20,10 @@ export class AdmisionComponent implements OnInit {
   readonly isSubmitting = signal(false);
   readonly submitSuccess = signal(false);
   readonly loadError = signal('');
+
+  guardianLookupLoading = false;
+  guardianFound = false;
+  siblingsDetected: EnrollmentSibling[] = [];
 
   admissionForm: FormGroup;
   academicYears: any[] = [];
@@ -148,6 +152,46 @@ export class AdmisionComponent implements OnInit {
 
   toggleFaq(index: number): void {
     this.openFaqIndex.set(this.openFaqIndex() === index ? null : index);
+  }
+
+  onGuardianDniBlur(dni: string): void {
+    const cleanDni = String(dni || '').trim();
+    if (cleanDni.length < 7) {
+      return;
+    }
+
+    this.guardianLookupLoading = true;
+    this.guardianFound = false;
+    this.siblingsDetected = [];
+
+    this.enrollmentService.guardianLookup(cleanDni).subscribe({
+      next: (res) => {
+        this.guardianLookupLoading = false;
+
+        if (!res?.found) {
+          return;
+        }
+
+        this.guardianFound = true;
+
+        // Autocompletar campos del apoderado con los datos existentes.
+        this.admissionForm.patchValue({
+          guardian_first_name: res.first_name ?? '',
+          guardian_last_name: res.last_name ?? '',
+          guardian_phone: res.phone ?? '',
+          guardian_email: res.email ?? '',
+          guardian_address: res.address ?? '',
+          guardian_relationship: res.relationship ?? 'Madre',
+        });
+
+        if ((res.siblings_count ?? 0) > 0) {
+          this.siblingsDetected = res.siblings ?? [];
+        }
+      },
+      error: () => {
+        this.guardianLookupLoading = false;
+      }
+    });
   }
 
   onSubmit(): void {

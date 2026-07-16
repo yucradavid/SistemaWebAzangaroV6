@@ -8,7 +8,6 @@ use App\Http\Requests\UpdateChargeRequest;
 use App\Models\Charge;
 use App\Models\FinancialPlan;
 use App\Models\Student;
-use App\Models\StudentDiscount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -57,7 +56,7 @@ class ChargeController extends Controller
         $data['status'] = $data['status'] ?? 'pendiente';
         $data['discount_amount'] = $data['discount_amount'] ?? 0;
         $data['paid_amount'] = $data['paid_amount'] ?? 0;
-        $actorId = $this->resolveAuthSchemaUserId($request);
+        $actorId = $this->resolveActorUserId($request);
 
         if (Schema::hasColumn('charges', 'created_by')) {
             $data['created_by'] = $actorId;
@@ -165,25 +164,18 @@ class ChargeController extends Controller
             ]);
         }
 
-        $studentDiscounts = StudentDiscount::with('discount')
-            ->whereIn('student_id', $studentIds)
-            ->where('academic_year_id', $academicYearId)
-            ->get()
-            ->groupBy('student_id');
-
         $chargeType = in_array($plan->concept?->type, ['matricula', 'pension'], true)
             ? $plan->concept->type
             : 'otro';
 
         $createdCount = 0;
         $notesColumn = $this->chargeNotesColumn();
-        $actorId = $this->resolveAuthSchemaUserId($request);
+        $actorId = $this->resolveActorUserId($request);
 
         DB::transaction(function () use (
             $students,
             $plan,
             $academicYearId,
-            $studentDiscounts,
             $chargeType,
             $notesColumn,
             $actorId,
@@ -205,31 +197,13 @@ class ChargeController extends Controller
                     }
 
                     $amount = (float) $installment->amount;
+
+                    // Descuento siempre en 0 al generar cargos masivos.
+                    // El descuento se asigna manualmente desde
+                    // Finanzas -> Descuentos -> Asignar descuento al estudiante
+                    // especifico (ver StudentDiscountController::store), que
+                    // actualiza los cargos pendientes con el monto correspondiente.
                     $discountAmount = 0.0;
-
-                    if ($studentDiscounts->has($student->id)) {
-                        foreach ($studentDiscounts->get($student->id) as $studentDiscount) {
-                            $discount = $studentDiscount->discount;
-
-                            if (!$discount || !$discount->is_active) {
-                                continue;
-                            }
-
-                            $applies = ($discount->scope === 'todos')
-                                || ($discount->scope === $plan->concept?->type)
-                                || ($discount->scope === 'especifico' && $discount->specific_concept_id === $plan->concept_id);
-
-                            if (!$applies) {
-                                continue;
-                            }
-
-                            if ($discount->type === 'porcentaje') {
-                                $discountAmount += ($amount * ((float) $discount->value / 100));
-                            } else {
-                                $discountAmount += (float) $discount->value;
-                            }
-                        }
-                    }
 
                     $payload = [
                         'student_id' => $student->id,
@@ -303,7 +277,7 @@ class ChargeController extends Controller
         $charge->update([
             'paid_amount' => 0,
             'voided_at' => now(),
-            'voided_by' => $this->resolveAuthSchemaUserId($request),
+            'voided_by' => $this->resolveActorUserId($request),
             'void_reason' => $data['reason'],
         ]);
 
@@ -365,7 +339,7 @@ class ChargeController extends Controller
         }
     }
 
-    private function resolveAuthSchemaUserId(Request $request): ?string
+    private function resolveActorUserId(Request $request): ?string
     {
         $authUser = $request->user();
 
@@ -373,32 +347,37 @@ class ChargeController extends Controller
             return null;
         }
 
-        $emailCandidates = array_values(array_filter([
-            $authUser->email ?? null,
-            $authUser->profile?->email ?? null,
-        ]));
-
-        foreach ($emailCandidates as $email) {
-            $authSchemaUserId = DB::table('auth.users')
-                ->whereRaw('lower(email) = ?', [strtolower((string) $email)])
-                ->value('id');
-
-            if ($authSchemaUserId) {
-                return (string) $authSchemaUserId;
-            }
-        }
-
+        // charges.created_by (y voided_by) referencian public.users.id. El usuario
+        // autenticado por Sanctum ES la fila de public.users, por lo que su clave
+        // primaria es el valor correcto. NO se debe usar el id de auth.users: vive en
+        // otro espacio de ids y provoca violacion de FK (charges_created_by_fkey).
         $candidateIds = array_values(array_filter([
+            $authUser->getKey(),
             $authUser->id ?? null,
-            $authUser->user_id ?? null,
             $authUser->profile?->user_id ?? null,
         ]));
 
         foreach ($candidateIds as $candidateId) {
             $candidateId = (string) $candidateId;
 
-            if ($candidateId !== '' && DB::table('auth.users')->where('id', $candidateId)->exists()) {
+            if ($candidateId !== '' && DB::table('users')->where('id', $candidateId)->exists()) {
                 return $candidateId;
+            }
+        }
+
+        // Fallback: ubicar al usuario en public.users por correo.
+        $emailCandidates = array_values(array_filter([
+            $authUser->email ?? null,
+            $authUser->profile?->email ?? null,
+        ]));
+
+        foreach ($emailCandidates as $email) {
+            $publicUserId = DB::table('users')
+                ->whereRaw('lower(email) = ?', [strtolower((string) $email)])
+                ->value('id');
+
+            if ($publicUserId) {
+                return (string) $publicUserId;
             }
         }
 

@@ -272,6 +272,20 @@
         </div>
       </div>
 
+      <div *ngIf="(detailApplication.siblings_count || 0) > 0" class="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+        <p class="font-bold text-amber-800 text-sm mb-2">
+          ⚠️ Hermanos detectados ({{ detailApplication.siblings_count }}):
+        </p>
+        <ul class="space-y-1">
+          <li *ngFor="let s of detailApplication.siblings_detected" class="text-sm text-amber-700">
+            • {{ s.name }} — Codigo: {{ s.code }}
+          </li>
+        </ul>
+        <p class="text-xs text-amber-600 mt-2">
+          Este apoderado ya tiene estudiantes matriculados. Las credenciales se entregaran solo al nuevo alumno.
+        </p>
+      </div>
+
       <div class="grid gap-6 md:grid-cols-2">
         <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h4 class="text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Informacion complementaria</h4>

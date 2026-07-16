@@ -34,6 +34,8 @@ export interface EnrollmentApplication {
   application_date?: string;
   reviewed_at?: string | null;
   created_at: string;
+  siblings_detected?: EnrollmentSibling[];
+  siblings_count?: number;
   grade_level?: {
     id: string;
     name: string;
@@ -42,6 +44,23 @@ export interface EnrollmentApplication {
     id: string;
     year: number;
   };
+}
+
+export interface EnrollmentSibling {
+  name: string;
+  code: string;
+}
+
+export interface GuardianLookupResult {
+  found: boolean;
+  first_name?: string;
+  last_name?: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  relationship?: string | null;
+  siblings_count?: number;
+  siblings?: EnrollmentSibling[];
 }
 
 export interface ProvisionedAccountCredential {
@@ -92,6 +111,11 @@ export class EnrollmentService {
 
   getPublicOptions(): Observable<any> {
     return this.http.get(`${this.publicApiUrl}/enrollment-options`);
+  }
+
+  guardianLookup(dni: string): Observable<GuardianLookupResult> {
+    const params = new HttpParams().set('dni', dni);
+    return this.http.get<GuardianLookupResult>(`${this.publicApiUrl}/guardian-lookup`, { params });
   }
 
   createPublicApplication(payload: PublicEnrollmentApplicationPayload): Observable<any> {
