@@ -218,7 +218,7 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
     ]
   },
   {
-    title: 'Configuración',
+    title: 'Configuración Académica',
     description: 'Años académicos, grados y cursos',
     icon: ICONS.settings,
     path: '/app/settings',
@@ -230,16 +230,10 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
         title: 'Año Académico',
         items: [
           {
-            title: 'Años Académicos',
-            description: 'Gestión de años escolares (Apertura/Cierre)',
+            title: 'Calendario Académico',
+            description: 'Años lectivos y sus períodos en una sola vista',
             icon: ICONS.calendar,
-            path: '/app/settings/academic-years'
-          },
-          {
-            title: 'Periodos',
-            description: 'Trimestres, bimestres o semestres',
-            icon: ICONS.clock,
-            path: '/app/settings/periods'
+            path: '/app/settings/academic-calendar'
           }
         ]
       },
@@ -247,16 +241,10 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
         title: 'Estructura Institucional',
         items: [
           {
-            title: 'Grados y Niveles',
-            description: 'Configuración de niveles educativos',
+            title: 'Estructura Académica',
+            description: 'Niveles, grados y secciones en una sola vista',
             icon: ICONS.school,
-            path: '/app/settings/grades'
-          },
-          {
-            title: 'Secciones',
-            description: 'Gestión de aulas y turnos',
-            icon: ICONS.layoutGrid,
-            path: '/app/settings/sections'
+            path: '/app/settings/academic-structure'
           }
         ]
       },

@@ -332,24 +332,36 @@ export const PRIVATE_ROUTES: Routes = [
 
       // ── Configuración / Ajustes ──────────────────────────
       {
+        path: 'settings/academic-calendar',
+        loadComponent: () => import('./features/admin/settings/academic-calendar/academic-calendar.component').then(m => m.AcademicCalendarComponent),
+        title: 'CERMAT - Calendario Académico'
+      },
+      // Rutas antiguas: redirigen al calendario unificado
+      {
         path: 'settings/academic-years',
-        loadComponent: () => import('./features/admin/settings/academic-years.component').then(m => m.AcademicYearsComponent),
-        title: 'CERMAT - Años Académicos'
+        redirectTo: 'settings/academic-calendar',
+        pathMatch: 'full'
       },
       {
         path: 'settings/periods',
-        loadComponent: () => import('./features/admin/settings/periods.component').then(m => m.PeriodsComponent),
-        title: 'CERMAT - Periodos'
+        redirectTo: 'settings/academic-calendar',
+        pathMatch: 'full'
       },
       {
+        path: 'settings/academic-structure',
+        loadComponent: () => import('./features/admin/settings/academic-structure/academic-structure.component').then(m => m.AcademicStructureComponent),
+        title: 'CERMAT - Estructura Académica'
+      },
+      // Rutas antiguas: redirigen a la estructura unificada
+      {
         path: 'settings/grades',
-        loadComponent: () => import('./features/admin/settings/grades-levels.component').then(m => m.GradesLevelsComponent),
-        title: 'CERMAT - Grados y Niveles'
+        redirectTo: 'settings/academic-structure',
+        pathMatch: 'full'
       },
       {
         path: 'settings/sections',
-        loadComponent: () => import('./features/admin/settings/sections.component').then(m => m.SectionsComponent),
-        title: 'CERMAT - Secciones'
+        redirectTo: 'settings/academic-structure',
+        pathMatch: 'full'
       },
       {
         path: 'settings/courses',
