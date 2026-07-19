@@ -257,25 +257,27 @@ export const PRIVATE_ROUTES: Routes = [
 
       // ── Finanzas ─────────────────────────────────────────
       {
-        path: 'finance/catalog/concepts',
+        path: 'finance/catalog',
         canActivate: [roleGuard],
         data: { roles: ['admin', 'director', 'secretary', 'finance'] },
-        loadComponent: () => import('./features/admin/finance/catalog/finance-concepts.component').then(m => m.FinanceConceptsComponent),
-        title: 'CERMAT - Conceptos de Pago'
+        loadComponent: () => import('./features/admin/finance/finance-catalog/finance-catalog.component').then(m => m.FinanceCatalogComponent),
+        title: 'CERMAT - Catálogo Financiero'
+      },
+      // Rutas antiguas: redirigen al catálogo unificado, preservando el tab via query param
+      {
+        path: 'finance/catalog/concepts',
+        redirectTo: () => '/app/finance/catalog?tab=concepts',
+        pathMatch: 'full'
       },
       {
         path: 'finance/catalog/plans',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
-        loadComponent: () => import('./features/admin/finance/catalog/finance-plans.component').then(m => m.FinancePlansComponent),
-        title: 'CERMAT - Planes de Pago'
+        redirectTo: () => '/app/finance/catalog?tab=plans',
+        pathMatch: 'full'
       },
       {
         path: 'finance/catalog/discounts',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
-        loadComponent: () => import('./features/admin/finance/catalog/finance-discounts.component').then(m => m.FinanceDiscountsComponent),
-        title: 'CERMAT - Descuentos y Becas'
+        redirectTo: () => '/app/finance/catalog?tab=discounts',
+        pathMatch: 'full'
       },
       {
         path: 'finance/charges/emission',

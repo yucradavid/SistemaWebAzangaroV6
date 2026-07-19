@@ -1,10 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { forkJoin, Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import Swal from 'sweetalert2';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { AcademicService } from '@core/services/academic.service';
 import { FeeConcept, FinanceService, FinancialPlan, PlanInstallment } from '@core/services/finance.service';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
@@ -13,11 +12,9 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
 @Component({
   selector: 'app-finance-plans',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent],
   template: `
-    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
-      <app-back-button></app-back-button>
-
+    <div class="space-y-8 animate-fade-in text-slate-700">
       <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
         <div class="space-y-1">
           <p class="text-[11px] font-semibold text-blue-600 uppercase tracking-[0.25em]">Configuracion financiera</p>
@@ -75,7 +72,15 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
                   <div class="text-[11px] text-slate-400">{{ plan.academic_year?.year || 'Sin anio' }}</div>
                 </td>
                 <td class="py-5 px-6">
-                  <div class="text-sm font-medium text-slate-700">{{ plan.concept?.name || 'Sin concepto' }}</div>
+                  <button
+                    *ngIf="plan.concept_id"
+                    type="button"
+                    (click)="conceptChipClick.emit(plan.concept_id)"
+                    class="text-sm font-medium text-blue-700 hover:text-blue-900 hover:underline transition-colors text-left"
+                    title="Ver en Conceptos">
+                    {{ plan.concept?.name || 'Sin concepto' }}
+                  </button>
+                  <span *ngIf="!plan.concept_id" class="text-sm font-medium text-slate-700">Sin concepto</span>
                   <div class="text-[11px] text-slate-400">{{ plan.description || 'Sin descripcion' }}</div>
                 </td>
                 <td class="py-5 px-6 text-center text-sm font-semibold text-slate-700">{{ getInstallmentsCount(plan) }}</td>
@@ -208,6 +213,8 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
   `,
   styles: [`
     :host { display: block; }
+    /* display:block en :host pisa el [hidden] nativo del navegador; se restaura aquí */
+    :host([hidden]) { display: none !important; }
     .animate-fade-in { animation: fadeIn 0.3s ease-out; }
     .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -215,6 +222,10 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
   `]
 })
 export class FinancePlansComponent implements OnInit {
+  // Emitido al hacer click en el concepto de un plan: FinanceCatalogComponent
+  // cambia al tab Conceptos y resalta ese concepto.
+  @Output() conceptChipClick = new EventEmitter<string>();
+
   kpis = [
     { label: 'Total planes', value: 0 },
     { label: 'Activos', value: 0 },

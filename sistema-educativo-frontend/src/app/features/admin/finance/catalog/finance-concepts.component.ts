@@ -1,9 +1,8 @@
 //src/app/features/admin/finance/catalog/finance-concepts.component.ts
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import Swal from 'sweetalert2';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { FeeConcept, FinanceService } from '@core/services/finance.service';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
@@ -14,11 +13,9 @@ type ConceptPeriodicity = FeeConcept['periodicity'];
 @Component({
   selector: 'app-finance-concepts',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule, ReactiveFormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, SettingMetricCardComponent, SettingFilterDropdownComponent],
   template: `
-    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
-      <app-back-button></app-back-button>
-
+    <div class="space-y-8 animate-fade-in text-slate-700">
       <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div class="space-y-2">
           <p class="text-[11px] font-semibold text-blue-600 uppercase tracking-[0.25em]">Catalogo financiero</p>
@@ -120,7 +117,7 @@ type ConceptPeriodicity = FeeConcept['periodicity'];
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
-              <tr *ngFor="let concept of concepts" class="group hover:bg-slate-50/60 transition-colors">
+              <tr *ngFor="let concept of concepts" [id]="'concept-row-' + concept.id" [class]="rowClass(concept)">
                 <td class="py-5 px-8">
                   <div class="space-y-1">
                     <div class="text-sm font-semibold text-slate-800">{{ concept.name }}</div>
@@ -253,13 +250,22 @@ type ConceptPeriodicity = FeeConcept['periodicity'];
   `,
   styles: [`
     :host { display: block; }
+    /* display:block en :host pisa el [hidden] nativo del navegador; se restaura aquí */
+    :host([hidden]) { display: none !important; }
     .animate-fade-in { animation: fadeIn 0.3s ease-out; }
     .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   `]
 })
-export class FinanceConceptsComponent implements OnInit, OnDestroy {
+export class FinanceConceptsComponent implements OnInit, OnChanges, OnDestroy {
+  // Recibido desde FinanceCatalogComponent al hacer click en el chip de concepto
+  // dentro del tab de Planes: resalta y hace scroll hacia la fila del concepto.
+  @Input() highlightConceptId: string | null = null;
+
+  activeHighlightId: string | null = null;
+  private highlightTimer?: ReturnType<typeof setTimeout>;
+
   readonly allTypeOptions: Array<{ id: ConceptType; name: string }> = [
     { id: 'matricula', name: 'Matricula' },
     { id: 'pension', name: 'Pension' },
@@ -321,9 +327,18 @@ export class FinanceConceptsComponent implements OnInit, OnDestroy {
     this.loadConcepts();
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['highlightConceptId'] && this.highlightConceptId) {
+      this.applyHighlight(this.highlightConceptId);
+    }
+  }
+
   ngOnDestroy(): void {
     if (this.searchDebounce) {
       clearTimeout(this.searchDebounce);
+    }
+    if (this.highlightTimer) {
+      clearTimeout(this.highlightTimer);
     }
   }
 
@@ -335,12 +350,38 @@ export class FinanceConceptsComponent implements OnInit, OnDestroy {
         this.concepts = this.financeService.unwrapItems(response);
         this.updateKPIs();
         this.loading = false;
+        if (this.highlightConceptId) {
+          this.applyHighlight(this.highlightConceptId);
+        }
       },
       error: () => {
         this.loading = false;
         Swal.fire('Error', 'No se pudieron cargar los conceptos financieros.', 'error');
       }
     });
+  }
+
+  rowClass(concept: FeeConcept): string {
+    const base = 'group hover:bg-slate-50/60 transition-colors';
+    return concept.id === this.activeHighlightId
+      ? base + ' ring-2 ring-inset ring-cermat-blue-500 bg-blue-50/60'
+      : base;
+  }
+
+  private applyHighlight(conceptId: string): void {
+    this.activeHighlightId = conceptId;
+
+    if (this.highlightTimer) {
+      clearTimeout(this.highlightTimer);
+    }
+
+    setTimeout(() => {
+      document.getElementById('concept-row-' + conceptId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+
+    this.highlightTimer = setTimeout(() => {
+      this.activeHighlightId = null;
+    }, 2500);
   }
 
   updateKPIs(): void {

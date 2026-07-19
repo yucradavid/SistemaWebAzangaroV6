@@ -109,22 +109,10 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
         title: 'Catálogo',
         items: [
           {
-            title: 'Conceptos de Pago',
-            description: 'Gestión de conceptos cobrables',
+            title: 'Catálogo Financiero',
+            description: 'Conceptos, planes y descuentos',
             icon: ICONS.tags,
-            path: '/app/finance/catalog/concepts'
-          },
-          {
-            title: 'Planes de Pago',
-            description: 'Estructuras de pensiones y cuotas',
-            icon: ICONS.fileText,
-            path: '/app/finance/catalog/plans'
-          },
-          {
-            title: 'Descuentos y Becas',
-            description: 'Gestión de beneficios económicos',
-            icon: ICONS.wallet,
-            path: '/app/finance/catalog/discounts'
+            path: '/app/finance/catalog'
           }
         ]
       },
