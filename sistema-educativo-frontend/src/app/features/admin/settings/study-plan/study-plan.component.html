@@ -1,0 +1,373 @@
+<app-back-button></app-back-button>
+<div class="min-h-[calc(100vh-80px)] bg-slate-50 p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700 relative">
+
+  <!-- Encabezado -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-2">
+    <div class="space-y-1">
+      <h1 class="text-3xl font-bold text-[#0F172A] tracking-tight">Plan de Estudios</h1>
+      <p class="text-slate-500 text-sm font-medium">
+        Cursos y competencias curriculares organizados por grado en una sola vista.
+      </p>
+    </div>
+    <button
+      (click)="openCourseModal()"
+      class="px-6 py-3 bg-gradient-to-r from-cermat-blue-900 to-cermat-blue-700 hover:opacity-90 text-white text-sm font-bold rounded-2xl transition-all duration-200 shadow-lg active:scale-95 flex items-center justify-center gap-2">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nuevo curso
+    </button>
+  </div>
+
+  <!-- Filtro por grado -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+    <label class="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400 shrink-0">Grado académico</label>
+    <select
+      [(ngModel)]="selectedGradeFilter"
+      class="w-full sm:w-72 bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-blue-500">
+      <option value="">Todos los grados</option>
+      <option *ngFor="let grade of gradeLevels" [value]="grade.id">
+        {{ grade.name }} ({{ levelLabel(grade.level) }})
+      </option>
+    </select>
+  </div>
+
+  <!-- Cargando -->
+  <div *ngIf="loading" class="flex justify-center p-12">
+    <div class="w-10 h-10 border-4 border-cermat-blue-600 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+
+  <!-- Estado vacío global -->
+  <div *ngIf="!loading && !gradeGroups.length" class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+    <svg class="w-16 h-16 mx-auto mb-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+    <p class="text-lg font-semibold text-slate-700">Aún no hay grados registrados.</p>
+    <p class="mt-2 text-sm text-slate-500">Registra grados en Estructura Académica para comenzar a armar el plan de estudios.</p>
+  </div>
+
+  <!-- Acordeón por grado -->
+  <div *ngIf="!loading" class="space-y-6">
+    <section
+      *ngFor="let group of filteredGradeGroups"
+      class="bg-white rounded-2xl border border-slate-200 shadow-sm transition-all duration-200 overflow-hidden">
+
+      <!-- Header del grado (clickeable) -->
+      <div
+        role="button"
+        tabindex="0"
+        (click)="toggleGrade(group)"
+        (keydown.enter)="toggleGrade(group)"
+        class="w-full px-6 sm:px-8 py-5 flex items-center justify-between gap-4 text-left cursor-pointer hover:bg-slate-50/70 transition-colors duration-200 border-l-4"
+        [ngClass]="levelAccent(group.grade.level)">
+        <div class="flex items-center gap-4 min-w-0">
+          <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center text-white shadow-sm" [ngClass]="levelBadge(group.grade.level)">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <h2 class="text-xl font-bold text-[#0F172A] tracking-tight uppercase">{{ group.grade.name }}</h2>
+            <p class="text-xs text-slate-500 font-medium">
+              {{ levelLabel(group.grade.level) }} · {{ group.courses.length }} curso(s) · {{ gradeCompetenciesCount(group) }} competencia(s)
+            </p>
+          </div>
+        </div>
+        <svg class="w-5 h-5 text-slate-400 transition-transform duration-200 shrink-0" [ngClass]="group.expanded ? 'rotate-180' : ''"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </div>
+
+      <!-- Cuerpo expandible: cursos del grado -->
+      <div *ngIf="group.expanded" class="px-6 sm:px-8 pb-7 pt-5 border-t border-slate-100 animate-fade-in space-y-3">
+
+        <!-- Estado vacío del grado -->
+        <div *ngIf="!group.courses.length" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
+          <p class="text-sm font-semibold text-slate-500">Este grado no tiene cursos.</p>
+          <button
+            (click)="openCourseModal(group.grade)"
+            class="mt-4 px-5 py-2.5 bg-cermat-blue-700 hover:bg-cermat-blue-800 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all duration-200 active:scale-95">
+            + Crear primer curso
+          </button>
+        </div>
+
+        <!-- Card de curso (acordeón anidado) -->
+        <article
+          *ngFor="let item of group.courses"
+          class="bg-white rounded-2xl border border-slate-200 shadow-sm transition-all duration-200 hover:shadow-md overflow-hidden">
+
+          <!-- Header del curso (clickeable) -->
+          <div
+            role="button"
+            tabindex="0"
+            (click)="toggleCourse(item)"
+            (keydown.enter)="toggleCourse(item)"
+            class="w-full px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition-colors duration-200">
+            <div class="flex items-center gap-3 min-w-0">
+              <div [style.backgroundColor]="item.course.color || '#2563EB'" class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-widest">{{ item.course.code }}</span>
+                  <h3 class="text-sm font-bold text-[#0F172A] uppercase truncate" [title]="item.course.name">{{ item.course.name }}</h3>
+                </div>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                  {{ getCourseHours(item.course) }} h/semana
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+              <span
+                class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide"
+                [ngClass]="competencyCountClass(item.competencies.length)">
+                {{ competencyCountLabel(item.competencies.length) }}
+              </span>
+
+              <div class="flex gap-1 border border-slate-100 rounded-xl p-1 bg-slate-50/70">
+                <button
+                  (click)="openCourseModal(group.grade, item.course, $event)"
+                  class="p-2 text-slate-400 hover:text-cermat-blue-700 transition-colors rounded-lg hover:bg-white shadow-sm"
+                  title="Editar curso">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button
+                  (click)="deleteCourse(item, $event)"
+                  [disabled]="!canDeleteCourse(item)"
+                  [attr.title]="courseDeleteTooltip(item)"
+                  class="p-2 transition-colors rounded-lg shadow-sm disabled:cursor-not-allowed disabled:bg-transparent"
+                  [ngClass]="canDeleteCourse(item) ? 'text-slate-400 hover:text-red-600 hover:bg-white' : 'text-slate-300'">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                </button>
+              </div>
+
+              <svg class="w-4 h-4 text-slate-400 transition-transform duration-200" [ngClass]="item.expanded ? 'rotate-180' : ''"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Competencias anidadas -->
+          <div *ngIf="item.expanded" class="px-5 pb-5 pt-1 border-t border-slate-100 animate-fade-in space-y-2">
+
+            <!-- Estado vacío del curso -->
+            <div *ngIf="!item.competencies.length" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center mt-3">
+              <p class="text-xs font-semibold text-slate-500">Este curso no tiene competencias.</p>
+            </div>
+
+            <!-- Fila de competencia -->
+            <div
+              *ngFor="let competency of item.competencies; let i = index"
+              class="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3 mt-3 first:mt-3 hover:bg-slate-50 transition-colors duration-200 group/comp">
+              <div class="w-8 h-8 shrink-0 rounded-full bg-cermat-blue-700 flex items-center justify-center shadow-sm">
+                <span class="text-[11px] font-bold text-white">C{{ i + 1 }}</span>
+              </div>
+              <div
+                class="flex-1 min-w-0 cursor-pointer"
+                (click)="toggleDescription(competency)"
+                [title]="competency.description">
+                <h4 class="text-xs font-bold text-[#0F172A] leading-snug">
+                  {{ competency.name || ('Competencia ' + (i + 1)) }}
+                </h4>
+                <p
+                  class="text-[11px] text-slate-500 leading-relaxed mt-0.5"
+                  [ngClass]="isDescriptionExpanded(competency) ? '' : 'line-clamp-1'">
+                  {{ competency.description }}
+                </p>
+              </div>
+              <div class="flex gap-1 shrink-0 opacity-60 group-hover/comp:opacity-100 transition-opacity">
+                <button
+                  (click)="openCompetencyModal(item.course, competency, $event)"
+                  class="p-2 text-slate-400 hover:text-cermat-blue-700 transition-colors rounded-lg hover:bg-white shadow-sm"
+                  title="Editar competencia">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button
+                  (click)="deleteCompetency(competency, $event)"
+                  class="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-white shadow-sm"
+                  title="Eliminar competencia">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Acción agregar competencia -->
+            <button
+              (click)="openCompetencyModal(item.course, undefined, $event)"
+              class="w-full py-2.5 mt-2 bg-slate-50 border border-slate-200 hover:border-cermat-blue-700 hover:text-cermat-blue-800 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all duration-200 active:scale-95 flex items-center justify-center gap-1.5">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Agregar competencia
+            </button>
+          </div>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal: curso -->
+  <div *ngIf="showCourseModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="closeCourseModal()"></div>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 animate-slide-up overflow-hidden border border-slate-100">
+      <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800 tracking-tight">{{ isEditingCourse ? 'Editar Curso' : 'Nuevo Curso' }}</h2>
+          <p class="text-xs text-slate-400 mt-0.5">{{ isEditingCourse ? 'Modifica los datos del curso seleccionado' : 'Registra una nueva materia del plan de estudios' }}</p>
+        </div>
+        <button (click)="closeCourseModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200/50 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form [formGroup]="courseForm" (ngSubmit)="saveCourse()" class="p-8 space-y-5">
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Grado Académico</label>
+          <select
+            formControlName="grade_level_id"
+            class="w-full bg-slate-50 border text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            [ngClass]="isCourseFieldInvalid('grade_level_id') ? 'border-red-400 bg-red-50' : 'border-slate-200'">
+            <option value="">Selecciona un grado...</option>
+            <option *ngFor="let grade of gradeLevels" [value]="grade.id">
+              {{ grade.name }} ({{ levelLabel(grade.level) }})
+            </option>
+          </select>
+          <p *ngIf="isCourseFieldInvalid('grade_level_id')" class="text-[11px] text-red-500 font-semibold">Debe seleccionar un grado.</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Nombre del Curso</label>
+          <input
+            type="text"
+            formControlName="name"
+            placeholder="Ej: Matemática, Comunicación"
+            class="w-full bg-slate-50 border text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white hover:border-slate-300"
+            [ngClass]="isCourseFieldInvalid('name') ? 'border-red-400 bg-red-50' : 'border-slate-200'">
+          <p *ngIf="isCourseFieldInvalid('name')" class="text-[11px] text-red-500 font-semibold">El nombre del curso es obligatorio.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Código</label>
+            <input
+              type="text"
+              formControlName="code"
+              placeholder="Ej: MAT-101"
+              class="w-full bg-slate-50 border text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold uppercase transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white hover:border-slate-300"
+              [ngClass]="isCourseFieldInvalid('code') ? 'border-red-400 bg-red-50' : 'border-slate-200'">
+            <p *ngIf="isCourseFieldInvalid('code')" class="text-[11px] text-red-500 font-semibold">El código es obligatorio.</p>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Horas Semanales</label>
+            <input
+              type="number"
+              formControlName="hours_per_week"
+              placeholder="Ej: 4"
+              class="w-full bg-slate-50 border text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white hover:border-slate-300"
+              [ngClass]="isCourseFieldInvalid('hours_per_week') ? 'border-red-400 bg-red-50' : 'border-slate-200'">
+            <p *ngIf="isCourseFieldInvalid('hours_per_week')" class="text-[11px] text-red-500 font-semibold">Debe ser mayor a 0.</p>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Color Institucional (Opcional)</label>
+          <div class="flex items-center gap-3">
+            <input type="color" formControlName="color" class="w-12 h-12 rounded-xl border-none p-0 cursor-pointer bg-transparent">
+            <span class="text-xs text-slate-500 font-medium">Click para elegir el color</span>
+            <button type="button" (click)="courseForm.get('color')?.setValue('#2563EB')" class="ml-auto text-xs text-cermat-blue-700 hover:underline px-2 font-bold">Por Defecto</button>
+          </div>
+        </div>
+
+        <div class="pt-2 flex gap-3">
+          <button
+            type="button"
+            (click)="closeCourseModal()"
+            class="flex-1 px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            [disabled]="courseForm.invalid || courseSubmitting"
+            class="flex-1 px-4 py-3.5 bg-cermat-blue-700 hover:bg-cermat-blue-800 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            <span *ngIf="courseSubmitting" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            {{ isEditingCourse ? 'Guardar Cambios' : 'Registrar Curso' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: competencia (curso pre-seleccionado por contexto) -->
+  <div *ngIf="showCompetencyModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="closeCompetencyModal()"></div>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 animate-slide-up overflow-hidden border border-slate-100">
+      <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800 tracking-tight">{{ isEditingCompetency ? 'Editar Competencia' : 'Nueva Competencia' }}</h2>
+          <p class="text-xs text-slate-400 mt-0.5">{{ isEditingCompetency ? 'Modifica los datos de la competencia' : 'Registra un nuevo criterio de evaluación' }}</p>
+        </div>
+        <button (click)="closeCompetencyModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200/50 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form [formGroup]="competencyForm" (ngSubmit)="saveCompetency()" class="p-8 space-y-5">
+        <!-- Contexto: curso ya seleccionado, sin selectores de grado/curso -->
+        <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <span class="font-semibold text-slate-700">Curso:</span>
+          {{ contextCourse?.code }} · {{ contextCourse?.name }}
+          <span *ngIf="contextCourseGradeName()" class="text-slate-400">— {{ contextCourseGradeName() }}</span>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Título / Nombre de la Competencia</label>
+          <input
+            type="text"
+            formControlName="name"
+            placeholder="Ej: Resuelve problemas de cantidad"
+            class="w-full bg-slate-50 border text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white hover:border-slate-300"
+            [ngClass]="isCompetencyFieldInvalid('name') ? 'border-red-400 bg-red-50' : 'border-slate-200'">
+          <p *ngIf="isCompetencyFieldInvalid('name')" class="text-[11px] text-red-500 font-semibold">El nombre debe tener al menos 3 caracteres.</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Descripción Detallada</label>
+          <textarea
+            formControlName="description"
+            rows="3"
+            placeholder="Ej: Traduce cantidades a expresiones numéricas y comunica su comprensión..."
+            class="w-full bg-slate-50 border text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white hover:border-slate-300 resize-none leading-relaxed"
+            [ngClass]="isCompetencyFieldInvalid('description') ? 'border-red-400 bg-red-50' : 'border-slate-200'"></textarea>
+          <p *ngIf="isCompetencyFieldInvalid('description')" class="text-[11px] text-red-500 font-semibold">La descripción debe tener al menos 5 caracteres.</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Orden (Opcional)</label>
+          <input
+            type="number"
+            formControlName="order"
+            placeholder="Ej: 1, 2, 3..."
+            class="w-full bg-slate-50 border text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white hover:border-slate-300"
+            [ngClass]="isCompetencyFieldInvalid('order') ? 'border-red-400 bg-red-50' : 'border-slate-200'">
+          <p *ngIf="isCompetencyFieldInvalid('order')" class="text-[11px] text-red-500 font-semibold">El orden debe ser mayor a 0.</p>
+        </div>
+
+        <div class="pt-2 flex gap-3">
+          <button
+            type="button"
+            (click)="closeCompetencyModal()"
+            class="flex-1 px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            [disabled]="competencyForm.invalid || competencySubmitting"
+            class="flex-1 px-4 py-3.5 bg-cermat-blue-700 hover:bg-cermat-blue-800 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            <span *ngIf="competencySubmitting" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            {{ isEditingCompetency ? 'Guardar Cambios' : 'Registrar Competencia' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

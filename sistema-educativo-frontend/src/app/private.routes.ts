@@ -364,14 +364,20 @@ export const PRIVATE_ROUTES: Routes = [
         pathMatch: 'full'
       },
       {
+        path: 'settings/study-plan',
+        loadComponent: () => import('./features/admin/settings/study-plan/study-plan.component').then(m => m.StudyPlanComponent),
+        title: 'CERMAT - Plan de Estudios'
+      },
+      // Rutas antiguas: redirigen al plan de estudios unificado
+      {
         path: 'settings/courses',
-        loadComponent: () => import('./features/admin/settings/courses.component').then(m => m.CoursesComponent),
-        title: 'CERMAT - Cursos'
+        redirectTo: 'settings/study-plan',
+        pathMatch: 'full'
       },
       {
         path: 'settings/competencies',
-        loadComponent: () => import('./features/admin/settings/competencies.component').then(m => m.CompetenciesComponent),
-        title: 'CERMAT - Competencias'
+        redirectTo: 'settings/study-plan',
+        pathMatch: 'full'
       },
       {
         path: 'settings/teacher-assignments',

@@ -252,16 +252,10 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
         title: 'Gestión Académica',
         items: [
           {
-            title: 'Cursos',
-            description: 'Catálogo de asignaturas',
+            title: 'Plan de Estudios',
+            description: 'Cursos y competencias por grado',
             icon: ICONS.bookOpen,
-            path: '/app/settings/courses'
-          },
-          {
-            title: 'Competencias',
-            description: 'Capacidades y criterios de evaluación',
-            icon: ICONS.award,
-            path: '/app/settings/competencies'
+            path: '/app/settings/study-plan'
           },
           {
             title: 'Asignación Docente',
