@@ -80,10 +80,10 @@ Route::pattern('announcement', '[0-9a-fA-F-]{36}');
 |--------------------------------------------------------------------------
 */
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::get('/public/enrollment-options', [EnrollmentApplicationController::class, 'publicOptions']);
 Route::post('/public/enrollment-applications', [EnrollmentApplicationController::class, 'store']);
-Route::get('/public/guardian-lookup', [EnrollmentApplicationController::class, 'guardianLookup']);
+Route::get('/public/guardian-lookup', [EnrollmentApplicationController::class, 'guardianLookup'])->middleware('throttle:10,1');
 
 // Noticias públicas (sin autenticación)
 Route::get('/public/news', [PublicNewsController::class, 'published']);
@@ -461,11 +461,23 @@ Route::middleware('auth:sanctum')->group(function () {
     | Publicación y flujo de aprobación de anuncios internos.
     |--------------------------------------------------------------------------
     */
-    Route::apiResource('announcements', AnnouncementController::class);
+    // Lectura: el controlador filtra visibilidad por rol (docente solo los suyos,
+    // estudiante/apoderado solo publicados según audiencia)
+    Route::apiResource('announcements', AnnouncementController::class)
+        ->only(['index', 'show'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher,student,guardian');
 
-    Route::post('announcements/{announcement}/request-approval', [AnnouncementController::class, 'requestApproval']);
-    Route::post('announcements/{announcement}/approve', [AnnouncementController::class, 'approve']);
-    Route::post('announcements/{announcement}/archive', [AnnouncementController::class, 'archive']);
+    // Escritura: administración y docentes (el controlador valida propiedad del docente)
+    Route::apiResource('announcements', AnnouncementController::class)
+        ->only(['store', 'update', 'destroy'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher');
+
+    Route::post('announcements/{announcement}/request-approval', [AnnouncementController::class, 'requestApproval'])
+        ->middleware('role:admin,director,coordinator,secretary,teacher');
+    Route::post('announcements/{announcement}/approve', [AnnouncementController::class, 'approve'])
+        ->middleware('role:admin,director,coordinator,secretary');
+    Route::post('announcements/{announcement}/archive', [AnnouncementController::class, 'archive'])
+        ->middleware('role:admin,director,coordinator,secretary');
 
     /*
     |--------------------------------------------------------------------------
