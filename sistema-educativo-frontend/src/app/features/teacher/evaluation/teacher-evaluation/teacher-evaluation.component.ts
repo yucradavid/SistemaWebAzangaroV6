@@ -31,6 +31,8 @@ interface EvaluationCellState {
   status: EvaluationStatus;
   dirty: boolean;
   publishedAt?: string | null;
+  reopenStatus?: 'pendiente' | 'aprobada' | null;
+  reopenExpiresAt?: string | null;
 }
 
 interface TeacherEvaluationPeriod {
@@ -194,6 +196,8 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
         observations: '',
         status: 'borrador',
         dirty: false,
+        reopenStatus: null,
+        reopenExpiresAt: null,
       };
     }
 
@@ -330,45 +334,76 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
   }
 
   isCellLocked(record: EvaluationCellState): boolean {
-    return this.isPeriodClosed || record.status === 'publicada' || record.status === 'cerrada';
+    if (this.isPeriodClosed || record.status === 'cerrada') {
+      return true;
+    }
+
+    // Publicada: bloqueada SALVO reapertura aprobada y vigente (24h)
+    if (record.status === 'publicada') {
+      return !this.hasActiveReopen(record);
+    }
+
+    return false;
   }
 
-  revertCellToDraft(studentId: string, competencyId: string): void {
+  hasActiveReopen(record: EvaluationCellState): boolean {
+    return record.reopenStatus === 'aprobada'
+      && !!record.reopenExpiresAt
+      && new Date(record.reopenExpiresAt).getTime() > Date.now();
+  }
+
+  hasPendingReopen(record: EvaluationCellState): boolean {
+    return record.reopenStatus === 'pendiente';
+  }
+
+  canRequestReopen(record: EvaluationCellState): boolean {
+    return record.status === 'publicada'
+      && !!record.id
+      && !this.hasPendingReopen(record)
+      && !this.hasActiveReopen(record)
+      && !this.isPeriodClosed;
+  }
+
+  requestReopenForCell(studentId: string, competencyId: string): void {
     const record = this.recordFor(studentId, competencyId);
 
-    if (record.status !== 'publicada' || !record.id) {
+    if (!this.canRequestReopen(record)) {
       return;
     }
 
     Swal.fire({
-      icon: 'warning',
-      title: '¿Reabrir evaluación?',
-      text: 'La nota volverá a estado borrador para que puedas editarla.',
+      title: 'Solicitar reapertura',
+      text: 'Un administrador debe aprobar la solicitud antes de que puedas editar esta nota publicada.',
+      input: 'textarea',
+      inputLabel: 'Motivo de la solicitud',
+      inputPlaceholder: 'Explica por qué necesitas corregir esta nota...',
+      inputValidator: (value) => (!value || value.trim().length < 5) ? 'Escribe un motivo (mínimo 5 caracteres).' : undefined,
       showCancelButton: true,
-      confirmButtonText: 'Sí, reabrir',
+      confirmButtonText: 'Enviar solicitud',
       cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#d97706',
+      confirmButtonColor: '#1d4ed8',
       cancelButtonColor: '#64748b'
     }).then((result) => {
-      if (!result.isConfirmed) {
+      if (!result.isConfirmed || !result.value) {
         return;
       }
 
-      this.evaluationService.revertToDraft(record.id!).subscribe({
+      this.evaluationService.requestReopen(record.id!, String(result.value).trim()).subscribe({
         next: () => {
-          record.status = 'borrador';
-          this.success = 'Evaluación reabierta para edición.';
+          record.reopenStatus = 'pendiente';
+          this.success = 'Solicitud de reapertura enviada. Espera la aprobación del administrador.';
           Swal.fire({
             icon: 'success',
-            title: 'Evaluación reabierta',
+            title: 'Solicitud enviada',
+            text: 'Recibirás una notificación cuando sea aprobada o rechazada.',
             toast: true,
             position: 'top-end',
-            timer: 3000,
+            timer: 4000,
             showConfirmButton: false
           });
         },
         error: (error: HttpErrorResponse) => {
-          const message = this.formatApiError(error, 'No se pudo reabrir la evaluación.');
+          const message = this.formatApiError(error, 'No se pudo enviar la solicitud de reapertura.');
           this.error = message;
           Swal.fire({ icon: 'error', title: 'Error', text: message });
         }
@@ -489,6 +524,8 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
         status: evaluation.status || 'borrador',
         dirty: false,
         publishedAt: evaluation.published_at || null,
+        reopenStatus: evaluation.reopen_status ?? null,
+        reopenExpiresAt: evaluation.reopen_expires_at ?? null,
       };
     });
   }

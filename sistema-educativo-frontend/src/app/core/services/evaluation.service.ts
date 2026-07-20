@@ -219,6 +219,23 @@ export interface SectionEvaluationDashboard {
   students: SectionEvaluationDashboardStudent[];
 }
 
+export interface EvaluationReopenRequest {
+  id: string;
+  evaluation_id: string;
+  teacher_id: string;
+  requested_by: string;
+  reason: string;
+  status: 'pendiente' | 'aprobada' | 'rechazada';
+  approved_by?: string | null;
+  approved_at?: string | null;
+  expires_at?: string | null;
+  rejection_reason?: string | null;
+  created_at?: string;
+  evaluation?: any;
+  teacher?: any;
+  approver?: any;
+}
+
 export interface TeacherEvaluationContext {
   teacher: any | null;
   active_academic_year: {
@@ -271,8 +288,30 @@ export class EvaluationService {
     return this.http.post<Evaluation>(`${this.apiUrl}/${id}/close`, {});
   }
 
+  // Solo funciona con reapertura aprobada vigente o siendo admin/director/coordinator
   revertToDraft(evaluationId: string): Observable<Evaluation> {
     return this.http.post<Evaluation>(`${this.apiUrl}/${evaluationId}/draft`, {});
+  }
+
+  requestReopen(evaluationId: string, reason: string): Observable<EvaluationReopenRequest> {
+    return this.http.post<EvaluationReopenRequest>(`${environment.apiUrl}/evaluation-reopen-requests`, {
+      evaluation_id: evaluationId,
+      reason,
+    });
+  }
+
+  getReopenRequests(params: any = {}): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/evaluation-reopen-requests`, { params });
+  }
+
+  approveReopenRequest(id: string): Observable<EvaluationReopenRequest> {
+    return this.http.post<EvaluationReopenRequest>(`${environment.apiUrl}/evaluation-reopen-requests/${id}/approve`, {});
+  }
+
+  rejectReopenRequest(id: string, rejectionReason: string): Observable<EvaluationReopenRequest> {
+    return this.http.post<EvaluationReopenRequest>(`${environment.apiUrl}/evaluation-reopen-requests/${id}/reject`, {
+      rejection_reason: rejectionReason,
+    });
   }
 
   getFinalCompetencyResults(params: any = {}): Observable<any> {

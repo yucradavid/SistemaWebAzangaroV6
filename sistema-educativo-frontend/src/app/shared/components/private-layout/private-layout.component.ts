@@ -5,11 +5,12 @@ import { AuthService } from '../../../core/services/auth.service';
 import { User } from '../../../core/models/user.model';
 import { PeriodContextService } from '../../../core/services/period-context.service';
 import { Period } from '../../../core/services/academic.service';
+import { NotificationsBellComponent } from '../notifications-bell/notifications-bell.component';
 
 @Component({
   selector: 'app-private-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, NotificationsBellComponent],
   templateUrl: './private-layout.component.html'
 })
 export class PrivateLayoutComponent implements OnInit {

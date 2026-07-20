@@ -7,6 +7,7 @@ use App\Http\Requests\StoreEvaluationRequest;
 use App\Http\Requests\UpdateEvaluationRequest;
 use App\Models\AcademicYear;
 use App\Models\Evaluation;
+use App\Models\EvaluationReopenRequest;
 use App\Models\Period;
 use App\Models\Teacher;
 use App\Models\TeacherCourseAssignment;
@@ -30,7 +31,7 @@ class EvaluationController extends Controller
                 ->where('user_id', (string) $request->user()?->id)
                 ->first();
 
-            if (!$teacher) {
+            if (! $teacher) {
                 return response()->json([
                     'teacher' => null,
                     'active_academic_year' => null,
@@ -102,7 +103,11 @@ class EvaluationController extends Controller
 
         $perPage = max(1, min((int) $request->integer('per_page', 50), 1000));
 
-        return $query->orderByDesc('created_at')->paginate($perPage);
+        $paginator = $query->orderByDesc('created_at')->paginate($perPage);
+
+        $this->appendReopenInfo($paginator->getCollection());
+
+        return $paginator;
     }
 
     public function store(StoreEvaluationRequest $request): JsonResponse
@@ -115,6 +120,20 @@ class EvaluationController extends Controller
             (string) $data['course_id'],
             (string) $data['period_id']
         );
+
+        // Una nota ya publicada solo puede sobreescribirse con reapertura
+        // aprobada vigente (o siendo admin/director/coordinator).
+        $existing = Evaluation::query()
+            ->where('student_id', (string) $data['student_id'])
+            ->where('competency_id', (string) $data['competency_id'])
+            ->where('period_id', (string) $data['period_id'])
+            ->first();
+
+        if ($existing && ! $this->canEditPublished($request, $existing)) {
+            return response()->json([
+                'message' => 'La nota ya fue publicada. Solicita una reapertura y espera la aprobacion para editarla.',
+            ], 403);
+        }
 
         $evaluation = Evaluation::updateOrCreate(
             [
@@ -143,6 +162,12 @@ class EvaluationController extends Controller
             return response()->json([
                 'message' => 'La evaluacion esta cerrada y no puede modificarse.',
             ], 422);
+        }
+
+        if (! $this->canEditPublished($request, $evaluation)) {
+            return response()->json([
+                'message' => 'La nota ya fue publicada. Solicita una reapertura y espera la aprobacion para editarla.',
+            ], 403);
         }
 
         $data = $this->normalizePayload($request->validated(), $request, false);
@@ -180,7 +205,7 @@ class EvaluationController extends Controller
             'status' => 'cerrada',
         ];
 
-        if (!$evaluation->published_at) {
+        if (! $evaluation->published_at) {
             $payload['published_at'] = now();
         }
 
@@ -199,6 +224,12 @@ class EvaluationController extends Controller
             ], 422);
         }
 
+        if (! $this->canEditPublished($request, $evaluation)) {
+            return response()->json([
+                'message' => 'Necesitas una solicitud de reapertura aprobada y vigente para editar esta nota publicada.',
+            ], 403);
+        }
+
         $evaluation->update(['status' => 'borrador']);
 
         return $evaluation->fresh()->load(['student', 'course', 'competency', 'period']);
@@ -206,7 +237,7 @@ class EvaluationController extends Controller
 
     private function normalizePayload(array $data, Request $request, bool $isCreate = true): array
     {
-        if (array_key_exists('comments', $data) && !array_key_exists('observations', $data)) {
+        if (array_key_exists('comments', $data) && ! array_key_exists('observations', $data)) {
             $data['observations'] = $data['comments'];
         }
 
@@ -223,11 +254,80 @@ class EvaluationController extends Controller
             $data['published_at'] = now();
         }
 
-        if (!$isCreate) {
+        if (! $isCreate) {
             unset($data['student_id'], $data['course_id'], $data['competency_id'], $data['period_id']);
         }
 
         return $data;
+    }
+
+    /**
+     * Una nota publicada solo es editable si quien llama es
+     * admin/director/coordinator o si existe una solicitud de reapertura
+     * aprobada y vigente (expires_at > ahora). Borradores siempre editables.
+     */
+    private function canEditPublished(Request $request, Evaluation $evaluation): bool
+    {
+        if ($evaluation->status !== 'publicada') {
+            return true;
+        }
+
+        $role = $request->user()?->profile?->role ?? $request->user()?->role;
+
+        if (in_array($role, ['admin', 'director', 'coordinator'], true)) {
+            return true;
+        }
+
+        return EvaluationReopenRequest::hasActiveForEvaluation((string) $evaluation->id);
+    }
+
+    /**
+     * Anexa reopen_status (null|pendiente|aprobada) y reopen_expires_at a cada
+     * evaluacion publicada, considerando solo solicitudes no expiradas.
+     */
+    private function appendReopenInfo($evaluations): void
+    {
+        $publishedIds = $evaluations
+            ->filter(fn ($evaluation) => $evaluation->status === 'publicada')
+            ->map(fn ($evaluation) => (string) $evaluation->id)
+            ->values()
+            ->all();
+
+        $requests = empty($publishedIds)
+            ? collect()
+            : EvaluationReopenRequest::query()
+                ->whereIn('evaluation_id', $publishedIds)
+                ->where(function ($q) {
+                    $q->where('status', 'pendiente')
+                        ->orWhere(function ($qq) {
+                            $qq->where('status', 'aprobada')->where('expires_at', '>', now());
+                        });
+                })
+                ->orderByDesc('created_at')
+                ->get()
+                ->groupBy('evaluation_id');
+
+        $evaluations->each(function ($evaluation) use ($requests) {
+            $status = null;
+            $expiresAt = null;
+
+            $forEvaluation = $requests->get((string) $evaluation->id);
+
+            if ($forEvaluation) {
+                $approved = $forEvaluation->firstWhere('status', 'aprobada');
+                $pending = $forEvaluation->firstWhere('status', 'pendiente');
+
+                if ($approved) {
+                    $status = 'aprobada';
+                    $expiresAt = $approved->expires_at;
+                } elseif ($pending) {
+                    $status = 'pendiente';
+                }
+            }
+
+            $evaluation->setAttribute('reopen_status', $status);
+            $evaluation->setAttribute('reopen_expires_at', $expiresAt);
+        });
     }
 
     private function applyTeacherScope(Builder $query, Request $request): void
@@ -238,8 +338,9 @@ class EvaluationController extends Controller
 
         $teacherId = $this->resolveTeacherId($request);
 
-        if (!$teacherId) {
+        if (! $teacherId) {
             $query->whereRaw('1 = 0');
+
             return;
         }
 
@@ -293,7 +394,7 @@ class EvaluationController extends Controller
 
         $teacherId = $this->resolveTeacherId($request);
 
-        if (!$teacherId) {
+        if (! $teacherId) {
             throw ValidationException::withMessages([
                 'teacher' => 'No se encontro el docente asociado al usuario autenticado.',
             ]);
@@ -319,7 +420,7 @@ class EvaluationController extends Controller
                 ->exists()
             : false;
 
-        if (!$isAssigned) {
+        if (! $isAssigned) {
             throw ValidationException::withMessages([
                 'assignment' => 'No tienes una asignacion activa para evaluar este estudiante en ese curso y periodo.',
             ]);
@@ -337,7 +438,7 @@ class EvaluationController extends Controller
     {
         $authUser = $request->user();
 
-        if (!$authUser) {
+        if (! $authUser) {
             return null;
         }
 

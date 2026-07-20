@@ -51,6 +51,7 @@ use App\Http\Controllers\Api\AttendanceJustificationController;
 // Comunicación
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\EvaluationReopenRequestController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PublicNewsController;
 
@@ -411,6 +412,23 @@ Route::middleware('auth:sanctum')->group(function () {
             [AcademicEvaluationController::class, 'recalculateSection']
         );
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | MÓDULO: SOLICITUDES DE REAPERTURA DE NOTAS
+    |--------------------------------------------------------------------------
+    | El docente solicita reabrir una nota publicada; admin/director/coordinator
+    | aprueba (ventana de 24h) o rechaza. Ver EvaluationController::draft.
+    |--------------------------------------------------------------------------
+    */
+    Route::post('evaluation-reopen-requests', [EvaluationReopenRequestController::class, 'store'])
+        ->middleware('role:teacher');
+    Route::get('evaluation-reopen-requests', [EvaluationReopenRequestController::class, 'index'])
+        ->middleware('role:admin,director,coordinator');
+    Route::post('evaluation-reopen-requests/{evaluationReopenRequest}/approve', [EvaluationReopenRequestController::class, 'approve'])
+        ->middleware('role:admin,director,coordinator');
+    Route::post('evaluation-reopen-requests/{evaluationReopenRequest}/reject', [EvaluationReopenRequestController::class, 'reject'])
+        ->middleware('role:admin,director,coordinator');
 
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
         Route::apiResource('promotion-rules', PromotionRuleController::class);

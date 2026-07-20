@@ -263,13 +263,30 @@
                       : 'Borrador' }}
                   </span>
 
+                  <!-- Publicada sin solicitud: pedir reapertura (requiere aprobación del admin) -->
                   <button
-                    *ngIf="recordFor(student.id, competency.id).status === 'publicada'"
-                    (click)="revertCellToDraft(student.id, competency.id)"
-                    class="text-[10px] font-bold text-amber-600 hover:text-amber-800 underline cursor-pointer ml-1"
-                    title="Reabrir para edición">
-                    ✏️ Reabrir
+                    *ngIf="canRequestReopen(recordFor(student.id, competency.id))"
+                    (click)="requestReopenForCell(student.id, competency.id)"
+                    class="text-[10px] font-bold text-cermat-blue-700 hover:text-cermat-blue-900 underline cursor-pointer ml-1"
+                    title="Solicitar reapertura al administrador">
+                    📨 Solicitar reapertura
                   </button>
+
+                  <!-- Solicitud enviada, esperando aprobación -->
+                  <span
+                    *ngIf="recordFor(student.id, competency.id).status === 'publicada' && hasPendingReopen(recordFor(student.id, competency.id))"
+                    class="inline-flex items-center px-2 py-0.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-[10px] font-bold ml-1"
+                    title="Un administrador debe aprobar la solicitud">
+                    ⏳ Solicitud pendiente
+                  </span>
+
+                  <!-- Reapertura aprobada y vigente: la celda queda editable -->
+                  <span
+                    *ngIf="recordFor(student.id, competency.id).status === 'publicada' && hasActiveReopen(recordFor(student.id, competency.id))"
+                    class="inline-flex items-center px-2 py-0.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] font-bold ml-1"
+                    title="Ventana de edición aprobada por el administrador">
+                    ✅ Editable hasta {{ recordFor(student.id, competency.id).reopenExpiresAt | date:'HH:mm dd/MM' }}
+                  </span>
                 </div>
               </div>
             </td>
