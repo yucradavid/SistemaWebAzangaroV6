@@ -1,29 +1,21 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
     /**
-     * Run the migrations.
-     * Esta migración se encarga de importar la estructura base (las tablas de negocio)
-     * provenientes del dump de la base de datos (backupcole.sql). 
-     * Con esto, al ejecutar php artisan migrate:fresh las tablas base se restauran primero.
+     * No-op intencional: importar el dump de Supabase (COPY ... FROM stdin,
+     * \restrict, etc.) vía DB::unprepared()/PDO no funciona porque PDO no
+     * entiende esa sintaxis de psql. El esquema + datos base se restauran
+     * con scripts/restore-local-postgres.ps1 (usa psql -f, que sí la entiende)
+     * ANTES de correr las migraciones normales. Ver INSTALL.md.
+     * Se deja esta migración vacía (en vez de eliminarla) para no romper el
+     * historial/orden de migraciones ya aplicado en entornos existentes.
      */
     public function up(): void
     {
-        $sqlPath = base_path('backupcole.sql');
-        
-        if (file_exists($sqlPath)) {
-            DB::unprepared(file_get_contents($sqlPath));
-        } else {
-            // Imprime un aviso si el archivo no existe (para entornos de producción/staging sin el archivo)
-            // Se asume que en otros entornos el esquema ya existe o se manejará por otros medios.
-            if (app()->environment('local')) {
-                echo "\n[WARNING] No se encontró el archivo backupcole.sql en el directorio base.\n";
-            }
-        }
+        //
     }
 
     /**

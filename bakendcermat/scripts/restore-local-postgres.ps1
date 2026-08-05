@@ -41,7 +41,7 @@ function Sync-BaselineMigrations {
         "0001_01_01_000001_create_cache_table",
         "0001_01_01_000002_create_jobs_table",
         "2026_02_07_033456_create_personal_access_tokens_table",
-        "2026_03_03_000000_add_user_id_to_profiles_table"
+        "2026_06_14_000004_add_user_id_to_profiles_table"
     )
 
     foreach ($migration in $baselineMigrations) {
