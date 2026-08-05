@@ -27,38 +27,6 @@ function Get-PsqlPath {
     throw "No se encontro psql.exe. Instala PostgreSQL o agrega psql al PATH."
 }
 
-function Sync-BaselineMigrations {
-    param(
-        [string]$PsqlPath,
-        [string]$DatabaseName,
-        [string]$DatabaseUser,
-        [string]$DatabaseHost,
-        [int]$DatabasePort
-    )
-
-    $baselineMigrations = @(
-        "0001_01_01_000000_create_users_table",
-        "0001_01_01_000001_create_cache_table",
-        "0001_01_01_000002_create_jobs_table",
-        "2026_02_07_033456_create_personal_access_tokens_table",
-        "2026_06_14_000004_add_user_id_to_profiles_table"
-    )
-
-    foreach ($migration in $baselineMigrations) {
-        $sql = @"
-INSERT INTO public.migrations (migration, batch)
-SELECT '$migration', 1
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM public.migrations
-    WHERE migration = '$migration'
-);
-"@
-
-        & $PsqlPath -U $DatabaseUser -h $DatabaseHost -p $DatabasePort -d $DatabaseName -c $sql | Out-Null
-    }
-}
-
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $dumpPath = if ([string]::IsNullOrWhiteSpace($DumpFile)) {
     (Join-Path $projectRoot "backup_utf8.sql")
@@ -90,8 +58,6 @@ if ($exists -ne "1" -or $Recreate) {
 if ($LASTEXITCODE -ne 0) {
     throw "La restauracion del dump termino con codigo $LASTEXITCODE."
 }
-
-Sync-BaselineMigrations -PsqlPath $psql -DatabaseName $Database -DatabaseUser $User -DatabaseHost $DbHost -DatabasePort $Port
 
 Push-Location $projectRoot
 try {
