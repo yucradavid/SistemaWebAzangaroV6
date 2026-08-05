@@ -8,15 +8,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('profiles', function (Blueprint $table) {
-            $table->foreignUuid('user_id')->nullable()->unique()->after('id');
-            $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
-        });
+        if (Schema::hasTable('profiles')) {
+            if (!Schema::hasColumn('profiles', 'user_id')) {
+                Schema::table('profiles', function (Blueprint $table) {
+                    $table->foreignUuid('user_id')->nullable()->unique()->after('id');
+                    $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
+                });
+            }
+        }
     }
 
     public function down(): void
     {
-        if (Schema::hasColumn('profiles', 'user_id')) {
+        if (Schema::hasTable('profiles') && Schema::hasColumn('profiles', 'user_id')) {
             DB::statement('alter table "profiles" drop constraint if exists profiles_user_id_foreign');
 
             Schema::table('profiles', function (Blueprint $table) {

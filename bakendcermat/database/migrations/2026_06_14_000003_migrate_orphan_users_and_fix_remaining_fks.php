@@ -30,6 +30,14 @@ return new class extends Migration
 
     public function up(): void
     {
+        // Verificar si existen las tablas involucradas antes de proceder
+        $requiredTables = ['students', 'guardians', 'evaluations', 'users'];
+        foreach ($requiredTables as $t) {
+            if (!Schema::hasTable($t)) {
+                return;
+            }
+        }
+
         // 0) Soltar primero las 3 FKs viejas (aun apuntan a auth.users). Esto es
         //    imprescindible: el remap de referencias huerfanas violaria la FK
         //    vieja si esta siguiera activa.
@@ -103,12 +111,14 @@ return new class extends Migration
         // Reapuntar las FKs de vuelta a auth.users. No se eliminan los usuarios
         // copiados (no es seguro distinguirlos de altas legitimas posteriores).
         foreach ($this->refs as [$table, $column]) {
-            $constraint = "{$table}_{$column}_fkey";
-            DB::statement("ALTER TABLE public.\"$table\" DROP CONSTRAINT IF EXISTS $constraint");
-            DB::statement(
-                "ALTER TABLE public.\"$table\" ADD CONSTRAINT $constraint "
-                . "FOREIGN KEY ($column) REFERENCES auth.users(id) ON DELETE SET NULL"
-            );
+            if (Schema::hasTable($table)) {
+                $constraint = "{$table}_{$column}_fkey";
+                DB::statement("ALTER TABLE public.\"$table\" DROP CONSTRAINT IF EXISTS $constraint");
+                DB::statement(
+                    "ALTER TABLE public.\"$table\" ADD CONSTRAINT $constraint "
+                    . "FOREIGN KEY ($column) REFERENCES auth.users(id) ON DELETE SET NULL"
+                );
+            }
         }
     }
 

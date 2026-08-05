@@ -51,6 +51,10 @@ return new class extends Migration
 
     private function repoint(string $table, string $constraint, string $column, string $referenced, string $onDelete): void
     {
+        if (!Schema::hasTable($table)) {
+            return;
+        }
+
         DB::statement("ALTER TABLE public.\"$table\" DROP CONSTRAINT IF EXISTS $constraint");
 
         DB::statement(

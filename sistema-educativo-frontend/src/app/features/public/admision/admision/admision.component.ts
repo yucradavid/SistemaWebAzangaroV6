@@ -80,15 +80,15 @@ export class AdmisionComponent implements OnInit {
       student_first_name: ['', Validators.required],
       student_last_name: ['', Validators.required],
       student_document_type: ['DNI', Validators.required],
-      student_document_number: ['', Validators.required],
+      student_document_number: ['', [Validators.required, Validators.pattern('^[0-9]{8}$'), Validators.minLength(8), Validators.maxLength(8)]],
       student_birth_date: ['', Validators.required],
       student_gender: ['', Validators.required],
       student_address: [''],
       guardian_first_name: ['', Validators.required],
       guardian_last_name: ['', Validators.required],
       guardian_document_type: ['DNI', Validators.required],
-      guardian_document_number: ['', Validators.required],
-      guardian_phone: ['', Validators.required],
+      guardian_document_number: ['', [Validators.required, Validators.pattern('^[0-9]{8}$'), Validators.minLength(8), Validators.maxLength(8)]],
+      guardian_phone: ['', [Validators.required, Validators.pattern('^[0-9]{9}$'), Validators.minLength(9), Validators.maxLength(9)]],
       guardian_email: ['', [Validators.required, Validators.email]],
       guardian_address: [''],
       guardian_relationship: ['Madre', Validators.required],
@@ -96,8 +96,29 @@ export class AdmisionComponent implements OnInit {
       has_special_needs: [false],
       special_needs_description: [''],
       emergency_contact_name: [''],
-      emergency_contact_phone: [''],
+      emergency_contact_phone: ['', [Validators.pattern('^[0-9]{9}$'), Validators.minLength(9), Validators.maxLength(9)]],
       notes: ['']
+    });
+
+    // Escuchar cambios de tipo de documento para ajustar validación de DNI
+    this.admissionForm.get('student_document_type')?.valueChanges.subscribe(type => {
+      const control = this.admissionForm.get('student_document_number');
+      if (type === 'DNI') {
+        control?.setValidators([Validators.required, Validators.pattern('^[0-9]{8}$'), Validators.minLength(8), Validators.maxLength(8)]);
+      } else {
+        control?.setValidators([Validators.required]);
+      }
+      control?.updateValueAndValidity();
+    });
+
+    this.admissionForm.get('guardian_document_type')?.valueChanges.subscribe(type => {
+      const control = this.admissionForm.get('guardian_document_number');
+      if (type === 'DNI') {
+        control?.setValidators([Validators.required, Validators.pattern('^[0-9]{8}$'), Validators.minLength(8), Validators.maxLength(8)]);
+      } else {
+        control?.setValidators([Validators.required]);
+      }
+      control?.updateValueAndValidity();
     });
   }
 
@@ -114,8 +135,8 @@ export class AdmisionComponent implements OnInit {
     guardian_last_name: 'Apellidos del apoderado',
     guardian_document_type: 'Tipo de documento (Apoderado)',
     guardian_document_number: 'Número de documento (Apoderado)',
-    guardian_phone: 'Celular del apoderado',
-    guardian_email: 'Email del apoderado',
+    guardian_phone: 'Teléfono del apoderado',
+    guardian_email: 'Correo del apoderado',
     guardian_relationship: 'Parentesco'
   };
 
@@ -127,6 +148,11 @@ export class AdmisionComponent implements OnInit {
     });
 
     this.loadAdmissionOptions();
+  }
+
+  isFieldInvalid(fieldName: string): boolean {
+    const control = this.admissionForm.get(fieldName);
+    return !!(control && control.invalid && (control.touched || control.dirty));
   }
 
   getMissingFields(): string[] {
@@ -152,6 +178,12 @@ export class AdmisionComponent implements OnInit {
 
   toggleFaq(index: number): void {
     this.openFaqIndex.set(this.openFaqIndex() === index ? null : index);
+  }
+
+  resetSuccess(): void {
+    this.submitSuccess.set(false);
+    this.guardianFound = false;
+    this.siblingsDetected = [];
   }
 
   onGuardianDniBlur(dni: string): void {
@@ -265,8 +297,6 @@ export class AdmisionComponent implements OnInit {
           guardian_relationship: 'Madre',
           has_special_needs: false
         });
-
-        setTimeout(() => this.submitSuccess.set(false), 5000);
       },
       error: (error) => {
         this.isSubmitting.set(false);

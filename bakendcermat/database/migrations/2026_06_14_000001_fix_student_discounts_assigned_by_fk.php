@@ -13,23 +13,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement('ALTER TABLE public.student_discounts DROP CONSTRAINT IF EXISTS student_discounts_assigned_by_fkey');
+        if (Schema::hasTable('student_discounts')) {
+            DB::statement('ALTER TABLE public.student_discounts DROP CONSTRAINT IF EXISTS student_discounts_assigned_by_fkey');
 
-        DB::statement(
-            'ALTER TABLE public.student_discounts '
-            . 'ADD CONSTRAINT student_discounts_assigned_by_fkey '
-            . 'FOREIGN KEY (assigned_by) REFERENCES public.users(id) ON DELETE SET NULL'
-        );
+            DB::statement(
+                'ALTER TABLE public.student_discounts '
+                . 'ADD CONSTRAINT student_discounts_assigned_by_fkey '
+                . 'FOREIGN KEY (assigned_by) REFERENCES public.users(id) ON DELETE SET NULL'
+            );
+        }
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE public.student_discounts DROP CONSTRAINT IF EXISTS student_discounts_assigned_by_fkey');
+        if (Schema::hasTable('student_discounts')) {
+            DB::statement('ALTER TABLE public.student_discounts DROP CONSTRAINT IF EXISTS student_discounts_assigned_by_fkey');
 
-        DB::statement(
-            'ALTER TABLE public.student_discounts '
-            . 'ADD CONSTRAINT student_discounts_assigned_by_fkey '
-            . 'FOREIGN KEY (assigned_by) REFERENCES auth.users(id) ON DELETE SET NULL'
-        );
+            DB::statement(
+                'ALTER TABLE public.student_discounts '
+                . 'ADD CONSTRAINT student_discounts_assigned_by_fkey '
+                . 'FOREIGN KEY (assigned_by) REFERENCES auth.users(id) ON DELETE SET NULL'
+            );
+        }
     }
 };
