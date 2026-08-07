@@ -80,9 +80,18 @@ Qué hace el script exactamente:
 2. Importa `backup_utf8.sql` con `psql -f` (entiende `COPY`/metacomandos, PDO no).
 3. Marca como ya aplicadas en `migrations` las migraciones cuyo efecto ya viene
    incluido en el dump, para que Laravel no intente re-crearlas.
-4. Ejecuta `php artisan migrate --force` para aplicar el resto de migraciones
+4. Ejecuta `php artisan db:fix-sequences` para resincronizar las secuencias
+   `serial`/`bigserial`/`identity` del esquema `public` (p. ej. `migrations.id`,
+   `personal_access_tokens.id`) con el `MAX(id)` real de cada tabla. El dump
+   inserta filas con ids explícitos sin avanzar sus secuencias, así que sin
+   este paso la siguiente migración que inserte en una de esas tablas puede
+   fallar con `UniqueConstraintViolationException` (id duplicado). No toca
+   ninguna fila de datos, solo el contador interno de la secuencia — es
+   seguro correrlo también a mano en cualquier momento (con `--dry-run` para
+   ver qué corregiría sin aplicar cambios).
+5. Ejecuta `php artisan migrate --force` para aplicar el resto de migraciones
    (las que son posteriores al dump).
-5. Limpia la caché de configuración.
+6. Limpia la caché de configuración.
 
 Es normal ver errores durante la importación por roles/extensiones de
 Supabase que no existen en Postgres local (`supabase_admin`, `pg_graphql`,

@@ -61,6 +61,11 @@ if ($LASTEXITCODE -ne 0) {
 
 Push-Location $projectRoot
 try {
+    # El dump importa filas con ids explicitos (COPY/INSERT) sin avanzar las
+    # secuencias serial/bigserial asociadas. Si no se corrige, la siguiente
+    # migracion que inserte en una tabla con id serial (p.ej. "migrations")
+    # puede chocar contra un id ya existente con UniqueConstraintViolationException.
+    php artisan db:fix-sequences
     php artisan migrate --force
     php artisan config:clear
 } finally {
