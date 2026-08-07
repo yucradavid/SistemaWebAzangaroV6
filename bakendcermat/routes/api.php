@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\StudentGuardianController;
 use App\Http\Controllers\Api\EnrollmentApplicationController;
 use App\Http\Controllers\Api\TeacherCourseAssignmentController;
 use App\Http\Controllers\Api\StudentCourseEnrollmentController;
+use App\Http\Controllers\Api\SystemSettingController;
 
 // Tareas / Entregas
 use App\Http\Controllers\Api\AssignmentController;
@@ -187,6 +188,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('teachers/{id}', [TeacherController::class, 'update']);
         Route::delete('teachers/{id}', [TeacherController::class, 'destroy']);
     });
+    Route::put('teachers/{id}/max-courses-override', [TeacherController::class, 'updateMaxCoursesOverride'])
+        ->middleware('role:admin,director');
+    Route::post('teachers/{id}/max-courses-override/confirm', [TeacherController::class, 'confirmMaxCoursesOverride'])
+        ->middleware('role:admin,director');
 
     /*
     |--------------------------------------------------------------------------
@@ -234,6 +239,8 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::get('teacher-course-assignments', [TeacherCourseAssignmentController::class, 'index'])
         ->middleware('role:admin,director,coordinator,secretary,administrative,teacher');
+    Route::get('teacher-course-assignments/by-course-section', [TeacherCourseAssignmentController::class, 'byCourseSection'])
+        ->middleware('role:admin,director,coordinator,secretary,administrative,teacher');
     Route::get('teacher-course-assignments/{id}', [TeacherCourseAssignmentController::class, 'show'])
         ->middleware('role:admin,director,coordinator,secretary,administrative,teacher');
     Route::get('student-course-enrollments', [StudentCourseEnrollmentController::class, 'index'])
@@ -248,6 +255,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('enrollment-applications/{id}/reject', [EnrollmentApplicationController::class, 'reject']);
 
         Route::post('teacher-course-assignments', [TeacherCourseAssignmentController::class, 'store']);
+        Route::post('teacher-course-assignments/check-schedule-conflict', [TeacherCourseAssignmentController::class, 'checkScheduleConflict']);
         Route::put('teacher-course-assignments/{id}', [TeacherCourseAssignmentController::class, 'update']);
         Route::patch('teacher-course-assignments/{id}', [TeacherCourseAssignmentController::class, 'update']);
         Route::delete('teacher-course-assignments/{id}', [TeacherCourseAssignmentController::class, 'destroy']);
@@ -255,6 +263,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('student-course-enrollments', [StudentCourseEnrollmentController::class, 'store']);
         Route::put('student-course-enrollments/{id}', [StudentCourseEnrollmentController::class, 'update']);
         Route::patch('student-course-enrollments/{id}', [StudentCourseEnrollmentController::class, 'update']);
+    });
+
+    Route::middleware('role:admin,director')->group(function () {
+        Route::get('system-settings/max-courses-per-teacher', [SystemSettingController::class, 'getMaxCoursesPerTeacher']);
+        Route::put('system-settings/max-courses-per-teacher', [SystemSettingController::class, 'updateMaxCoursesPerTeacher']);
     });
 
     /*

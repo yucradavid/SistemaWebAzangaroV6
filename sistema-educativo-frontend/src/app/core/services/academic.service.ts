@@ -334,6 +334,34 @@ export class AcademicService {
     return this.http.delete(`${environment.apiUrl}/teacher-course-assignments/${id}`);
   }
 
+  checkScheduleConflict(data: { teacher_id: string; section_id: string; course_id: string; academic_year_id: string }): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/teacher-course-assignments/check-schedule-conflict`, data);
+  }
+
+  getAssignedTeachersByCourseSection(params: { course_id: string; section_id: string; academic_year_id: string }): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/teacher-course-assignments/by-course-section`, { params });
+  }
+
+  getMaxCoursesPerTeacher(): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/system-settings/max-courses-per-teacher`);
+  }
+
+  updateMaxCoursesPerTeacher(value: number): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/system-settings/max-courses-per-teacher`, { value });
+  }
+
+  updateTeacherMaxCoursesOverride(teacherId: string, value: number | null): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/teachers/${teacherId}/max-courses-override`, { max_courses_override: value });
+  }
+
+  confirmTeacherMaxCoursesOverride(teacherId: string, data: {
+    max_courses_override: number | null;
+    remove_course_ids: string[];
+    reassignments: { assignment_id: string; new_teacher_id: string }[];
+  }): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/teachers/${teacherId}/max-courses-override/confirm`, data);
+  }
+
   getTeachers(params?: any): Observable<any> {
     return this.http.get(`${environment.apiUrl}/teachers`, { params });
   }

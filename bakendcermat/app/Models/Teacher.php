@@ -26,11 +26,13 @@ class Teacher extends Model
         'hire_date',
         'status',
         'photo_url',
+        'max_courses_override',
     ];
 
     protected $casts = [
         'hire_date' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'max_courses_override' => 'integer',
     ];
 }
