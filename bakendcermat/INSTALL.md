@@ -56,10 +56,16 @@ php artisan key:generate
 ## 5. Restaurar el esquema + datos base
 
 **Este es el paso que reemplaza a `migrate:fresh --seed`.** El dump de
-Supabase (`backup_utf8.sql`) incluye sintaxis específica de `psql`
+Supabase (`backupcole.sql`) incluye sintaxis específica de `psql`
 (`COPY ... FROM stdin`, `\restrict`/`\unrestrict`) que PDO/Laravel **no puede
 ejecutar**, así que la restauración se hace con `psql` directamente, no con
 migraciones de Laravel.
+
+> `backup_utf8.sql` (dump antiguo, 8-jun) quedó obsoleto: tiene 106 filas con
+> texto en doble-encoding UTF-8 (p. ej. `"PÃ©rez"` en vez de `"Pérez"`) y 6
+> funciones PL/pgSQL con literales de texto corruptos. `backupcole.sql`
+> (4-ago) es estructuralmente equivalente — mismas 39 tablas y 66 funciones —
+> pero con el encoding correcto. Usa siempre `backupcole.sql`.
 
 Desde `bakendcermat`, en PowerShell:
 
@@ -77,7 +83,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\restore-local-postgres.ps1 -R
 Qué hace el script exactamente:
 
 1. Crea la base `bakendcermat_local` si no existe (o la recrea con `-Recreate`).
-2. Importa `backup_utf8.sql` con `psql -f` (entiende `COPY`/metacomandos, PDO no).
+2. Importa `backupcole.sql` con `psql -f` (entiende `COPY`/metacomandos, PDO no).
 3. Marca como ya aplicadas en `migrations` las migraciones cuyo efecto ya viene
    incluido en el dump, para que Laravel no intente re-crearlas.
 4. Ejecuta `php artisan db:fix-sequences` para resincronizar las secuencias

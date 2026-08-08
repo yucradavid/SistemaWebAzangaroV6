@@ -29,7 +29,7 @@ function Get-PsqlPath {
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $dumpPath = if ([string]::IsNullOrWhiteSpace($DumpFile)) {
-    (Join-Path $projectRoot "backup_utf8.sql")
+    (Join-Path $projectRoot "backupcole.sql")
 } else {
     (Resolve-Path $DumpFile).Path
 }

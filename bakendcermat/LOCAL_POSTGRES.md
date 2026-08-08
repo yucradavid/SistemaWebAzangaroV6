@@ -56,7 +56,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\restore-local-postgres.ps1 -R
 El script:
 
 1. crea la base `bakendcermat_local` si no existe,
-2. importa `backup_utf8.sql`,
+2. importa `backupcole.sql`,
 3. registra las migraciones base que ya vienen implicitas en el dump,
 4. ejecuta `php artisan migrate --force`,
 5. limpia la cache de configuracion.
