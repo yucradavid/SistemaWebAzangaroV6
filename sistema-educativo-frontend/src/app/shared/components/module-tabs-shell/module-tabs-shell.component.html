@@ -1,0 +1,30 @@
+<div class="min-h-[calc(100vh-80px)] bg-slate-50">
+  <!-- Tab bar -->
+  <div class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-3 py-3">
+      <a routerLink="/app/dashboard/apoderado"
+         class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm font-medium group shrink-0">
+        <div class="p-1.5 bg-white border border-slate-200 rounded-lg group-hover:bg-slate-50 transition-colors shadow-sm">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </div>
+        <span class="hidden sm:inline">Volver</span>
+      </a>
+
+      <div class="h-6 w-px bg-slate-200"></div>
+
+      <nav class="flex items-center gap-2 overflow-x-auto">
+        <a *ngFor="let tab of tabs"
+           [routerLink]="['./', tab.path]"
+           routerLinkActive="bg-cermat-blue-800 text-white border-cermat-blue-800 shadow-md shadow-cermat-blue-500/30"
+           [routerLinkActiveOptions]="{ exact: true }"
+           class="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:border-cermat-blue-500 hover:text-cermat-blue-800 transition-all duration-200 text-sm font-bold whitespace-nowrap">
+          <span class="w-4 h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full" [innerHTML]="sanitizeSvg(tab.icon)"></span>
+          {{ tab.label }}
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Active child interface -->
+  <router-outlet></router-outlet>
+</div>

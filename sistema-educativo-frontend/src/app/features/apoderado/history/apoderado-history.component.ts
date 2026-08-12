@@ -1,7 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { AcademicContextStudent, AuthService } from '@core/services/auth.service';
 import { AcademicService, Period } from '@core/services/academic.service';
 import {
@@ -107,7 +106,7 @@ interface PeriodHistoryResponse {
 @Component({
   selector: 'app-apoderado-history',
   standalone: true,
-  imports: [CommonModule, FormsModule, BackButtonComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './apoderado-history.component.html',
   styles: [':host { display: block; }']
 })

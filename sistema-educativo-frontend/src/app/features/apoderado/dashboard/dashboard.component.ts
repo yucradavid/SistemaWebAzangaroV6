@@ -1,82 +1,32 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ModuleSquareComponent } from '../../../shared/components/module-square/module-square.component';
+import { RouterModule, Router } from '@angular/router';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { AuthService } from '@core/services/auth.service';
+import { APODERADO_MODULES } from '@core/constants/apoderado-modules';
+import { AdminModuleEntry } from '@core/constants/admin-modules';
 
 @Component({
   selector: 'app-apoderado-dashboard',
   standalone: true,
-  imports: [CommonModule, ModuleSquareComponent],
-  templateUrl: './dashboard.component.html',
-  styleUrls: ['./dashboard.component.css']
+  imports: [CommonModule, RouterModule],
+  templateUrl: './dashboard.component.html'
 })
 export class DashboardComponent implements OnInit {
+  modules: AdminModuleEntry[] = APODERADO_MODULES;
 
-  modules = [
-    {
-      title: 'Asistencia',
-      description: 'Control de asistencia y justificaciones',
-      icon: 'calendar-check',
-      path: '/app/attendance/apoderado',
-      color: 'bg-[#1e40af]'
-    },
-    {
-      title: 'Notas',
-      description: 'Seguimiento académico',
-      icon: 'graduation-cap',
-      path: '/app/evaluation/apoderado',
-      color: 'bg-[#1e3a8a]' // Blue 900
-    },
-    {
-      title: 'Pagos',
-      description: 'Estado de cuenta y pagos online',
-      icon: 'credit-card',
-      path: '/app/finance/apoderado',
-      color: 'bg-[#1e40af]' // Blue 800
-    },
-    {
-      title: 'Historial',
-      description: 'Historial academico y financiero',
-      icon: 'file-text',
-      path: '/app/history/apoderado',
-      color: 'bg-[#0f766e]'
-    },
-    {
-      title: 'Tareas',
-      description: 'Supervisión de tareas escolares',
-      icon: 'book-open',
-      path: '/app/tasks/apoderado',
-      color: 'bg-[#ca8a04]'
-    },
-    {
-      title: 'Comunicados',
-      description: 'Circulares y avisos importantes',
-      icon: 'message-square',
-      path: '/app/communications/apoderado',
-      color: 'bg-[#3b82f6]' // Blue 500
-    },
-    {
-      title: 'Mensajería',
-      description: 'Contacto con docentes',
-      icon: 'mail',
-      path: '/app/messages/apoderado',
-      color: 'bg-[#0E3A8A]'
-    },
-    {
-      title: 'Reporte',
-      description: 'Progreso detallado de mis hijos',
-      icon: 'activity',
-      path: '/app/dashboard/metrics/apoderado',
-      color: 'bg-[#ca8a04]' // Yellow 600
-    },
-    {
-      title: 'Horario',
-      description: 'Horario de clases de mis hijos',
-      icon: 'clock',
-      path: '/app/schedule/apoderado',
-      color: 'bg-[#7c3aed]' // Violet 600
+  private sanitizer = inject(DomSanitizer);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+
+  ngOnInit() {
+    const role = this.authService.getRole();
+    if (!['apoderado', 'guardian'].includes((role || '') as string)) {
+      this.router.navigateByUrl(this.authService.getHomeRoute(role));
     }
-  ];
+  }
 
-  constructor() {}
-  ngOnInit(): void {}
+  sanitizeSvg(svg: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(svg);
+  }
 }
