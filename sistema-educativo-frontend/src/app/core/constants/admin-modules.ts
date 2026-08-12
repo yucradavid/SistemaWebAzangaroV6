@@ -325,6 +325,12 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
             description: 'Gestionar noticias de la página pública',
             icon: ICONS.newspaper,
             path: '/app/settings/news'
+          },
+          {
+            title: 'Portadas',
+            description: 'Configurar la imagen de portada de cada página pública',
+            icon: ICONS.newspaper,
+            path: '/app/settings/website/page-covers'
           }
         ]
       }

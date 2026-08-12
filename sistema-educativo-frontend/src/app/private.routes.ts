@@ -415,6 +415,13 @@ export const PRIVATE_ROUTES: Routes = [
         data: { roles: ['admin', 'director', 'secretary', 'web_editor'] },
         loadComponent: () => import('./features/admin/website/news-management.component').then(m => m.NewsManagementComponent),
         title: 'CERMAT - Gestión de Noticias y Eventos'
+      },
+      {
+        path: 'settings/website/page-covers',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director'] },
+        loadComponent: () => import('./features/admin/website/page-covers/page-covers.component').then(m => m.PageCoversComponent),
+        title: 'CERMAT - Portadas del Sitio Público'
       }
     ]
   }

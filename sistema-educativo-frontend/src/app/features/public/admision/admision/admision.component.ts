@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SeoService } from '@core/services/seo/seo.service';
 import { EnrollmentService, EnrollmentSibling } from '@core/services/enrollment.service';
+import { PageCoverComponent } from '@shared/components/page-cover/page-cover.component';
 
 @Component({
   selector: 'app-admision',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, PageCoverComponent],
   templateUrl: './admision.component.html',
   styleUrls: ['./admision.component.css']
 })

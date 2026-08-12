@@ -47,6 +47,23 @@ DB_LOCAL_SSLMODE=disable
 Ver `LOCAL_POSTGRES.md` para más detalle sobre `DB_TARGET` (local vs Supabase)
 y `scripts/set-db-target.ps1`.
 
+### `APP_URL` debe coincidir con el puerto real de `php artisan serve`
+
+`APP_URL` (por defecto `http://localhost:8000`) se usa para construir las
+URLs públicas de archivos servidos desde `storage/app/public` (disco
+`public`, ver `config/filesystems.php`) — por ejemplo las portadas de
+`site_page_covers` o cualquier imagen subida a futuro. Esa URL **se arma una
+sola vez a partir del valor fijo de `APP_URL` del `.env`**, no de la petición
+real entrante, así que si corres el backend en un puerto distinto
+(`php artisan serve --port=8080`, o cualquier otra configuración en la PC de
+otra persona del equipo) y no actualizas `APP_URL` para que coincida, las
+URLs de esas imágenes van a apuntar al puerto equivocado y no van a cargar
+en el navegador aunque el archivo exista físicamente en disco.
+
+Si cambias el puerto de `php artisan serve`, actualiza `APP_URL` en el mismo
+`.env` y corre `php artisan config:clear` (o `config:cache` si usas caché de
+config) para que el cambio se aplique.
+
 ## 4. Generar la app key
 
 ```bash

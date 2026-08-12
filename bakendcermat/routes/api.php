@@ -55,6 +55,7 @@ use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\EvaluationReopenRequestController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PublicNewsController;
+use App\Http\Controllers\Api\SitePageCoverController;
 
 // Finanzas
 use App\Http\Controllers\Api\FeeConceptController;
@@ -90,6 +91,9 @@ Route::get('/public/guardian-lookup', [EnrollmentApplicationController::class, '
 // Noticias públicas (sin autenticación)
 Route::get('/public/news', [PublicNewsController::class, 'published']);
 Route::get('/public/news/{publicNews:slug}', [PublicNewsController::class, 'show']);
+
+// Portadas de páginas públicas (sin autenticación)
+Route::get('/public/site-page-covers', [SitePageCoverController::class, 'publicIndex']);
 
 /*
 |--------------------------------------------------------------------------
@@ -548,6 +552,21 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::middleware('role:admin,director,coordinator,secretary,web_editor')->group(function () {
         Route::apiResource('public-news', PublicNewsController::class);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | MÓDULO: PORTADAS DE PÁGINAS PÚBLICAS
+    |--------------------------------------------------------------------------
+    | Gestión de la imagen de portada de cada página pública (landing, admisión,
+    | niveles, etc.) desde el módulo admin "Sitio Web".
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:admin,director')->group(function () {
+        Route::get('/site-page-covers', [SitePageCoverController::class, 'index']);
+        Route::post('/site-page-covers/{pageKey}', [SitePageCoverController::class, 'update']);
+        Route::patch('/site-page-covers/{pageKey}/position', [SitePageCoverController::class, 'updatePosition']);
+        Route::delete('/site-page-covers/{pageKey}', [SitePageCoverController::class, 'destroy']);
     });
 
     /*
