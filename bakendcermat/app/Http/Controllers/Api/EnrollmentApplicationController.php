@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use App\Models\User;
 use Carbon\Carbon;
 
@@ -37,6 +38,83 @@ class EnrollmentApplicationController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name', 'level', 'grade']),
         ]);
+    }
+
+    // GET /api/public/reniec-lookup?dni=########
+    // Endpoint público para verificar si un DNI existe realmente en Reniec.
+    public function reniecLookup(Request $request): JsonResponse
+    {
+        $dni = trim((string) $request->query('dni', ''));
+
+        if (! preg_match('/^[0-9]{8}$/', $dni)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El DNI debe tener exactamente 8 dígitos.',
+            ], 422);
+        }
+
+        $baseUrl = env('RENIEC_BASE_URL');
+        $token = env('RENIEC_TOKEN');
+        $clientId = env('RENIEC_CLIENT_ID');
+        $clientSecret = env('RENIEC_CLIENT_SECRET');
+        $apiKey = env('RENIEC_API_KEY');
+
+        if (! $baseUrl || (! $token && ! $apiKey && (! $clientId || ! $clientSecret))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La validación con Reniec no está configurada en el backend.',
+            ], 503);
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])
+                ->when($token, function ($http, $tokenValue) {
+                    return $http->withToken($tokenValue);
+                }, $token)
+                ->when($clientId && $clientSecret, function ($http) use ($clientId, $clientSecret) {
+                    return $http->withBasicAuth($clientId, $clientSecret);
+                })
+                ->when($apiKey, function ($http, $apiKeyValue) {
+                    return $http->withHeaders(['X-API-Key' => $apiKeyValue]);
+                }, $apiKey)
+                ->get(rtrim($baseUrl, '/') . '/consulta-dni', ['dni' => $dni]);
+
+            if (! $response->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El DNI no pudo ser verificado con Reniec.',
+                ], 502);
+            }
+
+            $payload = $response->json();
+            $data = $payload['data'] ?? $payload;
+
+            $nombres = trim((string) ($data['nombres'] ?? $data['name'] ?? ''));
+            $apellidoPaterno = trim((string) ($data['apellido_paterno'] ?? $data['last_name'] ?? ''));
+            $apellidoMaterno = trim((string) ($data['apellido_materno'] ?? $data['mothers_last_name'] ?? ''));
+            $fechaNacimiento = trim((string) ($data['fecha_nacimiento'] ?? $data['birth_date'] ?? ''));
+            $sexo = strtoupper(trim((string) ($data['sexo'] ?? $data['gender'] ?? '')));
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'dni' => $dni,
+                    'nombres' => $nombres,
+                    'apellido_paterno' => $apellidoPaterno,
+                    'apellido_materno' => $apellidoMaterno,
+                    'fecha_nacimiento' => $fechaNacimiento,
+                    'sexo' => $sexo,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al consultar Reniec: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     // GET /api/public/guardian-lookup?dni=########

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { roleGuard } from './core/guards/role.guard';
+import { ICONS } from './core/constants/icons';
 
 export const PRIVATE_ROUTES: Routes = [
   {
@@ -127,6 +128,114 @@ export const PRIVATE_ROUTES: Routes = [
         path: 'schedule/apoderado',
         loadComponent: () => import('./features/apoderado/schedule/apoderado-schedule/apoderado-schedule.component').then(m => m.ApoderadoScheduleComponent),
         title: 'CERMAT - Horario'
+      },
+
+      // ── Módulos unificados del Apoderado (shell con pestañas) ─────────
+      {
+        path: 'apoderado/asistencia-horario',
+        data: {
+          moduleTitle: 'Asistencia y Horario',
+          tabs: [
+            { path: 'asistencia', label: 'Asistencia', icon: ICONS.calendarCheck },
+            { path: 'horario', label: 'Horario', icon: ICONS.clock }
+          ]
+        },
+        loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
+        title: 'CERMAT - Asistencia y Horario',
+        children: [
+          { path: '', redirectTo: 'asistencia', pathMatch: 'full' },
+          {
+            path: 'asistencia',
+            loadComponent: () => import('./features/apoderado/attendance/apoderado-attendance/apoderado-attendance.component').then(m => m.ApoderadoAttendanceComponent),
+            title: 'CERMAT - Asistencia'
+          },
+          {
+            path: 'horario',
+            loadComponent: () => import('./features/apoderado/schedule/apoderado-schedule/apoderado-schedule.component').then(m => m.ApoderadoScheduleComponent),
+            title: 'CERMAT - Horario'
+          }
+        ]
+      },
+      {
+        path: 'apoderado/academico',
+        data: {
+          moduleTitle: 'Académico',
+          tabs: [
+            { path: 'notas', label: 'Notas', icon: ICONS.graduationCap },
+            { path: 'tareas', label: 'Tareas', icon: ICONS.bookOpen },
+            { path: 'reporte', label: 'Reporte', icon: ICONS.activity }
+          ]
+        },
+        loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
+        title: 'CERMAT - Académico',
+        children: [
+          { path: '', redirectTo: 'notas', pathMatch: 'full' },
+          {
+            path: 'notas',
+            loadComponent: () => import('./features/apoderado/evaluation/apoderado-evaluation/apoderado-evaluation.component').then(m => m.ApoderadoEvaluationComponent),
+            title: 'CERMAT - Notas'
+          },
+          {
+            path: 'tareas',
+            loadComponent: () => import('./features/apoderado/tasks/apoderado-tasks/apoderado-tasks.component').then(m => m.ApoderadoTasksComponent),
+            title: 'CERMAT - Tareas'
+          },
+          {
+            path: 'reporte',
+            loadComponent: () => import('./features/apoderado/metrics/apoderado-metrics/apoderado-metrics.component').then(m => m.ApoderadoMetricsComponent),
+            title: 'CERMAT - Reporte'
+          }
+        ]
+      },
+      {
+        path: 'apoderado/comunicacion',
+        data: {
+          moduleTitle: 'Comunicados y Mensajería',
+          tabs: [
+            { path: 'comunicados', label: 'Comunicados', icon: ICONS.megaphone },
+            { path: 'mensajeria', label: 'Mensajería', icon: ICONS.mail }
+          ]
+        },
+        loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
+        title: 'CERMAT - Comunicados y Mensajería',
+        children: [
+          { path: '', redirectTo: 'comunicados', pathMatch: 'full' },
+          {
+            path: 'comunicados',
+            loadComponent: () => import('./features/apoderado/communications/apoderado-communications/apoderado-communications.component').then(m => m.ApoderadoCommunicationsComponent),
+            title: 'CERMAT - Comunicados'
+          },
+          {
+            path: 'mensajeria',
+            loadComponent: () => import('./features/apoderado/messages/apoderado-messages/apoderado-messages.component').then(m => m.ApoderadoMessagesComponent),
+            title: 'CERMAT - Mensajería'
+          }
+        ]
+      },
+      {
+        path: 'apoderado/pagos-historial',
+        data: {
+          moduleTitle: 'Pagos e Historial',
+          tabs: [
+            { path: 'pagos', label: 'Pagos', icon: ICONS.creditCard },
+            { path: 'historial', label: 'Historial', icon: ICONS.fileText }
+          ]
+        },
+        loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
+        title: 'CERMAT - Pagos e Historial',
+        children: [
+          { path: '', redirectTo: 'pagos', pathMatch: 'full' },
+          {
+            path: 'pagos',
+            loadComponent: () => import('./features/apoderado/finance/apoderado-finance/apoderado-finance.component').then(m => m.ApoderadoFinanceComponent),
+            title: 'CERMAT - Pagos'
+          },
+          {
+            path: 'historial',
+            loadComponent: () => import('./features/apoderado/history/apoderado-history.component').then(m => m.ApoderadoHistoryComponent),
+            title: 'CERMAT - Historial'
+          }
+        ]
       },
 
       // ── Módulos del Docente ───────────────────────────
@@ -422,7 +531,121 @@ export const PRIVATE_ROUTES: Routes = [
         data: { roles: ['admin', 'director'] },
         loadComponent: () => import('./features/admin/website/page-covers/page-covers.component').then(m => m.PageCoversComponent),
         title: 'CERMAT - Portadas del Sitio Público'
-      }
+      },
+
+      // ── Módulos unificados del Docente (shell con pestañas) ─────────
+      {
+        path: 'teacher/asistencia-horario',
+        data: {
+          moduleTitle: 'Asistencia y Horario',
+          tabs: [
+            { path: 'asistencia', label: 'Asistencia', icon: ICONS.calendarCheck },
+            { path: 'horario', label: 'Horario', icon: ICONS.clock }
+          ]
+        },
+        loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
+        title: 'CERMAT - Asistencia y Horario',
+        children: [
+          { path: '', redirectTo: 'asistencia', pathMatch: 'full' },
+          {
+            path: 'asistencia',
+            loadComponent: () => import('./features/teacher/attendance/teacher-attendance-menu/teacher-attendance-menu.component').then(m => m.TeacherAttendanceMenuComponent),
+            title: 'CERMAT - Asistencia'
+          },
+          {
+            path: 'horario',
+            loadComponent: () => import('./features/teacher/schedule/teacher-schedule/teacher-schedule.component').then(m => m.TeacherScheduleComponent),
+            title: 'CERMAT - Horario'
+          }
+        ]
+      },
+      {
+        path: 'teacher/academico',
+        data: {
+          moduleTitle: 'Académico',
+          tabs: [
+            { path: 'tareas', label: 'Tareas', icon: ICONS.bookOpen },
+            { path: 'calificar', label: 'Calificar', icon: ICONS.checkCircle2 },
+            { path: 'evaluacion', label: 'Evaluación', icon: ICONS.graduationCap },
+            { path: 'resumen', label: 'Resumen', icon: ICONS.activity }
+          ]
+        },
+        loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
+        title: 'CERMAT - Académico',
+        children: [
+          { path: '', redirectTo: 'tareas', pathMatch: 'full' },
+          {
+            path: 'tareas',
+            loadComponent: () => import('./features/teacher/tasks/teacher-tasks/teacher-tasks.component').then(m => m.TeacherTasksComponent),
+            title: 'CERMAT - Tareas'
+          },
+          {
+            path: 'calificar',
+            loadComponent: () => import('./features/teacher/tasks/teacher-grading/teacher-grading.component').then(m => m.TeacherGradingComponent),
+            title: 'CERMAT - Calificar'
+          },
+          {
+            path: 'evaluacion',
+            loadComponent: () => import('./features/teacher/evaluation/teacher-evaluation/teacher-evaluation.component').then(m => m.TeacherEvaluationComponent),
+            title: 'CERMAT - Evaluación'
+          },
+          {
+            path: 'resumen',
+            loadComponent: () => import('./features/teacher/metrics/teacher-metrics/teacher-metrics.component').then(m => m.TeacherMetricsComponent),
+            title: 'CERMAT - Resumen'
+          }
+        ]
+      },
+      {
+        path: 'teacher/comunicacion',
+        data: {
+          moduleTitle: 'Comunicados y Mensajería',
+          tabs: [
+            { path: 'comunicados', label: 'Comunicados', icon: ICONS.megaphone },
+            { path: 'mensajeria', label: 'Mensajería', icon: ICONS.mail }
+          ]
+        },
+        loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
+        title: 'CERMAT - Comunicados y Mensajería',
+        children: [
+          { path: '', redirectTo: 'comunicados', pathMatch: 'full' },
+          {
+            path: 'comunicados',
+            loadComponent: () => import('./features/teacher/communications/teacher-communications/teacher-communications.component').then(m => m.TeacherCommunicationsComponent),
+            title: 'CERMAT - Comunicados'
+          },
+          {
+            path: 'mensajeria',
+            loadComponent: () => import('./features/teacher/messages/teacher-messages/teacher-messages.component').then(m => m.TeacherMessagesComponent),
+            title: 'CERMAT - Mensajería'
+          }
+        ]
+      },
+      {
+        path: 'teacher/reportes-historial',
+        data: {
+          moduleTitle: 'Reportes e Historial',
+          tabs: [
+            { path: 'reportes', label: 'Reportes', icon: ICONS.barChart3 },
+            { path: 'historial', label: 'Historial', icon: ICONS.fileText }
+          ]
+        },
+        loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
+        title: 'CERMAT - Reportes e Historial',
+        children: [
+          { path: '', redirectTo: 'reportes', pathMatch: 'full' },
+          {
+            path: 'reportes',
+            loadComponent: () => import('./features/teacher/metrics/teacher-metrics/teacher-metrics.component').then(m => m.TeacherMetricsComponent),
+            title: 'CERMAT - Reportes'
+          },
+          {
+            path: 'historial',
+            loadComponent: () => import('./features/teacher/history/teacher-history.component').then(m => m.TeacherHistoryComponent),
+            title: 'CERMAT - Historial'
+          }
+        ]
+      },
     ]
   }
 ];

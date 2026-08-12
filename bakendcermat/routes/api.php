@@ -87,6 +87,7 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,
 Route::get('/public/enrollment-options', [EnrollmentApplicationController::class, 'publicOptions']);
 Route::post('/public/enrollment-applications', [EnrollmentApplicationController::class, 'store']);
 Route::get('/public/guardian-lookup', [EnrollmentApplicationController::class, 'guardianLookup'])->middleware('throttle:10,1');
+Route::get('/public/reniec-lookup', [EnrollmentApplicationController::class, 'reniecLookup'])->middleware('throttle:10,1');
 
 // Noticias públicas (sin autenticación)
 Route::get('/public/news', [PublicNewsController::class, 'published']);
