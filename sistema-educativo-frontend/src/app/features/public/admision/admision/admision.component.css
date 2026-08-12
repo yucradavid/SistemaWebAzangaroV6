@@ -1,25 +1,81 @@
 /* src/app/features/public/admision/admision/admision.component.css */
-input.ng-invalid.ng-touched, 
-select.ng-invalid.ng-touched, 
-textarea.ng-invalid.ng-touched {
-    border-color: #fca5a5 !important; /* red-300 */
-    background-color: #fef2f2 !important; /* red-50 */
-    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+:host {
+  display: block;
 }
 
-input.ng-invalid.ng-touched:focus, 
-select.ng-invalid.ng-touched:focus, 
+input.ng-invalid.ng-touched,
+select.ng-invalid.ng-touched,
+textarea.ng-invalid.ng-touched {
+  border-color: #fca5a5 !important;
+  background-color: #fef2f2 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08);
+}
+
+input.ng-invalid.ng-touched:focus,
+select.ng-invalid.ng-touched:focus,
 textarea.ng-invalid.ng-touched:focus {
-    border-color: #ef4444 !important; /* red-500 */
-    outline: none;
+  border-color: #ef4444 !important;
+  outline: none;
+}
+
+input,
+select,
+textarea {
+  transition: all 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #1E3A8A !important;
+  box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.12);
 }
 
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 
 .animate-shake {
-    animation: shake 0.2s ease-in-out 0s 2;
+  animation: shake 0.2s ease-in-out 0s 2;
+}
+
+/* Floating form + result modal entrance */
+@keyframes overlay-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes panel-rise-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+:host ::ng-deep .fixed.inset-0 {
+  animation: overlay-fade-in 0.18s ease-out;
+}
+
+:host ::ng-deep .fixed.inset-0 > div {
+  animation: panel-rise-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* CTA micro-interaction: subtle pulse on hover for motion-safe users */
+@media (prefers-reduced-motion: no-preference) {
+  .cta-pulse::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 9999px;
+    background: radial-gradient(circle at center, rgba(30,58,138,0.08), transparent 40%);
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    transform: scale(0.95);
+  }
+  .group:hover .cta-pulse::after { opacity: 1; transform: scale(1); }
+}
+
+/* Stepper circles */
+button[disabled] {
+  cursor: not-allowed;
 }

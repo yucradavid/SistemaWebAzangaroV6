@@ -63,6 +63,20 @@ export interface GuardianLookupResult {
   siblings?: EnrollmentSibling[];
 }
 
+export interface ReniecLookupResult {
+  success: boolean;
+  message?: string;
+  data?: {
+    dni?: string;
+    nombres?: string;
+    apellido_paterno?: string;
+    apellido_materno?: string;
+    fecha_nacimiento?: string;
+    sexo?: string;
+    [key: string]: any;
+  };
+}
+
 export interface ProvisionedAccountCredential {
   email: string;
   password?: string | null;
@@ -116,6 +130,11 @@ export class EnrollmentService {
   guardianLookup(dni: string): Observable<GuardianLookupResult> {
     const params = new HttpParams().set('dni', dni);
     return this.http.get<GuardianLookupResult>(`${this.publicApiUrl}/guardian-lookup`, { params });
+  }
+
+  reniecLookup(dni: string): Observable<ReniecLookupResult> {
+    const params = new HttpParams().set('dni', dni);
+    return this.http.get<ReniecLookupResult>(`${this.publicApiUrl}/reniec-lookup`, { params });
   }
 
   createPublicApplication(payload: PublicEnrollmentApplicationPayload): Observable<any> {
