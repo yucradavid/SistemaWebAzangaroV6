@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SeoService } from '@core/services/seo/seo.service';
 import { NewsService, NewsItem as ApiNewsItem } from '@core/services/news.service';
+import { PageCoverComponent } from '@shared/components/page-cover/page-cover.component';
 
 interface PublicNewsItem {
   id: string;
@@ -19,7 +20,7 @@ interface PublicNewsItem {
 @Component({
   selector: 'app-noticias-list',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, PageCoverComponent],
   templateUrl: './noticias-list.component.html',
   styleUrl: './noticias-list.component.css'
 })

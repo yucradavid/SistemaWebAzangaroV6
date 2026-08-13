@@ -2,11 +2,12 @@ import { Component, OnInit, inject, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SeoService } from '@core/services/seo/seo.service';
 import { DataService, TransparencyDocument } from '@core/services/data_general/data.service';
+import { PageCoverComponent } from '@shared/components/page-cover/page-cover.component';
 
 @Component({
   selector: 'app-transparencia',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PageCoverComponent],
   templateUrl: './transparencia.component.html',
   styleUrl: './transparencia.component.css'
 })
