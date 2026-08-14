@@ -133,15 +133,17 @@ class SitePageCoverController extends Controller
 
     private function format(SitePageCover $cover): array
     {
+        $version = $cover->updated_at ? $cover->updated_at->timestamp : time();
+
         return [
             'page_key' => $cover->page_key,
             'image_path' => $cover->image_path,
             'alt_text' => $cover->alt_text,
             'object_position' => $cover->object_position,
             'urls' => $cover->image_path ? [
-                'large' => Storage::disk('public')->url("{$cover->image_path}-large.webp"),
-                'medium' => Storage::disk('public')->url("{$cover->image_path}-medium.webp"),
-                'small' => Storage::disk('public')->url("{$cover->image_path}-small.webp"),
+                'large' => Storage::disk('public')->url("{$cover->image_path}-large.webp") . "?v={$version}",
+                'medium' => Storage::disk('public')->url("{$cover->image_path}-medium.webp") . "?v={$version}",
+                'small' => Storage::disk('public')->url("{$cover->image_path}-small.webp") . "?v={$version}",
             ] : null,
             'updated_at' => $cover->updated_at,
         ];
