@@ -32,6 +32,8 @@ use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\GuardianController;
 use App\Http\Controllers\Api\StudentGuardianController;
+use App\Http\Controllers\Api\DocumentTypeController;
+use App\Http\Controllers\Api\EnrollmentApplicationDocumentController;
 
 // Matrículas
 use App\Http\Controllers\Api\EnrollmentApplicationController;
@@ -88,6 +90,7 @@ Route::get('/public/enrollment-options', [EnrollmentApplicationController::class
 Route::post('/public/enrollment-applications', [EnrollmentApplicationController::class, 'store']);
 Route::get('/public/guardian-lookup', [EnrollmentApplicationController::class, 'guardianLookup'])->middleware('throttle:10,1');
 Route::get('/public/reniec-lookup', [EnrollmentApplicationController::class, 'reniecLookup'])->middleware('throttle:10,1');
+Route::get('/public/document-types', [DocumentTypeController::class, 'publicIndex']);
 
 // Noticias públicas (sin autenticación)
 Route::get('/public/news', [PublicNewsController::class, 'published']);
@@ -183,6 +186,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('bulk-import/{type}', [BulkImportController::class, 'store']);
     });
 
+    Route::middleware('role:admin,director')->group(function () {
+        Route::get('document-types', [DocumentTypeController::class, 'index']);
+        Route::post('document-types', [DocumentTypeController::class, 'store']);
+        Route::put('document-types/{id}', [DocumentTypeController::class, 'update']);
+        Route::patch('document-types/{id}', [DocumentTypeController::class, 'update']);
+        Route::delete('document-types/{id}', [DocumentTypeController::class, 'destroy']);
+    });
+
     Route::get('teachers', [TeacherController::class, 'index'])
         ->middleware('role:admin,director,coordinator,secretary,teacher');
     Route::get('teachers/{id}', [TeacherController::class, 'show'])
@@ -258,6 +269,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('enrollment-applications/{id}/approve', [EnrollmentApplicationController::class, 'approve']);
         Route::post('enrollment-applications/{id}/provision-accounts', [EnrollmentApplicationController::class, 'provisionAccounts']);
         Route::post('enrollment-applications/{id}/reject', [EnrollmentApplicationController::class, 'reject']);
+
+        Route::get('enrollment-applications/{id}/documents', [EnrollmentApplicationDocumentController::class, 'index']);
+        Route::patch('enrollment-applications/{id}/documents/{documentType}', [EnrollmentApplicationDocumentController::class, 'update']);
+        Route::patch('enrollment-applications/{id}/enrollment-observation', [EnrollmentApplicationDocumentController::class, 'updateObservation']);
+        Route::get('enrollment-applications/{id}/documents-status', [EnrollmentApplicationDocumentController::class, 'status']);
 
         Route::post('teacher-course-assignments', [TeacherCourseAssignmentController::class, 'store']);
         Route::post('teacher-course-assignments/check-schedule-conflict', [TeacherCourseAssignmentController::class, 'checkScheduleConflict']);

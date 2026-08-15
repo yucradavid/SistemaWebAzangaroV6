@@ -521,6 +521,13 @@ export const PRIVATE_ROUTES: Routes = [
         loadComponent: () => import('./features/admin/settings/enrollment-config.component').then(m => m.EnrollmentConfigComponent),
         title: 'CERMAT - Configuración Matrículas'
       },
+      {
+        path: 'settings/document-types',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director'] },
+        loadComponent: () => import('./features/admin/settings/document-types.component').then(m => m.DocumentTypesComponent),
+        title: 'CERMAT - Tipos de Documento'
+      },
       // ── Sitio Web ───────────────────────────────────────
       {
         path: 'settings/news',

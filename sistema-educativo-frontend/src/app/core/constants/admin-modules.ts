@@ -279,6 +279,12 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
             description: 'Parámetros del proceso de admisión',
             icon: ICONS.fileText,
             path: '/app/settings/enrollments'
+          },
+          {
+            title: 'Tipos de Documento',
+            description: 'Catálogo configurable de documentos de matrícula',
+            icon: ICONS.fileText,
+            path: '/app/settings/document-types'
           }
         ]
       }

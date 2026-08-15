@@ -17,6 +17,8 @@ use App\Models\Guardian;
 use App\Models\GradeLevel;
 use App\Models\Section;
 use App\Models\Student;
+use App\Models\DocumentType;
+use App\Models\EnrollmentApplicationDocument;
 use App\Services\AccountProvisioningService;
 use App\Support\EnrollmentApplicationValueNormalizer;
 use Illuminate\Validation\Rule;
@@ -363,11 +365,31 @@ class EnrollmentApplicationController extends Controller
     // POST /api/enrollment-applications/{id}/approve
     public function approve(Request $request, string $id)
     {
-        $app = EnrollmentApplication::findOrFail($id);
+        $app = EnrollmentApplication::with('gradeLevel')->findOrFail($id);
 
         if ($app->status !== 'pending') {
             return response()->json([
                 'message' => 'Solo se pueden aprobar solicitudes en estado pending.'
+            ], 422);
+        }
+
+        $requiredDocIds = DocumentType::query()
+            ->where('is_required', true)
+            ->where('is_active', true)
+            ->where('level', $app->gradeLevel?->level)
+            ->pluck('id');
+
+        $deliveredDocIds = EnrollmentApplicationDocument::query()
+            ->where('enrollment_application_id', $app->id)
+            ->where('delivered', true)
+            ->pluck('document_type_id');
+
+        $missing = $requiredDocIds->diff($deliveredDocIds);
+
+        if ($missing->isNotEmpty()) {
+            return response()->json([
+                'message' => 'No se puede aprobar: faltan documentos obligatorios por marcar como entregados.',
+                'missing_count' => $missing->count(),
             ], 422);
         }
 

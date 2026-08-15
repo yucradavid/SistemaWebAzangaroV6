@@ -19,7 +19,7 @@ class EnrollmentApplication extends Model
         'grade_level_id','previous_school','has_special_needs','special_needs_description',
         'emergency_contact_name','emergency_contact_phone',
         'notes','status','application_date','reviewed_at','reviewed_by','rejection_reason','admin_notes',
-        'academic_year_id',
+        'academic_year_id','enrollment_observation',
     ];
 
     protected $casts = [
@@ -32,4 +32,5 @@ class EnrollmentApplication extends Model
     public function gradeLevel() { return $this->belongsTo(GradeLevel::class); }
     public function academicYear() { return $this->belongsTo(AcademicYear::class); }
     public function reviewedByProfile() { return $this->belongsTo(Profile::class, 'reviewed_by'); }
+    public function documents() { return $this->hasMany(EnrollmentApplicationDocument::class); }
 }
