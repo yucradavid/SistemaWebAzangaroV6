@@ -187,13 +187,13 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
             title: 'Bandeja de Entrada',
             description: 'Mensajería directa con apoderados',
             icon: ICONS.messageSquare,
-            path: '/app/messages/teacher'
+            path: '/app/messages/admin'
           },
           {
             title: 'Gestionar Comunicados',
             description: 'Crear y editar avisos',
             icon: ICONS.megaphone,
-            path: '/app/communications/teacher'
+            path: '/app/communications/admin'
           },
           {
             title: 'Aprobar Comunicados',

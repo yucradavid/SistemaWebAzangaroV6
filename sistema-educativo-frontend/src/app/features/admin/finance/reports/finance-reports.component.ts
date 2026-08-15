@@ -283,7 +283,7 @@ type FinanceTab = 'morosidad' | 'recaudacion';
   styles: [`
     :host { display: block; }
     .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   `]
 })
 export class FinanceReportsComponent implements OnInit {

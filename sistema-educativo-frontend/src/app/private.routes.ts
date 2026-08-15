@@ -281,11 +281,15 @@ export const PRIVATE_ROUTES: Routes = [
       },
       {
         path: 'communications/teacher',
+        canActivate: [roleGuard],
+        data: { roles: ['teacher'] },
         loadComponent: () => import('./features/teacher/communications/teacher-communications/teacher-communications.component').then(m => m.TeacherCommunicationsComponent),
         title: 'CERMAT - Comunicados'
       },
       {
         path: 'messages/teacher',
+        canActivate: [roleGuard],
+        data: { roles: ['teacher'] },
         loadComponent: () => import('./features/teacher/messages/teacher-messages/teacher-messages.component').then(m => m.TeacherMessagesComponent),
         title: 'CERMAT - Mensajería'
       },
@@ -426,12 +430,12 @@ export const PRIVATE_ROUTES: Routes = [
 
       // ── Mensajería y Comunicados ──────────────────────────
       {
-        path: 'messages/teacher',
+        path: 'messages/admin',
         loadComponent: () => import('./features/admin/messaging/messaging-inbox.component').then(m => m.MessagingInboxComponent),
         title: 'CERMAT - Bandeja de Entrada'
       },
       {
-        path: 'communications/teacher',
+        path: 'communications/admin',
         loadComponent: () => import('./features/admin/communications/communications-management.component').then(m => m.CommunicationsManagementComponent),
         title: 'CERMAT - Gestionar Comunicados'
       },
