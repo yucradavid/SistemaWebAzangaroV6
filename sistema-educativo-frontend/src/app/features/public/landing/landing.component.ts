@@ -1,6 +1,7 @@
-import { Component, OnInit, inject } from '@angular/core';
+﻿import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { ScrollTopModule } from 'primeng/scrolltop';
 import { SeoService } from '@core/services/seo/seo.service';
 import { DataService } from '@core/services/data_general/data.service';
 import { HeroSectionComponent } from './hero-section/hero-section.component';
@@ -22,6 +23,7 @@ import { MapSectionComponent } from './map-section/map-section.component';
   imports: [
     CommonModule,
     RouterLink,
+    ScrollTopModule,
     HeroSectionComponent,
     AboutSectionComponent,
     LevelsSectionComponent,
@@ -31,18 +33,7 @@ import { MapSectionComponent } from './map-section/map-section.component';
     StatsSectionComponent,
     MapSectionComponent
   ],
-  template: `
-    <div class="home-page">
-      <app-hero-section />
-      <app-stats-section />
-      <app-about-section />
-      <app-levels-section />
-      <app-news-section />
-      <app-gallery-section />
-      <app-testimonials-section />
-      <app-map-section />
-    </div>
-  `
+  templateUrl: './landing.component.html'
 })
 export class HomeComponent implements OnInit {
   private readonly seoService = inject(SeoService);
@@ -54,5 +45,6 @@ export class HomeComponent implements OnInit {
       keywords: 'colegio privado Azángaro, educación Puno, colegio bilingüe, mejor colegio Azángaro',
       type: 'website'
     });
+    this.seoService.addOrganizationSchema();
   }
 }

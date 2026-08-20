@@ -1,10 +1,9 @@
 <div class="min-h-screen bg-gray-50">
 
   <section class="relative bg-gradient-to-r from-blue-900 to-blue-700 text-white py-32 overflow-hidden">
-    <app-page-cover pageKey="noticias" fallbackGradient="bg-gradient-to-r from-blue-900 to-blue-700"></app-page-cover>
     <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 2px, transparent 2px); background-size: 30px 30px;"></div>
 
-    <div class="container-custom text-center relative z-10">
+    <div class="container-cermat text-center relative z-10">
       <h1 class="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
         Noticias y <span class="text-yellow-400">Eventos</span>
       </h1>
@@ -16,8 +15,8 @@
     <div class="absolute bottom-0 w-full h-1 bg-gradient-to-r from-red-600 via-yellow-400 to-blue-600"></div>
   </section>
 
-  <section class="section-padding py-16">
-    <div class="container-custom px-4">
+  <section class="py-16">
+    <div class="container-cermat px-4">
       <div *ngIf="loading" class="text-center py-16 text-lg font-semibold text-blue-700">Cargando noticias...</div>
       <div *ngIf="error" class="text-center py-16 text-lg font-semibold text-red-600">{{ error }}</div>
       <div *ngIf="!loading && !error && news().length === 0" class="text-center py-16 text-lg font-semibold text-gray-500">No hay noticias disponibles.</div>

@@ -1,115 +1,116 @@
-<section class="py-24 bg-gray-50 relative overflow-hidden">
-  
-  <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+﻿<section class="py-24 lg:py-32 bg-editorial-cream overflow-hidden">
+  <div class="container-editorial-wide">
 
-  <div class="container-cermat relative z-10">
-    
-    <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-      <div class="max-w-2xl">
-        
-        <div class="relative inline-block mb-4">
-          <svg class="absolute inset-0 w-full h-full text-blue-200 -z-10 transform scale-110 -rotate-2" viewBox="0 0 100 30" preserveAspectRatio="none" fill="currentColor">
-            <path d="M0,15 C10,5 40,0 95,5 C100,5 100,20 90,25 C60,30 20,30 5,25 C-5,20 0,15 0,15 Z" />
-          </svg>
-          
-          <span class="relative z-10 font-bold tracking-widest uppercase text-sm text-blue-900 px-4 py-1">
-            Vida Escolar
-          </span>
+    <!-- Header -->
+    <div class="mb-16" appScrollReveal="fadeUp">
+      <p class="label-editorial mb-4">Vida Escolar</p>
+      <div class="section-divider mb-6"></div>
+      <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
+        Momentos que<br/>
+        <span class="text-editorial-gold">Inspiran</span>
+      </h2>
+      <p class="text-lg text-editorial-muted mt-4 max-w-xl">
+        La energía, el aprendizaje y la alegría de nuestras aulas.
+      </p>
+    </div>
+
+    <!-- Grid uniforme -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div *ngFor="let img of galleryImages(); let i = index"
+           class="group relative cursor-pointer"
+           role="button" tabindex="0"
+           (click)="openLightbox(i)"
+           (keydown.enter)="openLightbox(i)"
+           (keydown.space)="openLightbox(i); $event.preventDefault()"
+           [attr.aria-label]="'Ver imagen: ' + img.title"
+           appScrollReveal="fadeUp"
+           [delay]="i * 100">
+
+        <div class="aspect-square overflow-hidden bg-editorial-border">
+          <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
+               class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
         </div>
 
-        <h2 class="text-4xl md:text-5xl font-black text-gray-900 leading-tight">
-          Momentos que <span class="gradient-cermat-text">Inspiran</span>
-        </h2>
-        
-        <p class="text-lg text-gray-500 mt-4 leading-relaxed pl-4 border-l-4 border-yellow-400">
-          Descubre la energía, el aprendizaje y la alegría que se vive día a día en nuestras aulas y patios.
-        </p>
+        <!-- Caption siempre visible -->
+        <div class="mt-3">
+          <span class="label-editorial text-editorial-gold text-[10px]">{{ img.category }}</span>
+          <h3 class="text-sm font-semibold text-editorial-navy mt-0.5">{{ img.title }}</h3>
+        </div>
       </div>
-      
-      <a href="/galeria" class="hidden md:inline-flex items-center gap-2 btn-cermat-outline text-blue-900 border-blue-200 hover:border-blue-600 !py-3 !px-6 !text-base bg-white/50 backdrop-blur-sm group">
+    </div>
+
+    <!-- Auto-scroll row de imágenes -->
+    <div class="mt-16" appScrollReveal="fadeIn" [delay]="300">
+      <div class="gallery-scroll-track">
+        <div *ngFor="let img of galleryImages()" class="w-64 flex-shrink-0">
+          <div class="aspect-[4/3] overflow-hidden">
+            <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
+                 class="w-full h-full object-cover" />
+          </div>
+          <div class="mt-2">
+            <span class="text-[10px] font-semibold uppercase tracking-[0.15em] text-editorial-muted">{{ img.category }}</span>
+            <p class="text-xs text-editorial-slate mt-0.5">{{ img.title }}</p>
+          </div>
+        </div>
+        <!-- Duplicar para scroll infinito -->
+        <div *ngFor="let img of galleryImages()" class="w-64 flex-shrink-0" aria-hidden="true">
+          <div class="aspect-[4/3] overflow-hidden">
+            <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
+                 class="w-full h-full object-cover" />
+          </div>
+          <div class="mt-2">
+            <span class="text-[10px] font-semibold uppercase tracking-[0.15em] text-editorial-muted">{{ img.category }}</span>
+            <p class="text-xs text-editorial-slate mt-0.5">{{ img.title }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Link galería completa -->
+    <div class="mt-12" appScrollReveal="fadeUp" [delay]="200">
+      <a routerLink="/noticias"
+         class="inline-flex items-center gap-2 text-sm font-semibold text-editorial-navy uppercase tracking-[0.1em] hover:text-editorial-gold transition-colors">
         Ver galería completa
-        <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
         </svg>
       </a>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 auto-rows-[280px] gap-6">
-      
-      <div *ngFor="let img of galleryImages; let i = index" 
-           class="group relative overflow-hidden cursor-pointer"
-           (click)="openLightbox(i)"
-           [ngClass]="{
-             'md:col-span-2 md:row-span-2': i === 0, 
-             'md:col-span-1 md:row-span-1': i !== 0 && i !== 3,
-             'md:col-span-2 md:row-span-1': i === 3
-           }">
-        
-        <div class="card-cermat h-full p-0 overflow-hidden relative border border-gray-100">
-          
-          <img [src]="img.url" [alt]="img.title" 
-               class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"/>
-          
-          <div class="absolute inset-0 bg-gradient-to-t from-blue-950/90 via-blue-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          
-          <div class="absolute bottom-0 left-0 w-full p-6 translate-y-4 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
-            <span class="inline-block px-3 py-1 bg-yellow-400 text-blue-950 text-xs font-bold uppercase tracking-wide rounded-md mb-2 shadow-sm">
-              {{ img.category }}
-            </span>
-            <h3 class="text-white font-bold text-lg leading-snug">{{ img.title }}</h3>
-          </div>
-
-          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 glass-cermat rounded-full flex items-center justify-center text-white opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300">
-            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
-            </svg>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-
   </div>
 
-  <div *ngIf="isLightboxOpen()" 
-       class="fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in"
-       (click)="closeLightbox()">
-    
-    <button (click)="closeLightbox()" 
-            class="absolute top-6 right-6 w-12 h-12 glass-cermat rounded-full flex items-center justify-center text-white hover:bg-white hover:text-blue-900 transition-all z-50">
-      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-      </svg>
-    </button>
+  <!-- Lightbox PrimeNG -->
+  <p-galleria
+    *ngIf="isLightboxOpen()"
+    [value]="galleryImages()"
+    [activeIndex]="activeIndex()"
+    [showThumbnails]="true"
+    [showItemNavigators]="true"
+    [showThumbnailNavigators]="true"
+    [circular]="true"
+    [fullScreen]="true"
+    [showIndicators]="true"
+    [responsiveOptions]="[
+      { breakpoint: '768px', numVisible: 3 },
+      { breakpoint: '480px', numVisible: 2 }
+    ]"
+    (onHide)="closeLightbox()">
 
-    <button *ngIf="currentImageIndex() > 0" 
-            (click)="prevImage($event)" 
-            class="absolute left-4 md:left-8 w-12 h-12 glass-cermat rounded-full flex items-center justify-center text-white hover:bg-white hover:text-blue-900 transition-all z-50">
-      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-      </svg>
-    </button>
+    <ng-template pTemplate="item" let-img>
+      <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async" class="w-full max-h-[80vh] object-contain"/>
+    </ng-template>
 
-    <button *ngIf="currentImageIndex() < galleryImages.length - 1" 
-            (click)="nextImage($event)" 
-            class="absolute right-4 md:right-8 w-12 h-12 glass-cermat rounded-full flex items-center justify-center text-white hover:bg-white hover:text-blue-900 transition-all z-50">
-      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-      </svg>
-    </button>
+    <ng-template pTemplate="thumbnail" let-img>
+      <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
+           class="w-16 h-16 md:w-20 md:h-20 object-cover border-2 border-transparent hover:border-editorial-gold transition-colors"/>
+    </ng-template>
 
-    <div class="max-w-7xl w-full max-h-[90vh] flex flex-col items-center" (click)="$event.stopPropagation()">
-      <img [src]="galleryImages[currentImageIndex()].url" 
-           class="w-auto h-auto max-h-[80vh] object-contain rounded-2xl shadow-2xl mb-6 border border-white/10"/>
-      
-      <div class="text-center">
-        <h3 class="text-2xl font-bold text-white mb-2">{{ galleryImages[currentImageIndex()].title }}</h3>
-        <span class="inline-block px-3 py-1 glass-cermat rounded-full text-yellow-300 text-sm font-medium">
-            {{ galleryImages[currentImageIndex()].category }}
-        </span>
+    <ng-template pTemplate="captions" let-img>
+      <div class="text-center mt-2">
+        <h3 class="text-white font-bold">{{ img.title }}</h3>
+        <span class="label-editorial text-editorial-gold-light text-xs">{{ img.category }}</span>
       </div>
-    </div>
-  </div>
+    </ng-template>
 
+  </p-galleria>
 </section>

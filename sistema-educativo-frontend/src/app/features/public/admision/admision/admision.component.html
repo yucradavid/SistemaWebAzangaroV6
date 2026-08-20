@@ -1,9 +1,8 @@
 <div class="min-h-screen bg-gray-50">
   <section class="relative bg-[#1E3A8A] text-white py-28 overflow-hidden">
-    <app-page-cover pageKey="admision" fallbackGradient="bg-[#1E3A8A]"></app-page-cover>
     <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 20px 20px;"></div>
 
-    <div class="container-custom text-center relative z-10 px-4">
+    <div class="container-cermat text-center relative z-10 px-4">
       <span class="inline-block py-1 px-3 rounded-full bg-[#c0d8f0] text-[#1E3A8A] text-sm font-bold mb-6 uppercase tracking-wider shadow-lg">
         Pre matricula abierta
       </span>
@@ -15,7 +14,7 @@
     <div class="absolute bottom-0 w-full h-2 bg-gradient-to-r from-red-600 via-yellow-400 to-[#1E3A8A]"></div>
   </section>
 
-  <div class="container-custom px-4 py-10 text-center">
+  <div class="container-cermat px-4 py-10 text-center">
     <button type="button" (click)="openAdmissionForm()" aria-label="Completar solicitud" class="group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#16326f] px-6 py-3 text-lg font-bold text-white shadow-[0_16px_30px_rgba(30,58,138,0.35)] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_18px_35px_rgba(30,58,138,0.4)]">
       <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors duration-200 transform group-hover:scale-110">
         <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -31,8 +30,8 @@
     </button>
   </div>
 
-  <section class="section-padding py-16">
-    <div class="container-custom px-4">
+  <section class="py-16">
+    <div class="container-cermat px-4">
       <div class="text-center mb-16">
         <h2 class="text-3xl md:text-4xl font-bold text-[#1E3A8A]">Pasos del Proceso</h2>
         <div class="w-20 h-1 bg-red-600 mx-auto mt-4 rounded-full"></div>
@@ -59,8 +58,8 @@
     </div>
   </section>
 
-  <section class="section-padding bg-gradient-to-br from-slate-50 via-white to-[#e6eff8] pb-8">
-    <div class="container-custom px-4">
+  <section class="py-16 md:py-24 bg-gradient-to-br from-slate-50 via-white to-[#e6eff8] pb-8">
+    <div class="container-cermat px-4">
       <div class="mb-10 rounded-[28px] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] ring-1 ring-slate-200 md:p-8">
           <div class="grid gap-5 md:grid-cols-4">
             <div *ngFor="let step of admissionSteps" class="group rounded-[24px] border border-slate-200 bg-slate-50 p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
@@ -187,14 +186,6 @@
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Número de documento *</label>
                         <input type="text" formControlName="student_document_number" (blur)="onStudentDniBlur(admissionForm.get('student_document_number')?.value)" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('student_document_number')" />
-
-                        <div *ngIf="studentLookupLoading" class="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                          ⏳ Buscando estudiante...
-                        </div>
-
-                        <div *ngIf="studentFound" class="mt-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-800">
-                          ✅ Estudiante encontrado — datos completados automaticamente
-                        </div>
                       </div>
                     </div>
 
@@ -252,21 +243,13 @@
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Número de documento *</label>
                         <input type="text" formControlName="guardian_document_number" (blur)="onGuardianDniBlur(admissionForm.get('guardian_document_number')?.value)" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_document_number')" />
-
-                        <div *ngIf="guardianLookupLoading" class="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                          ⏳ Buscando apoderado...
-                        </div>
-
-                        <div *ngIf="guardianFound" class="mt-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-800">
-                          ✅ Apoderado encontrado — datos completados automaticamente
-                        </div>
                       </div>
                     </div>
 
                     <div class="grid gap-6 sm:grid-cols-2">
                       <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Número de WhatsApp *</label>
-                        <input type="tel" formControlName="guardian_phone" placeholder="Aquí recibirás las credenciales de acceso al sistema" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_phone')" />
+                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Teléfono *</label>
+                        <input type="tel" formControlName="guardian_phone" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_phone')" />
                       </div>
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Correo electrónico *</label>
@@ -285,21 +268,6 @@
                           <option *ngFor="let relation of relationships" [value]="relation.id">{{ relation.label }}</option>
                         </select>
                       </div>
-                    </div>
-
-                    <div *ngIf="siblingsDetected.length > 0" class="mt-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
-                      <p class="font-bold text-amber-800 text-sm mb-2">
-                        ⚠️ Se detectaron hermanos en el sistema:
-                      </p>
-                      <ul class="space-y-1">
-                        <li *ngFor="let s of siblingsDetected" class="text-sm text-amber-700 flex items-center gap-2">
-                          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                          {{ s.name }} (Codigo: {{ s.code }})
-                        </li>
-                      </ul>
-                      <p class="text-xs text-amber-600 mt-2">
-                        Al aprobar esta matricula se aplicara el descuento entre hermanos automaticamente.
-                      </p>
                     </div>
 
                     <div class="flex flex-wrap items-center justify-between gap-3">

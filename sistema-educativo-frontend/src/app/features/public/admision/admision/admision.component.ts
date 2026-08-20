@@ -1,23 +1,19 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import Swal from 'sweetalert2';
 import { SeoService } from '@core/services/seo/seo.service';
 import { EnrollmentService, EnrollmentSibling } from '@core/services/enrollment.service';
-import { DocumentLevel, DocumentService, PublicDocumentType } from '@core/services/document.service';
-import { PageCoverComponent } from '@shared/components/page-cover/page-cover.component';
 
 @Component({
   selector: 'app-admision',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageCoverComponent],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './admision.component.html',
   styleUrls: ['./admision.component.css']
 })
 export class AdmisionComponent implements OnInit {
   private readonly seoService = inject(SeoService);
   private readonly enrollmentService = inject(EnrollmentService);
-  private readonly documentService = inject(DocumentService);
   private readonly fb = inject(FormBuilder);
 
   readonly openFaqIndex = signal<number | null>(null);
@@ -480,8 +476,6 @@ export class AdmisionComponent implements OnInit {
         this.modalPrimaryButtonLabel.set('Cerrar');
         this.showModal.set(true);
 
-        this.showDocumentsReminder(payload.grade_level_id, payload.guardian_phone, payload.guardian_first_name);
-
         const activeYearId = this.admissionForm.get('academic_year_id')?.value
           || this.academicYears.find((year: any) => year.is_active)?.id
           || '';
@@ -515,87 +509,6 @@ export class AdmisionComponent implements OnInit {
         this.showModal.set(true);
       }
     });
-  }
-
-  // Sugerencia informativa al apoderado, ANTES de que la solicitud sea
-  // revisada/aprobada por el admin. No debe confundirse con el checklist de
-  // "entregados" (enrollment_application_documents) que el admin marca
-  // DESPUES al revisar la solicitud — ambos flujos usan document_types como
-  // fuente pero con propositos distintos.
-  private showDocumentsReminder(gradeLevelId: string, guardianPhone: string, guardianFirstName: string): void {
-    const level = this.gradeLevels.find((g: any) => g.id === gradeLevelId)?.level as DocumentLevel | undefined;
-
-    if (!level) {
-      return;
-    }
-
-    this.documentService.getPublicDocumentTypesByLevel(level).subscribe({
-      next: (response) => {
-        const documents = Array.isArray(response?.data) ? response.data : [];
-
-        if (documents.length === 0) {
-          return;
-        }
-
-        void Swal.fire({
-          icon: 'info',
-          title: 'Documentos para completar tu matrícula',
-          html: `
-            <p class="text-sm text-slate-500 mb-3">Trae estos documentos presencialmente al colegio para completar el proceso:</p>
-            <ul class="text-left text-sm space-y-1.5">
-              ${documents.map((d) => `<li>• ${this.escapeHtml(d.name)}${d.is_required ? '' : ' (opcional)'}</li>`).join('')}
-            </ul>
-          `,
-          confirmButtonText: 'Entendido',
-          showDenyButton: true,
-          denyButtonText: 'Enviar a mi WhatsApp',
-          denyButtonColor: '#059669',
-        }).then((result) => {
-          if (result.isDenied) {
-            this.sendDocumentsListToWhatsapp(documents, guardianPhone, guardianFirstName);
-          }
-        });
-      },
-      error: (err) => console.error(err)
-    });
-  }
-
-  private sendDocumentsListToWhatsapp(documents: PublicDocumentType[], guardianPhone: string, guardianFirstName: string): void {
-    const rawPhone = String(guardianPhone || '').replace(/\D/g, '');
-
-    if (!rawPhone) {
-      void Swal.fire({
-        icon: 'warning',
-        title: 'Sin número de WhatsApp',
-        text: 'No se registró un teléfono válido para enviar la lista.',
-        confirmButtonText: 'Entendido',
-      });
-      return;
-    }
-
-    const fullPhone = rawPhone.startsWith('51') ? rawPhone : '51' + rawPhone;
-
-    const lines = [
-      `Hola ${guardianFirstName || ''}, aquí tienes la lista de documentos`,
-      'para completar la matrícula:',
-      '',
-      ...documents.map((d) => `• ${d.name}${d.is_required ? '' : ' (opcional)'}`),
-      '',
-      'Preséntalos en el colegio cuando vengas',
-      'a formalizar la matrícula.',
-    ];
-
-    const message = encodeURIComponent(lines.join('\n'));
-    window.open(`https://wa.me/${fullPhone}?text=${message}`, '_blank');
-  }
-
-  private escapeHtml(value: string): string {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
   }
 
   private loadAdmissionOptions(): void {

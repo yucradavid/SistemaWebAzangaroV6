@@ -1,19 +1,15 @@
-
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DataService } from '@core/services/data_general/data.service';
-import { ScrollRevealDirective } from '@shared/directives/scroll-reveal.directive';
 
 @Component({
-  selector: 'app-stats-section',
+  selector: 'app-hero-stats',
   standalone: true,
-  imports: [CommonModule, ScrollRevealDirective],
-  templateUrl: './stats-section.component.html',
+  imports: [CommonModule],
+  templateUrl: './hero-stats.component.html',
 })
-export class StatsSectionComponent {
+export class HeroStatsComponent {
   private readonly dataService = inject(DataService);
-
   readonly schoolInfo = this.dataService.schoolInfo;
   readonly yearsOfExperience = this.dataService.yearsOfExperience;
 }
-

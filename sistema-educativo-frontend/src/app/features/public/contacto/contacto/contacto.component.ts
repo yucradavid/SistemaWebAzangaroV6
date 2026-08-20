@@ -3,12 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { SeoService } from '@core/services/seo/seo.service';
 import { DataService, NewsItem } from '@core/services/data_general/data.service';
-import { PageCoverComponent } from '@shared/components/page-cover/page-cover.component';
 
 @Component({
   selector: 'app-contacto',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageCoverComponent],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './contacto.component.html',
   styleUrl: './contacto.component.css'
 })

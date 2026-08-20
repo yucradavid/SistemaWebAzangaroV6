@@ -45,11 +45,26 @@ module.exports = {
             800: '#854d0e',
             900: '#713f12',
           }
+        },
+        // Colores editoriales (landing rediseño V1)
+        editorial: {
+          cream: '#FAFAF8',
+          warm: '#F5F3EF',
+          gold: '#B8860B',
+          'gold-light': '#D4A843',
+          navy: '#102A43',
+          slate: '#334E68',
+          muted: '#627D98',
+          border: '#E2E8F0',
         }
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         display: ['Poppins', 'system-ui', 'sans-serif'],
+      },
+      fontSize: {
+        'display': ['clamp(3rem, 8vw, 6rem)', { lineHeight: '0.95', letterSpacing: '-0.03em', fontWeight: '900' }],
+        'display-lg': ['clamp(3.5rem, 10vw, 8rem)', { lineHeight: '0.9', letterSpacing: '-0.04em', fontWeight: '900' }],
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',

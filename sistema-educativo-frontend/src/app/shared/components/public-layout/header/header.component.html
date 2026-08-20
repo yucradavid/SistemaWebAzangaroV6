@@ -1,79 +1,92 @@
-<header class="fixed top-6 left-0 right-0 z-50 px-4 transition-all duration-500"
-  [ngClass]="isScrolled() ? 'translate-y-0' : 'translate-y-0'">
+﻿<header class="fixed top-0 left-0 right-0 z-50 transition-all duration-500"
+        [ngClass]="isScrolled() ? 'bg-editorial-navy/95 backdrop-blur-md shadow-lg' : 'bg-transparent'">
+  <!-- Desktop -->
+  <div class="hidden lg:block">
+    <div class="container-editorial-wide flex items-center justify-between h-20">
 
-  <!-- MÓVIL: logo y hamburguesa sueltos, cada uno con su propio círculo, sin cápsula compartida -->
-  <div class="flex lg:hidden items-center justify-between">
-    <a routerLink="/" class="flex-shrink-0 w-11 h-11 rounded-full bg-blue-950/90 backdrop-blur-xl border border-white/10 shadow-lg flex items-center justify-center group">
-      <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l9-5-9-5-9 5 9 5z" />
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-      </svg>
-    </a>
-
-    <button (click)="toggleMobileMenu()"
-            class="flex-shrink-0 w-11 h-11 rounded-full bg-blue-950/90 backdrop-blur-xl border border-white/10 shadow-lg flex items-center justify-center text-white transition-colors hover:bg-blue-950/95">
-       <div class="w-5 h-5 flex flex-col justify-center gap-1.5">
-          <span class="w-full h-0.5 bg-current rounded-full transition-all" [ngClass]="{'rotate-45 translate-y-2': isMobileMenuOpen()}"></span>
-          <span class="w-full h-0.5 bg-current rounded-full transition-all" [ngClass]="{'opacity-0': isMobileMenuOpen()}"></span>
-          <span class="w-full h-0.5 bg-current rounded-full transition-all" [ngClass]="{'-rotate-45 -translate-y-2': isMobileMenuOpen()}"></span>
-       </div>
-    </button>
-  </div>
-
-  <!-- DESKTOP: cápsula completa, sin cambios respecto a como estaba -->
-  <div class="hidden lg:flex bg-blue-950/90 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl shadow-blue-900/20 px-4 py-2 items-center justify-between gap-2 w-full max-w-5xl mx-auto transition-all duration-300 hover:bg-blue-950/95"
-       [ngClass]="isScrolled() ? 'scale-100' : 'scale-[1.02]'">
-
-    <a routerLink="/" class="flex-shrink-0 group">
-      <div class="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center transition-transform transform group-hover:rotate-12 group-hover:scale-105 border-2 border-transparent group-hover:border-yellow-400">
-        <svg class="w-6 h-6 text-blue-950" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l9-5-9-5-9 5 9 5z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-        </svg>
-      </div>
-    </a>
-
-    <nav class="flex items-center gap-1">
-      <a *ngFor="let item of menuItems"
-         [routerLink]="item.route"
-         routerLinkActive="bg-white/10 text-white font-semibold"
-         [routerLinkActiveOptions]="{exact: item.route === '/'}"
-         class="px-5 py-2.5 rounded-full text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-300 font-medium tracking-wide">
-         {{ item.label }}
-      </a>
-    </nav>
-
-    <button routerLink="/login" class="flex px-6 py-2.5 bg-white text-blue-950 rounded-full font-bold text-sm hover:bg-yellow-400 hover:text-blue-950 transition-colors shadow-lg shadow-white/10 items-center gap-2">
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
-      <span>Portal</span>
-    </button>
-  </div>
-
-  <!-- Menú desplegable móvil: se abre desde el botón hamburguesa suelto de arriba -->
-  <div class="absolute top-16 left-4 right-4 bg-blue-950/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-4 lg:hidden origin-top transition-all duration-300 ease-out z-40 overflow-hidden"
-       [ngClass]="isMobileMenuOpen() ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible'">
-
-    <div class="flex flex-col gap-2">
-      <a *ngFor="let item of menuItems"
-         [routerLink]="item.route"
-         (click)="closeMobileMenu()"
-         routerLinkActive
-         #rlaMobile="routerLinkActive"
-         [routerLinkActiveOptions]="{exact: item.route === '/'}"
-         [ngClass]="rlaMobile.isActive
-           ? 'bg-blue-700 text-white font-bold'
-           : 'text-gray-300 font-medium hover:bg-blue-700/50 hover:text-white'"
-         class="block px-6 py-4 rounded-2xl transition-all text-center text-lg">
-         {{ item.label }}
+      <a routerLink="/" class="flex items-center gap-3 group" aria-label="CERMAT - Ir al inicio">
+        <div class="w-10 h-10 bg-editorial-gold flex items-center justify-center transition-transform group-hover:scale-105">
+          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+          </svg>
+        </div>
+        <div>
+          <span class="text-white font-bold text-sm tracking-wide">CERMAT</span>
+          <span class="block text-[10px] text-editorial-muted tracking-[0.2em] uppercase">School</span>
+        </div>
       </a>
 
-      <div class="h-px w-full bg-white/10 my-2"></div>
+      <nav class="flex items-center gap-8" role="navigation" aria-label="Menú principal">
+        <a *ngFor="let item of menuItems"
+           [routerLink]="item.route"
+           routerLinkActive="text-editorial-gold"
+           [routerLinkActiveOptions]="{exact: item.route === '/'}"
+           class="text-sm text-gray-400 hover:text-white transition-colors font-medium tracking-wide focus-ring">
+           {{ item.label }}
+        </a>
+      </nav>
 
-      <button routerLink="/login" (click)="closeMobileMenu()" class="w-full px-6 py-4 bg-yellow-400 text-blue-950 rounded-2xl font-bold hover:bg-yellow-300 transition-colors flex items-center justify-center gap-2 text-lg">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
-        Ingresar a Portal
+      <button routerLink="/login"
+              class="px-6 py-2.5 border border-white/20 text-white text-sm font-semibold hover:bg-white hover:text-editorial-navy transition-colors focus-ring">
+        Portal
       </button>
+
     </div>
   </div>
 
+  <!-- Mobile -->
+  <div class="lg:hidden flex justify-between items-center px-6 h-16">
+    <a routerLink="/" class="flex items-center gap-2 group" aria-label="CERMAT - Ir al inicio">
+      <div class="w-9 h-9 bg-editorial-gold flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+        </svg>
+      </div>
+      <span class="text-white font-bold text-sm">CERMAT</span>
+    </a>
+
+    <button (click)="toggleMobileMenu()"
+            aria-label="Menu de navegacion"
+            [attr.aria-expanded]="isMobileMenuOpen()"
+            class="w-9 h-9 flex flex-col items-center justify-center gap-1.5 text-white focus-ring">
+      <span class="w-5 h-px bg-current rounded-full transition-all" [ngClass]="{'rotate-45 translate-y-[3px]': isMobileMenuOpen()}"></span>
+      <span class="w-5 h-px bg-current rounded-full transition-all" [ngClass]="{'opacity-0': isMobileMenuOpen()}"></span>
+      <span class="w-5 h-px bg-current rounded-full transition-all" [ngClass]="{'-rotate-45 -translate-y-[3px]': isMobileMenuOpen()}"></span>
+    </button>
+  </div>
 </header>
+
+<p-sidebar
+  [(visible)]="isMobileMenuOpen"
+  position="top"
+  [modal]="true"
+  [showCloseIcon]="false"
+  [dismissible]="true"
+  [closeOnEscape]="true"
+  styleClass="header-mobile-sidebar"
+  [style]="{ height: 'auto', maxHeight: '80vh', top: '64px', borderRadius: '0', margin: '0', width: '100%', background: 'rgba(10, 25, 41, 0.98)', backdropFilter: 'blur(24px)', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)' }"
+  (onHide)="closeMobileMenu()">
+
+  <ng-template pTemplate="headless">
+    <div class="flex flex-col gap-1 p-6">
+      <a *ngFor="let item of menuItems"
+         [routerLink]="item.route"
+         (click)="closeMobileMenu()"
+         routerLinkActive="text-editorial-gold font-semibold"
+         [routerLinkActiveOptions]="{exact: item.route === '/'}"
+         class="px-4 py-3 text-gray-400 hover:text-white transition-colors text-base font-medium">
+         {{ item.label }}
+      </a>
+
+      <div class="h-px w-full bg-white/5 my-3"></div>
+
+      <button routerLink="/login" (click)="closeMobileMenu()"
+              class="w-full px-4 py-3 border border-editorial-gold text-editorial-gold font-semibold hover:bg-editorial-gold hover:text-white transition-colors text-base focus-ring">
+        Ingresar a Portal
+      </button>
+    </div>
+  </ng-template>
+
+</p-sidebar>

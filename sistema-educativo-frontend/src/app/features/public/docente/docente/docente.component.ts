@@ -2,11 +2,10 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SeoService } from '@core/services/seo/seo.service';
 import { DataService } from '@core/services/data_general/data.service';
-import { PageCoverComponent } from '@shared/components/page-cover/page-cover.component';
 @Component({
   selector: 'app-docente',
   standalone: true,
-  imports: [CommonModule, PageCoverComponent],
+  imports: [CommonModule],
   templateUrl: './docente.component.html',
   styleUrl: './docente.component.css'
 })
