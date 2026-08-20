@@ -2,41 +2,55 @@ import { Routes } from '@angular/router';
 import { roleGuard } from './core/guards/role.guard';
 import { ICONS } from './core/constants/icons';
 
+// ── Grupos de roles reutilizables ─────────────────────────
+const ADMIN       = ['admin', 'director', 'coordinator', 'secretary'] as const;
+const CONFIG      = ['admin', 'director', 'coordinator'] as const;
+const FINANCE     = ['admin', 'director', 'secretary', 'finance'] as const;
+const CASH        = ['admin', 'director', 'secretary', 'finance', 'cashier'] as const;
+const EVAL_TASKS  = ['admin', 'director', 'coordinator', 'teacher'] as const;
+
+// ── Guard data objects (evita repetir canActivate + data) ─
+const guardAdmin       = { canActivate: [roleGuard], data: { roles: [...ADMIN] } };
+const guardConfig      = { canActivate: [roleGuard], data: { roles: [...CONFIG] } };
+const guardFinance     = { canActivate: [roleGuard], data: { roles: [...FINANCE] } };
+const guardCash        = { canActivate: [roleGuard], data: { roles: [...CASH] } };
+const guardEvalTasks   = { canActivate: [roleGuard], data: { roles: [...EVAL_TASKS] } };
+
 export const PRIVATE_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () => import('./shared/components/private-layout/private-layout.component').then(m => m.PrivateLayoutComponent),
     children: [
-      {
-        path: '',
-        redirectTo: 'dashboard',
-        pathMatch: 'full'
-      },
-      // ── Admin Dashboard ──────────────────────────────────
+
+      // ════════════════════════════════════════════════════════
+      //  DASHBOARDS (uno por rol)
+      // ════════════════════════════════════════════════════════
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
         path: 'dashboard',
+        ...guardAdmin,
         loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
         title: 'CERMAT - Panel de Administración'
       },
-      // ── Student Dashboard ──────────────────────────────────
       {
         path: 'dashboard/student',
         loadComponent: () => import('./features/student/student-dashboard/student-dashboard.component').then(m => m.StudentDashboardComponent),
         title: 'CERMAT - Portal del Estudiante'
       },
-      // ── Teacher Dashboard ──────────────────────────────────
       {
         path: 'dashboard/teacher',
         loadComponent: () => import('./features/teacher/dashboard/dashboard.component').then(m => m.DashboardComponent),
         title: 'CERMAT - Portal del Docente'
       },
-      // ── Apoderado Dashboard ──────────────────────────────────
       {
         path: 'dashboard/apoderado',
         loadComponent: () => import('./features/apoderado/dashboard/dashboard.component').then(m => m.DashboardComponent),
         title: 'CERMAT - Portal de Apoderado'
       },
-      // ── Módulos del Estudiante ───────────────────────────
+
+      // ════════════════════════════════════════════════════════
+      //  MÓDULOS DEL ESTUDIANTE
+      // ════════════════════════════════════════════════════════
       {
         path: 'attendance/student',
         loadComponent: () => import('./features/student/attendance/student-attendance.component').then(m => m.AttendanceStudentComponent),
@@ -83,7 +97,11 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Mi Horario'
       },
 
-      // ── Módulos del Apoderado ───────────────────────────
+      // ════════════════════════════════════════════════════════
+      //  MÓDULOS DEL APODERADO (rutas directas + shells con pestañas)
+      // ════════════════════════════════════════════════════════
+
+      // Rutas directas
       {
         path: 'attendance/apoderado',
         loadComponent: () => import('./features/apoderado/attendance/apoderado-attendance/apoderado-attendance.component').then(m => m.ApoderadoAttendanceComponent),
@@ -130,7 +148,7 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Horario'
       },
 
-      // ── Módulos unificados del Apoderado (shell con pestañas) ─────────
+      // Shells con pestañas (agrupan módulos relacionados)
       {
         path: 'apoderado/asistencia-horario',
         data: {
@@ -238,7 +256,11 @@ export const PRIVATE_ROUTES: Routes = [
         ]
       },
 
-      // ── Módulos del Docente ───────────────────────────
+      // ════════════════════════════════════════════════════════
+      //  MÓDULOS DEL DOCENTE (rutas directas + shells con pestañas)
+      // ════════════════════════════════════════════════════════
+
+      // Rutas directas
       {
         path: 'attendance/mark/teacher',
         loadComponent: () => import('./features/teacher/attendance/teacher-mark-attendance/teacher-mark-attendance.component').then(m => m.TeacherMarkAttendanceComponent),
@@ -300,233 +322,7 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Mi Horario (Docente)'
       },
 
-      // ── Matrículas ───────────────────────────────────────
-      {
-        path: 'admissions/applications',
-        loadComponent: () => import('./features/admin/admissions/enrollment-approvals/enrollment-approvals.component').then(m => m.EnrollmentApprovalsComponent),
-        title: 'CERMAT - Solicitudes de Matrícula'
-      },
-
-      // ── Asistencia ───────────────────────────────────────
-      {
-        path: 'attendance/approvals',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'coordinator', 'secretary', 'administrative'] },
-        loadComponent: () => import('./features/admin/attendance/attendance-approvals/attendance-approvals.component').then(m => m.AttendanceApprovalsComponent),
-        title: 'CERMAT - Aprobación de Justificaciones'
-      },
-
-      // ── Reportes ─────────────────────────────────────────
-      {
-        path: 'reports/academic',
-        loadComponent: () => import('./features/admin/reports/academic-reports/academic-reports.component').then(m => m.AcademicReportsComponent),
-        title: 'CERMAT - Reportes Académicos'
-      },
-
-
-      // ── Métricas ─────────────────────────────────────────
-      {
-        path: 'dashboard/metrics/admin',
-        loadComponent: () => import('./features/admin/metrics/admin-metrics/admin-metrics.component').then(m => m.AdminMetricsComponent),
-        title: 'CERMAT - Métricas del Sistema'
-      },
-
-      // ── Horarios ─────────────────────────────────────────
-      {
-        path: 'schedule/admin',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'coordinator'] },
-        loadComponent: () => import('./features/admin/schedule/admin-schedule/admin-schedule.component').then(m => m.AdminScheduleComponent),
-        title: 'CERMAT - Gestión de Horarios'
-      },
-      
-      // ── Evaluación ───────────────────────────────────────
-      {
-        path: 'evaluation/grade-entry',
-        loadComponent: () => import('./features/admin/evaluation/grade-entry/grade-entry.component').then(m => m.GradeEntryComponent),
-        title: 'CERMAT - Registro de Notas'
-      },
-      {
-        path: 'evaluation/review',
-        loadComponent: () => import('./features/admin/evaluation/evaluation-review/evaluation-review.component').then(m => m.EvaluationReviewComponent),
-        title: 'CERMAT - Gestión de Evaluaciones'
-      },
-
-      // ── Tareas ───────────────────────────────────────────
-      {
-        path: 'tasks/management',
-        loadComponent: () => import('./features/admin/tasks/task-management/task-management.component').then(m => m.TaskManagementComponent),
-        title: 'CERMAT - Gestión de Tareas'
-      },
-      {
-        path: 'tasks/grading',
-        loadComponent: () => import('./features/admin/tasks/task-grading/task-grading.component').then(m => m.TaskGradingComponent),
-        title: 'CERMAT - Calificar Entregas'
-      },
-
-      // ── Finanzas ─────────────────────────────────────────
-      {
-        path: 'finance/catalog',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
-        loadComponent: () => import('./features/admin/finance/finance-catalog/finance-catalog.component').then(m => m.FinanceCatalogComponent),
-        title: 'CERMAT - Catálogo Financiero'
-      },
-      // Rutas antiguas: redirigen al catálogo unificado, preservando el tab via query param
-      {
-        path: 'finance/catalog/concepts',
-        redirectTo: () => '/app/finance/catalog?tab=concepts',
-        pathMatch: 'full'
-      },
-      {
-        path: 'finance/catalog/plans',
-        redirectTo: () => '/app/finance/catalog?tab=plans',
-        pathMatch: 'full'
-      },
-      {
-        path: 'finance/catalog/discounts',
-        redirectTo: () => '/app/finance/catalog?tab=discounts',
-        pathMatch: 'full'
-      },
-      {
-        path: 'finance/charges/emission',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
-        loadComponent: () => import('./features/admin/finance/charges/finance-emission.component').then(m => m.FinanceEmissionComponent),
-        title: 'CERMAT - Emisión de Cargos'
-      },
-      {
-        path: 'finance/charges/student',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
-        loadComponent: () => import('./features/admin/finance/charges/finance-student.component').then(m => m.FinanceStudentComponent),
-        title: 'CERMAT - Cuenta Estudiante'
-      },
-      {
-        path: 'finance/cash',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance', 'cashier'] },
-        loadComponent: () => import('./features/admin/finance/cash/finance-cash.component').then(m => m.FinanceCashComponent),
-        title: 'CERMAT - Caja Diaria'
-      },
-      {
-        path: 'finance/cash/closures',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance', 'cashier'] },
-        loadComponent: () => import('./features/admin/finance/cash/finance-closures.component').then(m => m.FinanceClosuresComponent),
-        title: 'CERMAT - Historial de Cierres'
-      },
-      {
-        path: 'finance/reports',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
-        loadComponent: () => import('./features/admin/finance/reports/finance-reports.component').then(m => m.FinanceReportsComponent),
-        title: 'CERMAT - Reportes Financieros'
-      },
-
-      // ── Mensajería y Comunicados ──────────────────────────
-      {
-        path: 'messages/teacher',
-        loadComponent: () => import('./features/admin/messaging/messaging-inbox.component').then(m => m.MessagingInboxComponent),
-        title: 'CERMAT - Bandeja de Entrada'
-      },
-      {
-        path: 'communications/teacher',
-        loadComponent: () => import('./features/admin/communications/communications-management.component').then(m => m.CommunicationsManagementComponent),
-        title: 'CERMAT - Gestionar Comunicados'
-      },
-      {
-        path: 'communications/review',
-        loadComponent: () => import('./features/admin/communications/communications-approval.component').then(m => m.CommunicationsApprovalComponent),
-        title: 'CERMAT - Aprobar Comunicados'
-      },
-
-      // ── Configuración / Ajustes ──────────────────────────
-      {
-        path: 'settings/academic-calendar',
-        loadComponent: () => import('./features/admin/settings/academic-calendar/academic-calendar.component').then(m => m.AcademicCalendarComponent),
-        title: 'CERMAT - Calendario Académico'
-      },
-      // Rutas antiguas: redirigen al calendario unificado
-      {
-        path: 'settings/academic-years',
-        redirectTo: 'settings/academic-calendar',
-        pathMatch: 'full'
-      },
-      {
-        path: 'settings/periods',
-        redirectTo: 'settings/academic-calendar',
-        pathMatch: 'full'
-      },
-      {
-        path: 'settings/academic-structure',
-        loadComponent: () => import('./features/admin/settings/academic-structure/academic-structure.component').then(m => m.AcademicStructureComponent),
-        title: 'CERMAT - Estructura Académica'
-      },
-      // Rutas antiguas: redirigen a la estructura unificada
-      {
-        path: 'settings/grades',
-        redirectTo: 'settings/academic-structure',
-        pathMatch: 'full'
-      },
-      {
-        path: 'settings/sections',
-        redirectTo: 'settings/academic-structure',
-        pathMatch: 'full'
-      },
-      {
-        path: 'settings/study-plan',
-        loadComponent: () => import('./features/admin/settings/study-plan/study-plan.component').then(m => m.StudyPlanComponent),
-        title: 'CERMAT - Plan de Estudios'
-      },
-      // Rutas antiguas: redirigen al plan de estudios unificado
-      {
-        path: 'settings/courses',
-        redirectTo: 'settings/study-plan',
-        pathMatch: 'full'
-      },
-      {
-        path: 'settings/competencies',
-        redirectTo: 'settings/study-plan',
-        pathMatch: 'full'
-      },
-      {
-        path: 'settings/teacher-assignments',
-        loadComponent: () => import('./features/admin/settings/teacher-assignments.component').then(m => m.TeacherAssignmentsComponent),
-        title: 'CERMAT - Asignación Docente'
-      },
-      {
-        path: 'settings/users',
-        loadComponent: () => import('./features/admin/settings/admin-users.component').then(m => m.AdminUsersComponent),
-        title: 'CERMAT - Usuarios'
-      },
-      {
-        path: 'settings/imports',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'coordinator', 'secretary'] },
-        loadComponent: () => import('./features/admin/settings/bulk-import.component').then(m => m.BulkImportComponent),
-        title: 'CERMAT - Importacion Masiva'
-      },
-      {
-        path: 'settings/students',
-        loadComponent: () => import('./features/admin/settings/students.component').then(m => m.StudentsComponent),
-        title: 'CERMAT - Estudiantes'
-      },
-      {
-        path: 'settings/enrollments',
-        loadComponent: () => import('./features/admin/settings/enrollment-config.component').then(m => m.EnrollmentConfigComponent),
-        title: 'CERMAT - Configuración Matrículas'
-      },
-      // ── Sitio Web ───────────────────────────────────────
-      {
-        path: 'settings/news',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'web_editor'] },
-        loadComponent: () => import('./features/admin/website/news-management.component').then(m => m.NewsManagementComponent),
-        title: 'CERMAT - Gestión de Noticias y Eventos'
-      },
-
-      // ── Módulos unificados del Docente (shell con pestañas) ─────────
+      // Shells con pestañas
       {
         path: 'teacher/asistencia-horario',
         data: {
@@ -639,6 +435,218 @@ export const PRIVATE_ROUTES: Routes = [
           }
         ]
       },
+
+      // ════════════════════════════════════════════════════════
+      //  MÓDULOS COMPARTIDOS (admin + otros roles)
+      // ════════════════════════════════════════════════════════
+
+      // Matrículas
+      {
+        path: 'admissions/applications',
+        ...guardAdmin,
+        loadComponent: () => import('./features/admin/admissions/enrollment-approvals/enrollment-approvals.component').then(m => m.EnrollmentApprovalsComponent),
+        title: 'CERMAT - Solicitudes de Matrícula'
+      },
+
+      // Asistencia (aprobación + historial)
+      {
+        path: 'attendance/approvals',
+        ...guardAdmin,
+        data: { roles: [...ADMIN, 'administrative'] },
+        loadComponent: () => import('./features/admin/attendance/attendance-approvals/attendance-approvals.component').then(m => m.AttendanceApprovalsComponent),
+        title: 'CERMAT - Aprobación de Justificaciones'
+      },
+      {
+        path: 'attendance/history',
+        ...guardAdmin,
+        data: { roles: [...ADMIN, 'teacher'] },
+        loadComponent: () => import('./shared/components/section-attendance-history/section-attendance-history.component').then(m => m.SectionAttendanceHistoryComponent),
+        title: 'CERMAT - Historial de Asistencia'
+      },
+
+      // Evaluación
+      {
+        path: 'evaluation/grade-entry',
+        ...guardEvalTasks,
+        loadComponent: () => import('./features/admin/evaluation/grade-entry/grade-entry.component').then(m => m.GradeEntryComponent),
+        title: 'CERMAT - Registro de Notas'
+      },
+      {
+        path: 'evaluation/review',
+        ...guardConfig,
+        loadComponent: () => import('./features/admin/evaluation/evaluation-review/evaluation-review.component').then(m => m.EvaluationReviewComponent),
+        title: 'CERMAT - Gestión de Evaluaciones'
+      },
+
+      // Tareas
+      {
+        path: 'tasks/management',
+        ...guardEvalTasks,
+        loadComponent: () => import('./features/admin/tasks/task-management/task-management.component').then(m => m.TaskManagementComponent),
+        title: 'CERMAT - Gestión de Tareas'
+      },
+      {
+        path: 'tasks/grading',
+        ...guardEvalTasks,
+        loadComponent: () => import('./features/admin/tasks/task-grading/task-grading.component').then(m => m.TaskGradingComponent),
+        title: 'CERMAT - Calificar Entregas'
+      },
+
+      // Comunicados
+      {
+        path: 'communications/review',
+        data: { roles: ['admin', 'director', 'secretary'] },
+        canActivate: [roleGuard],
+        loadComponent: () => import('./features/admin/communications/communications-approval.component').then(m => m.CommunicationsApprovalComponent),
+        title: 'CERMAT - Aprobar Comunicados'
+      },
+
+      // ════════════════════════════════════════════════════════
+      //  FINANZAS
+      // ════════════════════════════════════════════════════════
+      {
+        path: 'finance/catalog',
+        ...guardFinance,
+        loadComponent: () => import('./features/admin/finance/finance-catalog/finance-catalog.component').then(m => m.FinanceCatalogComponent),
+        title: 'CERMAT - Catálogo Financiero'
+      },
+      {
+        path: 'finance/charges/emission',
+        ...guardFinance,
+        loadComponent: () => import('./features/admin/finance/charges/finance-emission.component').then(m => m.FinanceEmissionComponent),
+        title: 'CERMAT - Emisión de Cargos'
+      },
+      {
+        path: 'finance/charges/student',
+        ...guardFinance,
+        loadComponent: () => import('./features/admin/finance/charges/finance-student.component').then(m => m.FinanceStudentComponent),
+        title: 'CERMAT - Cuenta Estudiante'
+      },
+      {
+        path: 'finance/cash',
+        ...guardCash,
+        loadComponent: () => import('./features/admin/finance/cash/finance-cash.component').then(m => m.FinanceCashComponent),
+        title: 'CERMAT - Caja Diaria'
+      },
+      {
+        path: 'finance/cash/closures',
+        ...guardCash,
+        loadComponent: () => import('./features/admin/finance/cash/finance-closures.component').then(m => m.FinanceClosuresComponent),
+        title: 'CERMAT - Historial de Cierres'
+      },
+      {
+        path: 'finance/reports',
+        ...guardFinance,
+        loadComponent: () => import('./features/admin/finance/reports/finance-reports.component').then(m => m.FinanceReportsComponent),
+        title: 'CERMAT - Reportes Financieros'
+      },
+
+      // ════════════════════════════════════════════════════════
+      //  REPORTES Y MÉTRICAS
+      // ════════════════════════════════════════════════════════
+      {
+        path: 'reports/academic',
+        ...guardAdmin,
+        loadComponent: () => import('./features/admin/reports/academic-reports/academic-reports.component').then(m => m.AcademicReportsComponent),
+        title: 'CERMAT - Reportes Académicos'
+      },
+      {
+        path: 'dashboard/metrics/admin',
+        ...guardConfig,
+        loadComponent: () => import('./features/admin/metrics/admin-metrics/admin-metrics.component').then(m => m.AdminMetricsComponent),
+        title: 'CERMAT - Métricas del Sistema'
+      },
+
+      // ════════════════════════════════════════════════════════
+      //  HORARIOS
+      // ════════════════════════════════════════════════════════
+      {
+        path: 'schedule/admin',
+        ...guardConfig,
+        loadComponent: () => import('./features/admin/schedule/admin-schedule/admin-schedule.component').then(m => m.AdminScheduleComponent),
+        title: 'CERMAT - Gestión de Horarios'
+      },
+
+      // ════════════════════════════════════════════════════════
+      //  CONFIGURACIÓN / AJUSTES
+      // ════════════════════════════════════════════════════════
+      {
+        path: 'settings/academic-calendar',
+        ...guardConfig,
+        loadComponent: () => import('./features/admin/settings/academic-calendar/academic-calendar.component').then(m => m.AcademicCalendarComponent),
+        title: 'CERMAT - Calendario Académico'
+      },
+      {
+        path: 'settings/academic-structure',
+        ...guardConfig,
+        loadComponent: () => import('./features/admin/settings/academic-structure/academic-structure.component').then(m => m.AcademicStructureComponent),
+        title: 'CERMAT - Estructura Académica'
+      },
+      {
+        path: 'settings/study-plan',
+        ...guardConfig,
+        loadComponent: () => import('./features/admin/settings/study-plan/study-plan.component').then(m => m.StudyPlanComponent),
+        title: 'CERMAT - Plan de Estudios'
+      },
+      {
+        path: 'settings/teacher-assignments',
+        ...guardConfig,
+        loadComponent: () => import('./features/admin/settings/teacher-assignments.component').then(m => m.TeacherAssignmentsComponent),
+        title: 'CERMAT - Asignación Docente'
+      },
+      {
+        path: 'settings/users',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director'] },
+        loadComponent: () => import('./features/admin/settings/admin-users.component').then(m => m.AdminUsersComponent),
+        title: 'CERMAT - Usuarios'
+      },
+      {
+        path: 'settings/imports',
+        ...guardAdmin,
+        loadComponent: () => import('./features/admin/settings/bulk-import.component').then(m => m.BulkImportComponent),
+        title: 'CERMAT - Importacion Masiva'
+      },
+      {
+        path: 'settings/students',
+        ...guardAdmin,
+        loadComponent: () => import('./features/admin/settings/students.component').then(m => m.StudentsComponent),
+        title: 'CERMAT - Estudiantes'
+      },
+      {
+        path: 'settings/enrollments',
+        ...guardAdmin,
+        loadComponent: () => import('./features/admin/settings/enrollment-config.component').then(m => m.EnrollmentConfigComponent),
+        title: 'CERMAT - Configuración Matrículas'
+      },
+      {
+        path: 'settings/news',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'director', 'secretary', 'web_editor'] },
+        loadComponent: () => import('./features/admin/website/news-management.component').then(m => m.NewsManagementComponent),
+        title: 'CERMAT - Gestión de Noticias y Eventos'
+      },
+
+      // ════════════════════════════════════════════════════════
+      //  RUTAS LEGACY → redirigen a sus reemplazos modernos
+      // ════════════════════════════════════════════════════════
+
+      // Settings antiguos → calendario unificado
+      { path: 'settings/academic-years', redirectTo: 'settings/academic-calendar', pathMatch: 'full' },
+      { path: 'settings/periods',        redirectTo: 'settings/academic-calendar', pathMatch: 'full' },
+
+      // Settings antiguos → estructura unificada
+      { path: 'settings/grades',   redirectTo: 'settings/academic-structure', pathMatch: 'full' },
+      { path: 'settings/sections', redirectTo: 'settings/academic-structure', pathMatch: 'full' },
+
+      // Settings antiguos → plan de estudios unificado
+      { path: 'settings/courses',     redirectTo: 'settings/study-plan', pathMatch: 'full' },
+      { path: 'settings/competencies', redirectTo: 'settings/study-plan', pathMatch: 'full' },
+
+      // Finanzas antiguas → catálogo unificado
+      { path: 'finance/catalog/concepts',  redirectTo: () => '/app/finance/catalog?tab=concepts',  pathMatch: 'full' },
+      { path: 'finance/catalog/plans',     redirectTo: () => '/app/finance/catalog?tab=plans',     pathMatch: 'full' },
+      { path: 'finance/catalog/discounts', redirectTo: () => '/app/finance/catalog?tab=discounts', pathMatch: 'full' },
     ]
   }
 ];

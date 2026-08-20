@@ -2,16 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  current_page?: number;
-  last_page?: number;
-  per_page?: number;
-  total?: number;
-}
-
-export type CollectionResponse<T> = PaginatedResponse<T> | T[] | { data?: T[] };
+import { PaginatedResponse, CollectionResponse } from '../models/backend.models';
 
 export interface FeeConcept {
   id: string;

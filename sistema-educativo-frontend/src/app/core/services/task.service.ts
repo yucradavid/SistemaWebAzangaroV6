@@ -3,14 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Course, GradeLevel, Section } from './academic.service';
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
-}
+import { PaginatedResponse } from '../models/backend.models';
 
 export interface AssignmentSection extends Section {
   grade_level?: GradeLevel;

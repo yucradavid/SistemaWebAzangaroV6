@@ -1,0 +1,2 @@
+:host { display: block; }
+.grid-cols-6 { grid-template-columns: 80px repeat(5, 1fr); }

@@ -68,7 +68,7 @@
     </div>
 
     <!-- Estadísticas -->
-    <div class="grid sm:grid-cols-2 xl:grid-cols-5 gap-4">
+    <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
       <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Presentes</p>
         <p class="mt-3 text-3xl font-black text-emerald-600">{{ presentCount }}</p>
@@ -80,10 +80,6 @@
       <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Faltas</p>
         <p class="mt-3 text-3xl font-black text-rose-600">{{ absentCount }}</p>
-      </div>
-      <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Justificados</p>
-        <p class="mt-3 text-3xl font-black text-indigo-600">{{ justifiedCount }}</p>
       </div>
       <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Salidas</p>
@@ -165,7 +161,6 @@
               <option value="presente">Presente</option>
               <option value="tarde">Tarde</option>
               <option value="falta">Falta</option>
-              <option value="justificado">Justificado</option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
               <i data-lucide="filter" class="w-5 h-5"></i>
@@ -257,10 +252,7 @@
                         class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300"
                         title="Falta">F</button>
 
-                      <button type="button" (click)="updateAttendance(student.id, 'status', 'justificado')"
-                        [ngClass]="recordFor(student.id).status === 'justificado' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                        class="w-12 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300"
-                        title="Justificado">J</button>
+
                     </div>
 
                     <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold"

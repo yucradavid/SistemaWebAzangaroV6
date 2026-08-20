@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, catchError, shareReplay } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 
 export interface NewsItem {
@@ -83,8 +84,8 @@ export class NewsService {
   private http = inject(HttpClient);
 
   /** Rutas según Postman collection */
-private readonly adminUrl = 'http://localhost:8000/api/public-news';
-private readonly publicUrl = 'http://localhost:8000/api/public/news';
+private readonly adminUrl = `${environment.apiUrl}/public-news`;
+private readonly publicUrl = `${environment.apiUrl}/public/news`;
   /** Cache simple para el módulo público */
   private newsCache$ = new BehaviorSubject<NewsItem[] | null>(null);
 

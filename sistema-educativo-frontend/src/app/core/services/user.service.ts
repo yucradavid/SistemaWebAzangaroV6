@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, catchError, map, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { UserRole } from '../models/user.model';
+import { PaginatedResponse } from '../models/backend.models';
 
 export interface UserProfile {
   id: string;
@@ -12,14 +13,6 @@ export interface UserProfile {
   email: string;
   is_active: boolean;
   created_at?: string;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  current_page: number;
-  last_page: number;
-  per_page: number;
 }
 
 export interface User {

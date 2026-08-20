@@ -1,0 +1,186 @@
+<app-back-button></app-back-button>
+<div class="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center border border-blue-100 shrink-0">
+        <svg class="w-6 h-6 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Historial de Asistencia por Seccion</h1>
+        <p class="text-sm text-slate-500 font-medium">Reporte consolidado de todos los alumnos de una seccion.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="space-y-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Seccion</label>
+        <select
+          [(ngModel)]="selectedSectionId"
+          (ngModelChange)="onSectionChange()"
+          class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+        >
+          <option value="">Seleccionar seccion</option>
+          <option *ngFor="let section of sections" [value]="section.id">
+            {{ section.grade_level?.name || '' }} {{ section.section_letter || '' }}
+          </option>
+        </select>
+      </div>
+      <div class="space-y-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Desde</label>
+        <input
+          type="date"
+          [(ngModel)]="dateFrom"
+          class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+        />
+      </div>
+      <div class="space-y-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hasta</label>
+        <input
+          type="date"
+          [(ngModel)]="dateTo"
+          class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+        />
+      </div>
+    </div>
+    <div class="mt-4 flex justify-end">
+      <button
+        (click)="loadReport()"
+        [disabled]="!selectedSectionId || loading"
+        class="px-6 py-2.5 bg-gradient-to-r from-blue-900 to-red-600 hover:opacity-90 text-white text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+      >
+        <svg *ngIf="!loading" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <div *ngIf="loading" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        Generar reporte
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="flex justify-center py-16">
+    <div class="w-8 h-8 border-4 border-blue-700 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium">
+    {{ error }}
+  </div>
+
+  <!-- Resultados -->
+  <ng-container *ngIf="report && !loading">
+    <!-- Resumen -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Alumnos</p>
+        <p class="mt-2 text-2xl font-black text-slate-900">{{ report.stats.students_count }}</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Asistencia Prom.</p>
+        <p class="mt-2 text-2xl font-black" [class]="report.stats.avg_attendance >= 80 ? 'text-emerald-600' : report.stats.avg_attendance >= 60 ? 'text-amber-600' : 'text-rose-600'">
+          {{ report.stats.avg_attendance }}%
+        </p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Faltas</p>
+        <p class="mt-2 text-2xl font-black text-rose-600">{{ report.stats.total_absences }}</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Tardanzas</p>
+        <p class="mt-2 text-2xl font-black text-amber-600">{{ report.stats.total_tardies }}</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Justificados</p>
+        <p class="mt-2 text-2xl font-black text-indigo-600">{{ report.stats.total_justifications }}</p>
+      </div>
+    </div>
+
+    <!-- Filtros aplicados -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 font-medium">
+      <span class="font-bold">{{ report.section.label }}</span>
+      <span *ngIf="report.filters.date_from"> · Desde {{ report.filters.date_from }}</span>
+      <span *ngIf="report.filters.date_to"> · Hasta {{ report.filters.date_to }}</span>
+    </div>
+
+    <!-- Tabla -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden" *ngIf="report.rows.length > 0">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse whitespace-nowrap">
+          <thead>
+            <tr class="bg-white border-b border-slate-100">
+              <th class="py-4 px-6 font-bold text-slate-400 text-[10px] uppercase tracking-widest w-12 text-center">Nº</th>
+              <th class="py-4 px-6 font-bold text-slate-400 text-[10px] uppercase tracking-widest">Codigo</th>
+              <th class="py-4 px-6 font-bold text-slate-400 text-[10px] uppercase tracking-widest">Estudiante</th>
+              <th class="py-4 px-6 font-bold text-slate-400 text-[10px] uppercase tracking-widest text-center">Asistencia %</th>
+              <th class="py-4 px-6 font-bold text-slate-400 text-[10px] uppercase tracking-widest text-center">Faltas</th>
+              <th class="py-4 px-6 font-bold text-slate-400 text-[10px] uppercase tracking-widest text-center">Tardanzas</th>
+              <th class="py-4 px-6 font-bold text-slate-400 text-[10px] uppercase tracking-widest text-center">Justificados</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr *ngFor="let row of report.rows; let i = index" class="hover:bg-slate-50/80 transition-colors">
+              <td class="py-4 px-6 text-slate-400 text-xs text-center font-medium">{{ i + 1 }}</td>
+              <td class="py-4 px-6 text-sm font-semibold text-slate-600">{{ row.student_code }}</td>
+              <td class="py-4 px-6 text-sm font-bold text-slate-900">{{ row.student_name }}</td>
+              <td class="py-4 px-6 text-center">
+                <span
+                  class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border"
+                  [class]="getAttendanceBadgeClass(row.attendance_percentage)"
+                >
+                  {{ row.attendance_percentage }}%
+                </span>
+              </td>
+              <td class="py-4 px-6 text-center">
+                <span class="text-sm font-bold" [class]="row.total_absences > 0 ? 'text-rose-600' : 'text-slate-400'">
+                  {{ row.total_absences }}
+                </span>
+              </td>
+              <td class="py-4 px-6 text-center">
+                <span class="text-sm font-bold" [class]="row.total_tardies > 0 ? 'text-amber-600' : 'text-slate-400'">
+                  {{ row.total_tardies }}
+                </span>
+              </td>
+              <td class="py-4 px-6 text-center">
+                <span class="text-sm font-bold" [class]="row.total_justifications > 0 ? 'text-indigo-600' : 'text-slate-400'">
+                  {{ row.total_justifications }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sin datos -->
+    <div *ngIf="report.rows.length === 0" class="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm">
+      <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </div>
+      <h3 class="text-slate-800 font-bold text-lg">Sin registros</h3>
+      <p class="text-slate-400 text-sm mt-1 font-medium">No hay datos de asistencia para el rango seleccionado.</p>
+    </div>
+  </ng-container>
+
+  <!-- Sin seleccion -->
+  <div *ngIf="!report && !loading && !error" class="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm">
+    <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-blue-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 21h18"/><path d="M5 21V7l8-4 8 4v14"/>
+      </svg>
+    </div>
+    <h3 class="text-slate-800 font-bold text-lg">Selecciona una seccion</h3>
+    <p class="text-slate-400 text-sm mt-1 font-medium">Elige una seccion y rango de fechas para generar el reporte.</p>
+  </div>
+</div>

@@ -1,5 +1,5 @@
-/* Importar fuentes PRIMERO */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap');
+﻿/* PrimeNG icons */
+@import "primeicons/primeicons.css";
 
 /* Tailwind directives */
 @tailwind base;
@@ -100,4 +100,37 @@
   .border-3 {
     border-width: 3px;
   }
+
+  .focus-ring {
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cermat-blue-500;
+  }
 }
+
+/* Skeleton loading placeholder */
+@layer components {
+  .skeleton {
+    @apply bg-gray-200 rounded animate-pulse;
+  }
+
+  .skeleton-text {
+    @apply skeleton h-4 rounded;
+  }
+
+  .skeleton-title {
+    @apply skeleton h-8 rounded w-2/3;
+  }
+
+  .skeleton-image {
+    @apply skeleton rounded-2xl w-full h-full;
+  }
+}
+
+/* Respetar preferencias de reduccion de movimiento */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+

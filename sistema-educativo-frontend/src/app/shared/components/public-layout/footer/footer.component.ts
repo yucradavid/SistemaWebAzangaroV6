@@ -8,7 +8,6 @@ import { DataService } from '../../../../core/services/data_general/data.service
   standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: './footer.component.html',
-  styleUrl: './footer.component.css'
 })
 export class FooterComponent {
 

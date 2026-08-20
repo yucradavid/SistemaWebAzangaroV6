@@ -21,7 +21,7 @@
   </div>
 
   <!-- ══ GRID DE SUBMODULOS ══════════════════════════════════════ -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl">
 
     <!-- Submodulo 1: Asistencia Estudiantes -->
     <div (click)="goToStudentAttendance()"
@@ -35,7 +35,7 @@
       <h2 class="font-black text-slate-900 text-lg mb-1">Asistencia Estudiantes</h2>
       <p class="text-sm text-slate-500">Registra y gestiona la asistencia de tus alumnos</p>
       <div class="mt-4 text-cermat-blue-600 text-sm font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
-        Ir al módulo →
+        Ir al modulo →
       </div>
     </div>
 
@@ -52,6 +52,22 @@
       <p class="text-sm text-slate-500">Consulta tu historial personal de asistencia</p>
       <div class="mt-4 text-emerald-600 text-sm font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
         Ver historial →
+      </div>
+    </div>
+
+    <!-- Submodulo 3: Historial por Seccion -->
+    <div (click)="goToSectionHistory()"
+         class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all duration-200 group">
+      <div class="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center mb-4 group-hover:bg-amber-200 transition-colors">
+        <svg class="w-6 h-6 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <h2 class="font-black text-slate-900 text-lg mb-1">Historial por Seccion</h2>
+      <p class="text-sm text-slate-500">Reporte consolidado de asistencia de todos los alumnos</p>
+      <div class="mt-4 text-amber-600 text-sm font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
+        Ver reporte →
       </div>
     </div>
   </div>

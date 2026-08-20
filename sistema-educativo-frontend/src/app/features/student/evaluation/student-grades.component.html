@@ -1,0 +1,255 @@
+    <div class="min-h-[calc(100vh-80px)] bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto space-y-6">
+        <div class="flex items-center gap-4">
+          <app-back-button (onClick)="goBack()"></app-back-button>
+        </div>
+
+        <section class="bg-white border border-slate-200 rounded-3xl shadow-sm p-6 space-y-5">
+          <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-5">
+            <div class="space-y-2">
+              <p class="text-[11px] font-black uppercase tracking-[0.3em] text-cyan-700">Modulo de notas</p>
+              <h1 class="text-3xl font-black text-slate-900">Mis Calificaciones</h1>
+              <p class="text-sm text-slate-500 font-medium">
+                Resumen anual y detalle por periodo conectado a la nueva logica academica.
+              </p>
+            </div>
+
+            <div class="w-full xl:w-[320px] space-y-3">
+              <select
+                [(ngModel)]="selectedPeriod"
+                (change)="loadGrades()"
+                class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-cyan-500"
+              >
+                <option value="all">Cierre anual</option>
+                <option *ngFor="let period of periods" [value]="period.id">{{ period.name }}</option>
+              </select>
+              <select
+                [(ngModel)]="selectedCourseId"
+                class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-cyan-500"
+              >
+                <option value="all">Todos los cursos</option>
+                <option *ngFor="let course of availableCourses" [value]="course.id">{{ course.courseName }}</option>
+              </select>
+              <p class="text-xs font-medium text-slate-500">{{ selectedPeriodDescription }}</p>
+            </div>
+          </div>
+
+          <div *ngIf="studentContext" class="flex flex-wrap gap-3 text-xs font-black uppercase tracking-widest">
+            <span class="px-3 py-2 rounded-2xl bg-slate-900 text-white">{{ studentContext.full_name }}</span>
+            <span *ngIf="studentContext.student_code" class="px-3 py-2 rounded-2xl bg-slate-100 text-slate-600 border border-slate-200">
+              {{ studentContext.student_code }}
+            </span>
+            <span *ngIf="studentLabel" class="px-3 py-2 rounded-2xl bg-cyan-50 text-cyan-700 border border-cyan-200">
+              {{ studentLabel }}
+            </span>
+            <span *ngIf="isAnnualView && summary?.student_final_status" class="px-3 py-2 rounded-2xl border" [class]="getFinalStatusClass(summary?.student_final_status?.final_status)">
+              {{ getFinalStatusLabel(summary?.student_final_status?.final_status) }}
+            </span>
+          </div>
+        </section>
+
+        <div *ngIf="error" class="rounded-3xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
+          {{ error }}
+        </div>
+
+        <div *ngIf="loading" class="bg-white border border-slate-200 rounded-3xl p-12 shadow-sm flex flex-col items-center gap-4">
+          <div class="w-10 h-10 border-4 border-cyan-200 border-t-cyan-600 rounded-full animate-spin"></div>
+          <p class="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Cargando informacion academica</p>
+        </div>
+
+        <ng-container *ngIf="!loading">
+          <section *ngIf="isAnnualView && summary" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <article class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm" *ngFor="let card of annualCards">
+              <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{{ card.label }}</p>
+              <p class="mt-3 text-3xl font-black text-slate-900">{{ card.value }}</p>
+              <p class="mt-2 text-sm font-medium text-slate-500">{{ card.helper }}</p>
+            </article>
+          </section>
+
+          <section *ngIf="isAnnualView && summary?.student_final_status?.decision_reason" class="rounded-3xl border px-5 py-4" [class]="getFinalStatusClass(summary?.student_final_status?.final_status)">
+            <p class="text-sm font-bold">{{ summary?.student_final_status?.decision_reason }}</p>
+          </section>
+
+          <section class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_420px] gap-4" *ngIf="actionPlan || priorityItems.length > 0">
+            <article class="bg-white border border-slate-200 rounded-3xl shadow-sm p-5" *ngIf="actionPlan">
+              <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Que sigue</p>
+              <div class="mt-4 rounded-3xl border px-4 py-4" [class]="actionPlan.tone">
+                <p class="text-lg font-black">{{ actionPlan.title }}</p>
+                <p class="mt-2 text-sm font-medium">{{ actionPlan.message }}</p>
+              </div>
+            </article>
+
+            <article class="bg-white border border-slate-200 rounded-3xl shadow-sm p-5" *ngIf="priorityItems.length > 0">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Focos prioritarios</p>
+                  <h2 class="mt-2 text-lg font-black text-slate-900">Competencias a reforzar</h2>
+                </div>
+                <span class="px-3 py-2 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-black uppercase tracking-widest">
+                  {{ priorityItems.length }}
+                </span>
+              </div>
+
+              <div class="mt-4 space-y-3">
+                <div *ngFor="let item of priorityItems" class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <p class="text-sm font-black text-slate-900">{{ item.competencyName }}</p>
+                      <p class="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                        {{ item.courseName }} | {{ item.periodLabel }}
+                      </p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-black border" [class]="getGradeChipClass(item.grade)">
+                      {{ item.grade }}
+                    </span>
+                  </div>
+                  <p class="mt-3 text-sm font-medium text-slate-600">{{ item.summary }}</p>
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <section *ngIf="isAnnualView && summary?.areas?.length" class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100">
+              <h2 class="text-lg font-black text-slate-900">Areas consolidadas</h2>
+            </div>
+            <div class="divide-y divide-slate-100">
+              <div *ngFor="let area of summary?.areas" class="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <p class="text-lg font-black text-slate-900">{{ area.course_name || 'Curso' }}</p>
+                  <p class="mt-2 text-sm font-medium text-slate-500">
+                    AD: {{ area.ad_count }} | A: {{ area.a_count }} | B: {{ area.b_count }} | C: {{ area.c_count }}
+                  </p>
+                </div>
+                <div class="lg:w-72">
+                  <div class="flex items-center justify-between text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
+                    <span>Logro AD/A</span>
+                    <span>{{ getAreaCoverage(area) }}%</span>
+                  </div>
+                  <div class="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
+                    <div class="h-full rounded-full bg-cyan-500" [style.width.%]="getAreaCoverage(area)"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section *ngIf="isAnnualView && conclusions.length > 0" class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100">
+              <h2 class="text-lg font-black text-slate-900">Conclusiones descriptivas</h2>
+            </div>
+            <div class="p-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <article *ngFor="let conclusion of conclusions" class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="font-black text-slate-900">{{ conclusion.competencyName }}</p>
+                    <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mt-1">{{ conclusion.periodName }}</p>
+                  </div>
+                  <span class="px-3 py-1 rounded-full text-xs font-black border" [class]="getGradeChipClass(conclusion.achievementLevel)">
+                    {{ conclusion.achievementLevel }}
+                  </span>
+                </div>
+                <p *ngIf="conclusion.conclusionText" class="text-sm font-medium text-slate-600">{{ conclusion.conclusionText }}</p>
+                <p *ngIf="conclusion.recommendations" class="text-sm font-medium text-cyan-700">Recomendacion: {{ conclusion.recommendations }}</p>
+              </article>
+            </div>
+          </section>
+
+          <section *ngIf="filteredCourses.length === 0" class="bg-white border border-slate-200 rounded-3xl shadow-sm p-12 text-center">
+            <div class="w-16 h-16 rounded-3xl bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto">
+              <div [innerHTML]="getSafeIcon('bookOpen')" class="w-8 h-8 text-slate-300"></div>
+            </div>
+            <h2 class="mt-5 text-2xl font-black text-slate-900">No hay calificaciones disponibles</h2>
+            <p class="mt-2 text-sm font-medium text-slate-500">
+              {{ selectedCourseId === 'all'
+                ? (isAnnualView ? 'Aun no hay resultados finales consolidados.' : 'No existen evaluaciones para el periodo seleccionado.')
+                : 'No hay registros visibles para el curso filtrado.' }}
+            </p>
+          </section>
+
+          <section *ngIf="filteredCourseTableViews.length > 0" class="space-y-5">
+            <article *ngFor="let course of filteredCourseTableViews" class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+              <div class="p-5 border-b border-slate-100">
+                <h2 class="text-xl font-black text-slate-900">{{ course.courseName }}</h2>
+                <p *ngIf="course.teacherName" class="mt-1 text-xs font-black uppercase tracking-widest text-slate-400">
+                  Docente: {{ course.teacherName }}
+                </p>
+              </div>
+
+              <div class="p-5 overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="bg-cermat-blue-700 text-white">
+                      <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Trimestre</th>
+                      <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">Fecha fin</th>
+                      <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Competencia</th>
+                      <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider w-20">Nivel</th>
+                      <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <ng-container *ngFor="let trim of course.trimestres">
+                      <tr *ngFor="let comp of trim.competencies; let ci = index">
+                        <td *ngIf="ci === 0"
+                            [attr.rowspan]="trim.competencies.length"
+                            class="px-4 py-3 font-bold text-white text-sm align-top"
+                            [ngClass]="{
+                              'bg-cermat-blue-700': trim.periodNumber === 1,
+                              'bg-emerald-700': trim.periodNumber === 2,
+                              'bg-amber-700': trim.periodNumber === 3
+                            }">
+                          {{ trim.periodName }}
+                        </td>
+                        <td *ngIf="ci === 0"
+                            [attr.rowspan]="trim.competencies.length"
+                            class="px-4 py-3 text-sm text-slate-500 align-top text-center">
+                          {{ trim.periodEndDate | date:'dd/MM/yyyy' }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-slate-700">
+                          {{ comp.competencyName }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                          <div *ngIf="comp.grade" class="inline-flex flex-col items-center gap-0.5">
+                            <span class="inline-flex w-9 h-9 rounded-xl border-2 items-center justify-center text-sm font-black" [class]="getGradeColorClass(comp.grade)">
+                              {{ comp.grade }}
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-medium">
+                              {{ getGradeRange(comp.grade) }}
+                            </span>
+                          </div>
+                          <span *ngIf="!comp.grade" class="text-slate-300 font-bold">—</span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                          <span *ngIf="comp.status === 'publicada'" class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                            ✓ Publicada
+                          </span>
+                          <span *ngIf="comp.status === 'borrador'" class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500">
+                            Borrador
+                          </span>
+                          <span *ngIf="!comp.status" class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200">
+                            Pendiente
+                          </span>
+                        </td>
+                      </tr>
+                    </ng-container>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <section class="bg-white border border-slate-200 rounded-3xl shadow-sm p-5">
+            <h2 class="text-lg font-black text-slate-900">Escala de calificacion</h2>
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div *ngFor="let scaleItem of scale" class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black" [class]="scaleItem.color">{{ scaleItem.grade }}</div>
+                <div>
+                  <p class="font-black text-slate-900">{{ scaleItem.label }}</p>
+                  <p class="text-xs font-medium text-slate-500 mt-1">{{ scaleItem.description }}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </ng-container>
+      </div>
+    </div>

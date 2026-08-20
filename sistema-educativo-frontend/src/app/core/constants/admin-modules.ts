@@ -37,6 +37,25 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
     description: 'Supervisión de asistencia y justificaciones',
     icon: ICONS.calendarCheck,
     path: '/app/attendance/approvals',
+    submodules: [
+      {
+        title: 'Supervision',
+        items: [
+          {
+            title: 'Aprobar Justificaciones',
+            description: 'Revision de justificaciones de asistencia',
+            icon: ICONS.calendarCheck,
+            path: '/app/attendance/approvals'
+          },
+          {
+            title: 'Historial por Seccion',
+            description: 'Reporte consolidado de asistencia por seccion',
+            icon: ICONS.barChart3,
+            path: '/app/attendance/history'
+          }
+        ]
+      }
+    ],
     color: 'bg-[#1e293b]',
     roles: ['admin', 'director', 'secretary', 'coordinator']
   },

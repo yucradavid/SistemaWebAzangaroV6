@@ -96,14 +96,6 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit, OnDest
     return this.students.filter((student) => this.attendanceRecords[student.id]?.status === 'falta').length;
   }
 
-  get justifiedCount(): number {
-    return this.students.filter((student) => this.attendanceRecords[student.id]?.status === 'justificado').length;
-  }
-
-  get approvedJustificationCount(): number {
-    return 0;
-  }
-
   get currentCheckpointLabel(): string {
     return this.selectedCheckpoint === 'entrada' ? 'Entrada QR' : 'Salida QR';
   }
@@ -120,7 +112,7 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit, OnDest
   }
 
   needsJustification(studentId: string): boolean {
-    return ['falta', 'justificado'].includes(this.recordFor(studentId).status);
+    return this.recordFor(studentId).status === 'falta';
   }
 
   loadTeacherContext(): void {
@@ -370,7 +362,7 @@ export class TeacherAttendanceComponent implements OnInit, AfterViewInit, OnDest
       tarde: 'bg-amber-50 text-amber-700 border-amber-200',
       falta: 'bg-rose-50 text-rose-700 border-rose-200',
       justificado: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    }[status];
+    }[status] || 'bg-slate-50 text-slate-600 border-slate-200';
   }
 
   formatDateTime(value?: string | null): string {

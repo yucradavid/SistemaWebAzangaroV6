@@ -1,0 +1,277 @@
+<div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8">
+
+  <section class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+    <div>
+      <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Administracion</p>
+      <h1 class="mt-2 text-3xl font-black tracking-tight text-slate-900">Calificar Entregas</h1>
+      <p class="mt-2 text-sm font-medium text-slate-500">
+        Revisa entregas, pendientes y estudiantes sin envio de todos los docentes.
+      </p>
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-3">
+      <button
+        type="button"
+        (click)="openManagement()"
+        [disabled]="loadingRows"
+        class="px-6 py-3 rounded-2xl border border-slate-200 bg-white text-slate-700 text-sm font-black tracking-wide hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Ir a gestion
+      </button>
+    </div>
+  </section>
+
+  <section class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-5">
+    <div class="space-y-1.5">
+      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Curso</label>
+      <select
+        [(ngModel)]="selectedCourseId"
+        (ngModelChange)="onCourseFilterChange()"
+        class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500"
+      >
+        <option value="">Todos los cursos</option>
+        <option *ngFor="let course of courses" [value]="course.id">{{ course.name }}</option>
+      </select>
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Seccion</label>
+      <select
+        [(ngModel)]="selectedSectionId"
+        (ngModelChange)="onSectionFilterChange()"
+        class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500"
+      >
+        <option value="">Todas las secciones</option>
+        <option *ngFor="let section of filteredSections" [value]="section.id">{{ section.section_letter ? 'Seccion ' + section.section_letter : 'Seccion' }}</option>
+      </select>
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Tarea</label>
+      <select
+        [(ngModel)]="selectedAssignmentId"
+        (ngModelChange)="onAssignmentFilterChange()"
+        class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500"
+      >
+        <option value="">Todas las tareas</option>
+        <option *ngFor="let assignment of assignments" [value]="assignment.id">{{ assignment.title }}</option>
+      </select>
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Estado</label>
+      <select
+        [(ngModel)]="selectedStatus"
+        (ngModelChange)="onStatusFilterChange()"
+        class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500"
+      >
+        <option value="">Todos los estados</option>
+        <option value="submitted">Entregado</option>
+        <option value="graded">Calificado</option>
+        <option value="missing">Sin entrega</option>
+      </select>
+    </div>
+  </section>
+
+  <section *ngIf="selectedAssignment" class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div>
+        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Tarea seleccionada</p>
+        <h2 class="mt-2 text-xl font-black text-slate-900">{{ selectedAssignment.title }}</h2>
+        <p class="mt-1 text-sm font-medium text-slate-500">
+          {{ selectedAssignment.course?.name || 'Curso' }} | {{ getSectionLabel(selectedAssignment) }}
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <span class="px-3 py-2 rounded-2xl bg-slate-100 text-slate-600 border border-slate-200 text-xs font-black uppercase tracking-widest">
+          Esperados {{ metrics?.expected_count ?? 0 }}
+        </span>
+        <span class="px-3 py-2 rounded-2xl bg-cyan-50 text-cyan-700 border border-cyan-200 text-xs font-black uppercase tracking-widest">
+          Entregados {{ metrics?.submitted_count ?? 0 }}
+        </span>
+        <span class="px-3 py-2 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-black uppercase tracking-widest">
+          Sin calificar {{ metrics?.pending_count ?? 0 }}
+        </span>
+        <span class="px-3 py-2 rounded-2xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-black uppercase tracking-widest">
+          Sin entregar {{ metrics?.missing_count ?? 0 }}
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm border-b-4 border-b-blue-900">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total Registros</p>
+      <h3 class="text-3xl font-black text-slate-900 tracking-tighter">{{ rows.length }}</h3>
+    </div>
+    <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm border-b-4 border-b-emerald-500">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Entregadas</p>
+      <h3 class="text-3xl font-black text-slate-900 tracking-tighter">{{ submittedCount }}</h3>
+    </div>
+    <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm border-b-4 border-b-amber-500">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Sin calificar</p>
+      <h3 class="text-3xl font-black text-slate-900 tracking-tighter">{{ pendingReviewCount }}</h3>
+    </div>
+    <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm border-b-4 border-b-rose-500">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Sin entrega</p>
+      <h3 class="text-3xl font-black text-slate-900 tracking-tighter">{{ missingCount }}</h3>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-4 py-3 text-sm font-medium">
+    {{ error }}
+  </div>
+
+  <div *ngIf="loadingRows" class="flex justify-center py-12">
+    <div class="w-8 h-8 border-4 border-blue-900 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+
+  <section *ngIf="!loadingRows && !rows.length" class="bg-white border border-slate-100 rounded-3xl p-12 shadow-sm text-center">
+    <div class="w-16 h-16 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-300">
+      <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+        <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+      </svg>
+    </div>
+    <h2 class="mt-5 text-xl font-bold text-slate-900">No hay registros disponibles</h2>
+    <p class="mt-2 text-sm font-medium text-slate-500">
+      Selecciona un curso o una tarea para revisar entregas y faltantes.
+    </p>
+  </section>
+
+  <section *ngIf="!loadingRows && rows.length" class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+    <div class="p-6 border-b border-slate-50 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-slate-800 tracking-tight">Lista de Entregas</h2>
+      <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ rows.length }} registros</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-100 bg-slate-50/50">
+            <th class="text-left py-4 px-6">Estudiante</th>
+            <th class="text-left py-4 px-6">Tarea</th>
+            <th class="text-left py-4 px-6">Curso</th>
+            <th class="text-center py-4 px-6">Fecha Entrega</th>
+            <th class="text-center py-4 px-6">Estado</th>
+            <th class="text-center py-4 px-6">Calificacion</th>
+            <th class="text-right py-4 px-6">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          <tr *ngFor="let row of orderedRows" class="hover:bg-slate-50/50 transition-colors">
+            <td class="py-4 px-6">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 font-black text-sm uppercase">
+                  {{ getStudentInitials(row) }}
+                </div>
+                <div>
+                  <p class="text-sm font-bold text-slate-800">{{ getStudentName(row) }}</p>
+                  <p class="text-[10px] text-slate-400 font-bold">{{ row.student.student_code || 'N/D' }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="py-4 px-6 text-sm font-medium text-slate-600">{{ getAssignmentTitle(row) }}</td>
+            <td class="py-4 px-6 text-sm font-medium text-slate-500">{{ getCourseName(row) }}</td>
+            <td class="py-4 px-6 text-center text-sm text-slate-500">
+              {{ row.submission?.submission_date ? (row.submission?.submission_date | date:'dd/MM/yyyy HH:mm') : '-' }}
+            </td>
+            <td class="py-4 px-6 text-center">
+              <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight" [class]="getStatusClass(row.status)">
+                {{ getStatusLabel(row.status) }}
+              </span>
+            </td>
+            <td class="py-4 px-6 text-center">
+              <span *ngIf="row.submission?.status === 'graded'" class="text-sm font-black text-slate-900">
+                {{ row.submission?.grade ?? '-' }}{{ row.submission?.grade_letter ? ' / ' + row.submission?.grade_letter : '' }}
+              </span>
+              <span *ngIf="row.submission?.status !== 'graded'" class="text-slate-300 font-bold text-sm">-</span>
+            </td>
+            <td class="py-4 px-6 text-right">
+              <button
+                *ngIf="row.submission"
+                (click)="openGradeModal(row.submission)"
+                class="px-4 py-2 bg-slate-900 text-white text-[11px] font-bold rounded-lg hover:bg-slate-800 transition-all active:scale-95 shadow-sm"
+              >
+                {{ row.submission.status === 'graded' ? 'Actualizar' : 'Calificar' }}
+              </button>
+              <span *ngIf="!row.submission" class="text-[11px] font-bold uppercase tracking-widest text-slate-300">Sin entrega</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div *ngIf="showGradeModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100">
+      <div class="p-8 pb-0 flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Calificar Entrega</h2>
+          <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
+            {{ gradingSubmission ? getSubmissionStudentName(gradingSubmission) : '' }}
+          </p>
+        </div>
+        <button (click)="closeGradeModal()" class="p-2 hover:bg-slate-50 rounded-xl transition-colors">
+          <svg class="w-6 h-6 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-8 space-y-5">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nota *</label>
+            <input
+              [(ngModel)]="gradeForm.grade"
+              type="number"
+              min="0"
+              max="20"
+              step="0.5"
+              placeholder="0"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+            >
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Calificacion</label>
+            <select
+              [(ngModel)]="gradeForm.grade_letter"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+            >
+              <option value="">Sin letra</option>
+              <option value="AD">AD - Muy bueno</option>
+              <option value="A">A - Bueno</option>
+              <option value="B">B - En proceso</option>
+              <option value="C">C - En inicio</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Retroalimentacion</label>
+          <textarea
+            [(ngModel)]="gradeForm.feedback"
+            rows="3"
+            placeholder="Escribe un comentario para el estudiante..."
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all resize-none"
+          ></textarea>
+        </div>
+
+        <div class="flex gap-4 pt-2">
+          <button
+            (click)="closeGradeModal()"
+            class="flex-1 px-6 py-3 border-2 border-slate-100 rounded-xl text-xs font-bold text-slate-400 uppercase tracking-widest hover:border-slate-200 transition-all"
+          >
+            Cancelar
+          </button>
+          <button
+            (click)="submitGrade()"
+            [disabled]="grading || gradeForm.grade === null"
+            class="flex-[2] px-6 py-3 bg-gradient-to-r from-blue-900 to-red-600 text-white text-xs font-bold rounded-xl uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-60"
+          >
+            {{ grading ? 'Guardando...' : 'Guardar Calificacion' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

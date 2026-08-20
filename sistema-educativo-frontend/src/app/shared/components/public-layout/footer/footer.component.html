@@ -1,9 +1,9 @@
-<footer class="bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white">
+﻿<footer class="bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white" role="contentinfo">
       <!-- Main Footer Content -->
-      <div class="container-custom py-16">
+      <div class="container-cermat py-16">
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           <!-- Información del Colegio -->
-          <div>
+          <div aria-label="Información del colegio">
             <div class="flex items-center space-x-3 mb-6">
               <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-400 rounded-xl flex items-center justify-center">
                 <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,7 +57,7 @@
           </div>
 
           <!-- Enlaces Rápidos -->
-          <div>
+          <div aria-label="Enlaces rápidos">
             <h4 class="text-lg font-bold mb-6">Enlaces Rápidos</h4>
             <ul class="space-y-3">
               <li *ngFor="let link of quickLinks">
@@ -75,7 +75,7 @@
           </div>
 
           <!-- Niveles Educativos -->
-          <div>
+          <div aria-label="Niveles educativos">
             <h4 class="text-lg font-bold mb-6">Niveles Educativos</h4>
             <ul class="space-y-3">
               <li>
@@ -100,7 +100,7 @@
           </div>
 
           <!-- Contacto -->
-          <div>
+          <div aria-label="Información de contacto">
             <h4 class="text-lg font-bold mb-6">Contacto</h4>
             <ul class="space-y-4">
               <li class="flex items-start">
@@ -142,7 +142,7 @@
 
       <!-- Bottom Bar -->
       <div class="border-t border-white/10">
-        <div class="container-custom py-6">
+        <div class="container-cermat py-6">
           <div class="flex flex-col md:flex-row items-center justify-between gap-4">
             <p class="text-gray-400 text-sm text-center md:text-left">
               © {{ currentYear }} {{ schoolInfo().name }}. Todos los derechos reservados.
@@ -151,12 +151,12 @@
               <a routerLink="/transparencia" class="text-gray-400 hover:text-white transition-colors">
                 Transparencia
               </a>
-              <a href="#" class="text-gray-400 hover:text-white transition-colors">
+              <span class="text-gray-500/50 text-sm cursor-not-allowed" title="Próximamente">
                 Términos y Condiciones
-              </a>
-              <a href="#" class="text-gray-400 hover:text-white transition-colors">
+              </span>
+              <span class="text-gray-500/50 text-sm cursor-not-allowed" title="Próximamente">
                 Política de Privacidad
-              </a>
+              </span>
             </div>
           </div>
         </div>

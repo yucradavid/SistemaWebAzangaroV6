@@ -1,0 +1,14 @@
+<div (click)="handleNavigation()"
+     class="back-button-pill fixed left-6 top-24 z-40 group flex items-center rounded-full p-0 cursor-pointer active:scale-95">
+  <!-- Icon Container -->
+  <div class="icon-container flex items-center justify-center w-9 h-9 rounded-full text-white shadow-[0_0_0_1px_#0E3A8A] group-hover:shadow-none">
+    <svg class="w-3.5 h-3.5 transition-transform duration-500 group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5">
+      <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
+    </svg>
+  </div>
+
+  <!-- Text Container -->
+  <div class="max-w-0 overflow-hidden whitespace-nowrap transition-all duration-500 group-hover:max-w-xs group-hover:ml-3">
+    <span class="back-button-text text-[13px] font-semibold tracking-wide antialiased">{{ text }}</span>
+  </div>
+</div>

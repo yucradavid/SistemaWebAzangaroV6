@@ -1,0 +1,20 @@
+<div class="flex flex-wrap items-center gap-8 pt-8 animate-slide-up" style="animation-delay: 0.4s;">
+  <div class="group">
+    <div class="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400 group-hover:scale-110 transition-transform duration-300">{{ schoolInfo().students }}+</div>
+    <div class="text-sm text-blue-200 font-medium mt-1">Estudiantes Activos</div>
+  </div>
+
+  <div class="w-px h-16 bg-gradient-to-b from-transparent via-white/30 to-transparent" aria-hidden="true"></div>
+
+  <div class="group">
+    <div class="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-400 group-hover:scale-110 transition-transform duration-300">{{ yearsOfExperience() }}</div>
+    <div class="text-sm text-blue-200 font-medium mt-1">Años de Excelencia</div>
+  </div>
+
+  <div class="w-px h-16 bg-gradient-to-b from-transparent via-white/30 to-transparent" aria-hidden="true"></div>
+
+  <div class="group">
+    <div class="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-red-400 to-pink-400 group-hover:scale-110 transition-transform duration-300">{{ schoolInfo().satisfaction }}%</div>
+    <div class="text-sm text-blue-200 font-medium mt-1">Satisfacción</div>
+  </div>
+</div>

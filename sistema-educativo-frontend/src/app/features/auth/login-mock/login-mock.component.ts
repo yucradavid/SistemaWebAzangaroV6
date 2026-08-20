@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 
 @Component({
@@ -15,16 +15,19 @@ export class LoginMockComponent implements OnInit {
   password = '';
   error = '';
   loading = false;
+  private returnUrl = '/app';
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
     if (this.authService.isAuthenticated()) {
       this.router.navigateByUrl(this.authService.getHomeRoute());
     }
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/app';
   }
 
   async handleSubmit() {
@@ -42,7 +45,10 @@ export class LoginMockComponent implements OnInit {
           this.error = res.error || 'Autenticación fallida.';
           this.loading = false;
         } else {
-          this.router.navigateByUrl(this.authService.getHomeRoute());
+          const target = (this.returnUrl && this.returnUrl !== '/app')
+            ? this.returnUrl
+            : this.authService.getHomeRoute();
+          this.router.navigateByUrl(target);
         }
       },
       error: (err) => {

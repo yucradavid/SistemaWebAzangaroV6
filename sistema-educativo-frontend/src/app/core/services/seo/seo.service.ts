@@ -112,7 +112,7 @@ export class SeoService {
   }
 
   /**
-   * Añade el schema de organización
+   * Añade el schema de organización enriquecido
    */
   addOrganizationSchema(): void {
     const schema = {
@@ -123,6 +123,7 @@ export class SeoService {
       'url': this.siteUrl,
       'logo': `${this.siteUrl}/assets/logo.png`,
       'description': this.defaultDescription,
+      'foundingDate': '1999',
       'address': {
         '@type': 'PostalAddress',
         'streetAddress': 'Jr. Los Andes 456',
@@ -130,6 +131,11 @@ export class SeoService {
         'addressRegion': 'Puno',
         'postalCode': '21531',
         'addressCountry': 'PE'
+      },
+      'geo': {
+        '@type': 'GeoCoordinates',
+        'latitude': -14.9089,
+        'longitude': -70.2016
       },
       'contactPoint': {
         '@type': 'ContactPoint',
@@ -143,7 +149,16 @@ export class SeoService {
         'https://facebook.com/cermatschool',
         'https://instagram.com/cermatschool',
         'https://youtube.com/@cermatschool'
-      ]
+      ],
+      'hasOfferCatalog': {
+        '@type': 'OfferCatalog',
+        'name': 'Niveles Educativos',
+        'itemListElement': [
+          { '@type': 'Offer', 'itemOffered': { '@type': 'EducationalOccupationalProgram', 'name': 'Educación Inicial' } },
+          { '@type': 'Offer', 'itemOffered': { '@type': 'EducationalOccupationalProgram', 'name': 'Educación Primaria' } },
+          { '@type': 'Offer', 'itemOffered': { '@type': 'EducationalOccupationalProgram', 'name': 'Educación Secundaria' } }
+        ]
+      }
     };
 
     this.addStructuredData(schema);

@@ -1,17 +1,18 @@
-import { Component, HostListener, signal, inject } from '@angular/core';
+﻿import { Component, HostListener, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { SidebarModule } from 'primeng/sidebar';
 import { DataService } from '../../../../core/services/data_general/data.service';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive, SidebarModule],
   templateUrl: './header.component.html',
   styleUrl: './header.component.css'
 })
 export class HeaderComponent {
-   private readonly dataService = inject(DataService);
+  private readonly dataService = inject(DataService);
   private readonly router = inject(Router);
 
   readonly schoolInfo = this.dataService.schoolInfo;
@@ -40,5 +41,4 @@ export class HeaderComponent {
   closeMobileMenu(): void {
     this.isMobileMenuOpen.set(false);
   }
-
 }

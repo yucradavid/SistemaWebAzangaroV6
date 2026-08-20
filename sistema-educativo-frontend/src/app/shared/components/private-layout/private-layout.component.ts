@@ -35,23 +35,6 @@ export class PrivateLayoutComponent implements OnInit {
 
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
-      // Role-based redirection logic for initial landing on /app or accidental admin landing
-      if (user && user.role === 'student' && 
-          (this.router.url === '/app' || this.router.url === '/app/dashboard')) {
-        this.router.navigate(['/app/dashboard/student']);
-      }
-      if (user && user.role === 'teacher' && 
-          (this.router.url === '/app' || this.router.url === '/app/dashboard')) {
-        this.router.navigate(['/app/dashboard/teacher']);
-      }
-      if (user && user.role === 'apoderado' && 
-          (this.router.url === '/app' || this.router.url === '/app/dashboard')) {
-        this.router.navigate(['/app/dashboard/apoderado']);
-      }
-      if (user && user.role === 'administrative' &&
-          (this.router.url === '/app' || this.router.url === '/app/dashboard')) {
-        this.router.navigate(['/app/attendance/approvals']);
-      }
     });
   }
 

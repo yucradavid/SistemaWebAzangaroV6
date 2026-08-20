@@ -20,24 +20,8 @@ import { SeoService } from '../../../core/services/seo/seo.service';
     FooterComponent,
     WhatsappButtonComponent
   ],
-  template: `
-    <div class="flex flex-col min-h-screen">
-      <app-header />
-      
-      <main class="flex-grow">
-        <router-outlet />
-      </main>
-      
-      <app-footer />
-      
-      <app-whatsapp-button />
-    </div>
-  `,
-  styles: [`
-    :host {
-      display: block;
-    }
-  `]
+  templateUrl: './public-layout.component.html',
+  styleUrls: ['./public-layout.component.css']
 })
 export class PublicLayoutComponent implements OnInit {
   private readonly seoService = inject(SeoService);

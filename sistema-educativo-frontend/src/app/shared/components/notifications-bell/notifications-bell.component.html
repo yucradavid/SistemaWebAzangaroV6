@@ -1,0 +1,64 @@
+    <div class="relative">
+      <!-- Botón campana -->
+      <button
+        type="button"
+        (click)="toggle()"
+        class="relative p-2 hover:bg-white/10 rounded-lg transition-colors text-blue-200 hover:text-white"
+        title="Notificaciones">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+        <span *ngIf="unreadCount > 0"
+          class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-[#1e3a8a]">
+          {{ unreadCount > 9 ? '9+' : unreadCount }}
+        </span>
+      </button>
+
+      <!-- Backdrop para cerrar al hacer click fuera -->
+      <div *ngIf="isOpen" class="fixed inset-0 z-40" (click)="close()"></div>
+
+      <!-- Dropdown -->
+      <div *ngIf="isOpen"
+        class="absolute right-0 top-full mt-2 w-[340px] sm:w-[400px] max-h-[70vh] overflow-y-auto bg-white rounded-2xl border border-slate-200 shadow-xl z-50 text-slate-700">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl">
+          <span class="text-sm font-bold text-slate-800">Notificaciones</span>
+          <button *ngIf="unreadCount > 0" type="button" (click)="markAllAsRead()"
+            class="text-[11px] font-bold text-cermat-blue-700 hover:underline">
+            Marcar todas como leídas
+          </button>
+        </div>
+
+        <div *ngIf="notifications.length === 0" class="px-4 py-8 text-center text-sm text-slate-400 font-medium">
+          No tienes notificaciones.
+        </div>
+
+        <div *ngFor="let n of notifications"
+          (click)="onNotificationClick(n)"
+          class="px-4 py-3 border-b border-slate-50 cursor-pointer transition-colors hover:bg-slate-50"
+          [ngClass]="n.status === 'no_leida' ? 'bg-blue-50/60' : ''">
+          <div class="flex items-start gap-2">
+            <span *ngIf="n.status === 'no_leida'" class="mt-1.5 w-2 h-2 rounded-full bg-cermat-blue-600 shrink-0"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-bold text-slate-800">{{ n.title || 'Notificación' }}</p>
+              <p class="text-xs text-slate-500 mt-0.5 leading-snug">{{ n.message }}</p>
+              <p class="text-[10px] text-slate-400 mt-1">{{ n.created_at | date:'dd/MM/yyyy HH:mm' }}</p>
+
+              <!-- Acciones inline para solicitudes de reapertura pendientes -->
+              <div *ngIf="isActionableReopen(n)" class="flex gap-2 mt-2">
+                <button type="button"
+                  (click)="approve(n, $event)"
+                  class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors active:scale-95">
+                  ✅ Aprobar
+                </button>
+                <button type="button"
+                  (click)="reject(n, $event)"
+                  class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-600 text-white hover:bg-rose-700 transition-colors active:scale-95">
+                  ❌ Rechazar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

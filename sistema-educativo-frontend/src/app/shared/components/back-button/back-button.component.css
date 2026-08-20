@@ -1,0 +1,46 @@
+:host {
+  display: block;
+}
+
+button.back-button-pill {
+  font-family: inherit;
+  line-height: 1;
+  letter-spacing: normal;
+  text-align: left;
+}
+
+button.back-button-pill:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.back-button-pill {
+  background-color: white;
+  transition: background-color 0s 0.5s, padding 0.5s;
+}
+
+.back-button-pill:hover {
+  background-color: #0E3A8A !important;
+  padding-right: 1.5rem;
+  transition: background-color 0s, padding 0.5s;
+}
+
+.icon-container {
+  background-color: #0E3A8A;
+  transition: background-color 0s 0.5s;
+}
+
+.back-button-pill:hover .icon-container {
+  background-color: transparent;
+  transition: background-color 0s;
+}
+
+.back-button-text {
+  color: #0E3A8A;
+  transition: color 0s 0.5s;
+}
+
+.back-button-pill:hover .back-button-text {
+  color: white;
+  transition: color 0s;
+}

@@ -20,7 +20,6 @@ import {
   TeacherAttendanceContextResponse,
 } from '@core/services/attendance.service';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
-import { AdminBackButtonComponent } from '@shared/components/back-button/admin-back-button.component';
 
 interface AttendanceState {
   status: AttendanceStatus;
@@ -34,7 +33,7 @@ interface AttendanceState {
 @Component({
   selector: 'app-attendance-approvals',
   standalone: true,
-  imports: [CommonModule, FormsModule, BackButtonComponent, AdminBackButtonComponent],
+  imports: [CommonModule, FormsModule, BackButtonComponent],
   templateUrl: './attendance-approvals.component.html',
 })
 export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -111,10 +110,6 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
     return this.students.filter((student) => this.attendanceRecords[student.id]?.status === 'falta').length;
   }
 
-  get justifiedCount(): number {
-    return this.students.filter((student) => this.attendanceRecords[student.id]?.status === 'justificado').length;
-  }
-
   get pendingJustificationsCount(): number {
     return this.justifications.filter((item) => item.status === 'pendiente').length;
   }
@@ -169,7 +164,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
   }
 
   needsJustification(studentId: string): boolean {
-    return ['falta', 'justificado'].includes(this.recordFor(studentId).status);
+    return this.recordFor(studentId).status === 'falta';
   }
 
   loadContext(): void {
@@ -651,7 +646,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
       tarde: 'bg-amber-50 text-amber-700 border-amber-200',
       falta: 'bg-rose-50 text-rose-700 border-rose-200',
       justificado: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    }[status];
+    }[status] || 'bg-slate-50 text-slate-600 border-slate-200';
   }
 
   getJustificationStatusBadgeClass(status: JustificationStatus): string {
@@ -757,7 +752,7 @@ export class AttendanceApprovalsComponent implements OnInit, AfterViewInit, OnDe
           this.dailyAttendance = response;
           this.syncAttendanceStateFromDaily();
           
-          (response.students || []).forEach(row => {
+          (response.students || []).forEach((row: any) => {
             const wasNotMarked = !oldRecords[row.student_id]?.justification?.includes('Marcado por QR');
             const isNowMarked = row.entry_note?.includes('Marcado por QR');
             

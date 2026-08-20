@@ -94,10 +94,6 @@
           <p class="text-xl font-semibold text-rose-500">{{ absentCount }}</p>
         </div>
         <div class="text-center border-l border-slate-100 pl-8">
-          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Justificados</p>
-          <p class="text-xl font-semibold text-indigo-500">{{ justifiedCount }}</p>
-        </div>
-        <div class="text-center">
           <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pendientes J.</p>
           <p class="text-xl font-semibold text-cyan-600">{{ pendingJustificationsCount }}</p>
         </div>
@@ -188,7 +184,6 @@
             <option value="presente">Presentes</option>
             <option value="tarde">Tardanzas</option>
             <option value="falta">Faltas</option>
-            <option value="justificado">Justificados</option>
           </select>
           <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
             <i data-lucide="filter" class="w-4 h-4"></i>
@@ -281,10 +276,7 @@
                     [disabled]="hasQrMarking(student.id)"
                     [ngClass]="recordFor(student.id).status === 'falta' ? 'bg-rose-500 text-white shadow-sm' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'" 
                     class="w-10 h-8 rounded-lg flex items-center justify-center font-bold text-[10px] transition-all disabled:opacity-40">F</button>
-                  <button type="button" (click)="updateAttendance(student.id, 'status', 'justificado')" 
-                    [disabled]="hasQrMarking(student.id)"
-                    [ngClass]="recordFor(student.id).status === 'justificado' ? 'bg-indigo-500 text-white shadow-sm' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'" 
-                    class="w-10 h-8 rounded-lg flex items-center justify-center font-bold text-[10px] transition-all disabled:opacity-40">J</button>
+
                 </div>
               </td>
 

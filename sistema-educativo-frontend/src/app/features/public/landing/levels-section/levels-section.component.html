@@ -1,14 +1,13 @@
-<section class="section-padding bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+<section class="py-16 md:py-24 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
       <!-- Background Pattern -->
-      <div class="absolute inset-0 opacity-5">
+      <div class="absolute inset-0 opacity-5" aria-hidden="true">
         <div class="absolute inset-0" style="background-image: radial-gradient(circle, #2563eb 1px, transparent 1px); background-size: 30px 30px;"></div>
       </div>
 
       <div class="container-cermat relative z-10">
         <!-- Section Header -->
         <div class="text-center mb-20">
-          <span class="inline-block px-4 py-2 bg-cermat-blue-50 text-cermat-blue-600 rounded-full text-sm font-bold mb-6">
-          </span>
+
           <h2 class="text-4xl md:text-6xl font-black text-gray-900 mb-6">
             Acompañamos tu <span class="gradient-cermat-text">Crecimiento</span>
           </h2>
@@ -21,6 +20,8 @@
         <div class="grid lg:grid-cols-3 gap-8 mb-16">
           <div *ngFor="let level of levels(); let i = index" 
                class="group relative"
+               role="article"
+               [attr.aria-label]="'Nivel educativo: ' + level.name"
                [style.animation-delay.ms]="i * 100">
             
             <!-- Card Background Gradient -->
@@ -65,7 +66,7 @@
                          'bg-cermat-blue-100': level.id === 'primaria',
                          'bg-cermat-red-100': level.id === 'secundaria'
                        }">
-                    <svg class="w-4 h-4"
+                    <svg class="w-4 h-4" aria-hidden="true"
                          [ngClass]="{
                            'text-pink-600': level.id === 'inicial',
                            'text-cermat-blue-600': level.id === 'primaria',
@@ -88,7 +89,7 @@
                    'bg-gradient-to-r from-cermat-red-500 to-orange-600 hover:shadow-lg hover:shadow-cermat-red-500/50': level.id === 'secundaria'
                  }">
                 <span>Conocer más</span>
-                <svg class="w-5 h-5 transform group-hover/btn:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-5 h-5 transform group-hover/btn:translate-x-2 transition-transform" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </a>
@@ -101,7 +102,7 @@
           <div class="bg-gradient-to-br from-cermat-blue-50 to-cyan-50 rounded-2xl p-6 border-2 border-cermat-blue-100">
             <div class="flex items-center gap-4 mb-4">
               <div class="w-14 h-14 bg-cermat-blue-500 rounded-xl flex items-center justify-center">
-                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-7 h-7 text-white" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
               </div>
@@ -116,7 +117,7 @@
           <div class="bg-gradient-to-br from-cermat-yellow-50 to-orange-50 rounded-2xl p-6 border-2 border-cermat-yellow-100">
             <div class="flex items-center gap-4 mb-4">
               <div class="w-14 h-14 bg-cermat-yellow-500 rounded-xl flex items-center justify-center">
-                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-7 h-7 text-white" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -131,7 +132,7 @@
           <div class="bg-gradient-to-br from-cermat-red-50 to-pink-50 rounded-2xl p-6 border-2 border-cermat-red-100">
             <div class="flex items-center gap-4 mb-4">
               <div class="w-14 h-14 bg-cermat-red-500 rounded-xl flex items-center justify-center">
-                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-7 h-7 text-white" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
               </div>

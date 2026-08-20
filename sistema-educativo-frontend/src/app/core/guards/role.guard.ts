@@ -18,6 +18,6 @@ export const roleGuard: CanActivateFn = (route, state) => {
     return true;
   }
 
-  // If user is authenticated but not authorized for route, redirect to root dashboard
-  return router.createUrlTree(['/app/dashboard']);
+  // Si esta autenticado pero no autorizado para la ruta, redirigir al home de su rol
+  return router.createUrlTree([authService.getHomeRoute()]);
 };

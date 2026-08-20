@@ -8,7 +8,6 @@ import { DataService } from '@core/services/data_general/data.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './stats-section.component.html',
-  styleUrl: './stats-section.component.css'
 })
 export class StatsSectionComponent {
 private readonly dataService = inject(DataService);

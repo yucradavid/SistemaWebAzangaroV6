@@ -1,0 +1,289 @@
+    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 text-slate-700">
+      <app-back-button></app-back-button>
+
+      <div class="space-y-1">
+        <p class="text-[11px] font-semibold text-blue-600 uppercase tracking-[0.25em]">Cuenta corriente</p>
+        <h1 class="text-3xl font-semibold text-blue-900 tracking-tight">Estado financiero por estudiante</h1>
+        <p class="text-slate-500 text-sm font-medium">Consulta cargos, pagos, recibos y saldos reales del backend financiero.</p>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm space-y-8">
+        <div class="grid grid-cols-1 lg:grid-cols-[1.5fr_320px] gap-4 items-end">
+          <div [formGroup]="searchForm" class="relative">
+            <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Buscar estudiante</label>
+            <input
+              formControlName="q"
+              type="text"
+              placeholder="Buscar alumno con cargos por DNI, codigo o apellidos"
+              class="mt-2 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500">
+
+            <div *ngIf="students.length > 0" class="absolute z-50 left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden">
+              <button
+                *ngFor="let student of students"
+                (click)="selectStudent(student)"
+                class="w-full px-5 py-4 text-left hover:bg-slate-50 border-b border-slate-50 last:border-b-0">
+                <div class="text-sm font-semibold text-slate-900">{{ student.last_name }}, {{ student.first_name }}</div>
+                <div class="text-[11px] text-slate-400">
+                  DNI: {{ student.dni }} | Codigo: {{ student.student_code }} |
+                  {{ getStudentSectionLabel(student) }} |
+                  Cargos: {{ student.active_charges_count || 0 }}
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Anio academico</label>
+            <app-setting-filter-dropdown
+              [options]="yearOptions"
+              [selectedId]="selectedAcademicYearId"
+              placeholder="Todos los anios"
+              (selectionChange)="onAcademicYearChange($event)">
+            </app-setting-filter-dropdown>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-100 bg-slate-50/40 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-800">Alumnos con cargos</h3>
+              <p class="text-xs text-slate-400">Listado rapido del anio seleccionado para que no dependas de la busqueda manual.</p>
+            </div>
+            <span class="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-3 py-1">
+              {{ chargedStudents.length }} alumnos
+            </span>
+          </div>
+
+          <div *ngIf="loadingStudentDirectory" class="px-6 py-10 text-center text-slate-400 text-sm font-medium">
+            Cargando alumnos con cargos...
+          </div>
+
+          <div *ngIf="!loadingStudentDirectory && chargedStudents.length === 0" class="px-6 py-10 text-center text-slate-400 text-sm font-medium">
+            No hay alumnos con cargos para el anio seleccionado.
+          </div>
+
+          <div *ngIf="!loadingStudentDirectory && chargedStudents.length > 0" class="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            <button
+              *ngFor="let student of chargedStudents"
+              type="button"
+              (click)="selectStudent(student)"
+              class="text-left rounded-2xl border px-4 py-4 transition-all hover:border-blue-200 hover:bg-white"
+              [class.border-blue-200]="selectedStudent?.id === student.id"
+              [class.bg-blue-50]="selectedStudent?.id === student.id"
+              [class.border-slate-100]="selectedStudent?.id !== student.id"
+              [class.bg-white]="selectedStudent?.id !== student.id">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-slate-900">{{ student.last_name }}, {{ student.first_name }}</div>
+                  <div class="text-[11px] text-slate-400 mt-1">
+                    DNI: {{ student.dni || '-' }} | Codigo: {{ student.student_code || '-' }}
+                  </div>
+                  <div class="text-[11px] text-slate-500 mt-1">{{ getStudentSectionLabel(student) }}</div>
+                </div>
+                <span class="shrink-0 rounded-full bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide">
+                  {{ student.active_charges_count || 0 }} cargos
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="loading" class="py-16 text-center">
+          <div class="w-10 h-10 border-4 border-blue-900/10 border-t-blue-900 rounded-full animate-spin mx-auto mb-4"></div>
+          <p class="text-slate-400 text-sm font-medium">Cargando estado de cuenta...</p>
+        </div>
+
+        <ng-container *ngIf="selectedStudent && !loading">
+          <div class="rounded-2xl border border-slate-100 bg-slate-50/70 p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="space-y-1">
+              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Alumno seleccionado</p>
+              <h2 class="text-2xl font-semibold text-slate-900">{{ selectedStudent.first_name }} {{ selectedStudent.last_name }}</h2>
+              <p class="text-sm text-slate-500">
+                DNI: {{ selectedStudent.dni || '-' }} | Codigo: {{ selectedStudent.student_code || '-' }}
+              </p>
+              <p class="text-sm text-slate-500">
+                {{ selectedStudent.section?.grade_level?.name || 'Sin grado' }} {{ selectedStudent.section?.section_letter || '' }}
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <button (click)="loadAccount()" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold">Actualizar</button>
+              <button (click)="clearSelection()" class="px-4 py-2.5 bg-slate-100 rounded-xl text-sm font-semibold text-slate-700">Limpiar</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+            <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100">
+              <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Emitido neto</p>
+              <h3 class="text-2xl font-bold text-slate-950">S/ {{ accountSummary.netTotal | number:'1.2-2' }}</h3>
+            </div>
+            <div class="p-5 bg-emerald-50 rounded-2xl border border-emerald-100/50">
+              <p class="text-[10px] text-emerald-600/70 uppercase font-bold tracking-widest mb-1">Pagado</p>
+              <h3 class="text-2xl font-bold text-emerald-700">S/ {{ accountSummary.paid | number:'1.2-2' }}</h3>
+            </div>
+            <div class="p-5 bg-amber-50 rounded-2xl border border-amber-100/50">
+              <p class="text-[10px] text-amber-600/70 uppercase font-bold tracking-widest mb-1">Pendiente</p>
+              <h3 class="text-2xl font-bold text-amber-700">S/ {{ accountSummary.outstanding | number:'1.2-2' }}</h3>
+            </div>
+            <div class="p-5 bg-red-50 rounded-2xl border border-red-100/50">
+              <p class="text-[10px] text-red-600/70 uppercase font-bold tracking-widest mb-1">Vencidos</p>
+              <h3 class="text-2xl font-bold text-red-700">{{ accountSummary.overdueCount }}</h3>
+            </div>
+            <div class="p-5 bg-blue-50 rounded-2xl border border-blue-100/50">
+              <p class="text-[10px] text-blue-600/70 uppercase font-bold tracking-widest mb-1">Estado general</p>
+              <h3 class="text-xl font-bold text-blue-900">{{ getAccountStatus() }}</h3>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-10 border-b border-slate-100 overflow-x-auto pb-px">
+            <button (click)="activeTab = 'charges'" [class]="activeTab === 'charges' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-400 hover:text-slate-600'" class="pb-4 text-xs font-semibold border-b-2 whitespace-nowrap px-1">
+              Cargos
+            </button>
+            <button (click)="activeTab = 'payments'" [class]="activeTab === 'payments' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-400 hover:text-slate-600'" class="pb-4 text-xs font-semibold border-b-2 whitespace-nowrap px-1">
+              Pagos y recibos
+            </button>
+          </div>
+
+          <div *ngIf="activeTab === 'charges'" class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+            <div class="p-6 border-b border-slate-50 bg-slate-50/10 flex items-center justify-between">
+              <h3 class="text-base font-semibold text-slate-800 tracking-tight">Cargos del alumno ({{ charges.length }})</h3>
+              <span class="text-xs text-slate-400">Filtrados por anio: {{ getSelectedYearLabel() }}</span>
+            </div>
+
+            <div *ngIf="charges.length === 0" class="px-6 py-12 text-center text-slate-400 text-sm font-medium">
+              No se encontraron cargos para este alumno.
+            </div>
+
+            <div *ngIf="charges.length > 0" class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-100">
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Concepto / referencia</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vencimiento</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Monto neto</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Pagado</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Saldo</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Estado</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                  <tr *ngFor="let charge of charges" class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-6 py-4">
+                      <div class="font-semibold text-slate-900 text-sm">{{ charge.concept?.name || 'Cargo directo' }}</div>
+                      <div class="text-[11px] text-slate-400">{{ charge.notes || 'Sin referencia adicional' }}</div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-500 font-medium">{{ charge.due_date ? (charge.due_date | date:'dd/MM/yyyy') : '-' }}</td>
+                    <td class="px-6 py-4 text-right text-sm font-bold text-slate-950">S/ {{ getNetAmount(charge) | number:'1.2-2' }}</td>
+                    <td class="px-6 py-4 text-right text-sm font-bold text-emerald-700">S/ {{ (charge.paid_amount || 0) | number:'1.2-2' }}</td>
+                    <td class="px-6 py-4 text-right text-sm font-bold text-slate-800">S/ {{ getOutstandingAmount(charge) | number:'1.2-2' }}</td>
+                    <td class="px-6 py-4 text-center">
+                      <span [class]="'px-3 py-1 rounded-full text-[10px] font-bold border ' + getStatusBadge(charge.status)">
+                        {{ charge.status | uppercase }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      <div class="flex justify-end gap-2">
+                        <button
+                          (click)="registerChargePayment(charge)"
+                          [disabled]="getOutstandingAmount(charge) <= 0 || charge.status === 'anulado'"
+                          class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
+                          [class.bg-blue-900]="getOutstandingAmount(charge) > 0 && charge.status !== 'anulado'"
+                          [class.text-white]="getOutstandingAmount(charge) > 0 && charge.status !== 'anulado'"
+                          [class.bg-slate-100]="getOutstandingAmount(charge) <= 0 || charge.status === 'anulado'"
+                          [class.text-slate-500]="getOutstandingAmount(charge) <= 0 || charge.status === 'anulado'">
+                          Cobrar
+                        </button>
+                        <button
+                          (click)="voidCharge(charge)"
+                          [disabled]="charge.status === 'anulado' || (charge.paid_amount || 0) > 0"
+                          class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide bg-white border border-red-200 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                          Anular
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div *ngIf="activeTab === 'payments'" class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+            <div class="p-6 border-b border-slate-50 bg-slate-50/10 flex items-center justify-between">
+              <h3 class="text-base font-semibold text-slate-800 tracking-tight">Pagos registrados ({{ payments.length }})</h3>
+              <span class="text-xs text-slate-400">Recibos incluidos cuando existen</span>
+            </div>
+
+            <div *ngIf="payments.length === 0" class="px-6 py-12 text-center text-slate-400 text-sm font-medium">
+              No se encontraron pagos para este alumno.
+            </div>
+
+            <div *ngIf="payments.length > 0" class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-100">
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fecha</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Concepto</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Metodo</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Monto</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recibo</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Referencia</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                  <tr *ngFor="let payment of payments" class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-6 py-4 text-sm text-slate-500 font-medium">{{ payment.paid_at | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td class="px-6 py-4">
+                      <div class="font-semibold text-slate-900 text-sm">{{ payment.charge?.concept?.name || 'Pago libre' }}</div>
+                      <div class="text-[11px] text-slate-400">{{ payment.notes || payment.charge?.notes || 'Sin observacion' }}</div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600 font-semibold">{{ getMethodLabel(payment.method) }}</td>
+                    <td class="px-6 py-4">
+                      <span [class]="'px-3 py-1 rounded-full text-[10px] font-bold border ' + getPaymentStatusBadge(payment)">
+                        {{ payment.voided_at ? 'ANULADO' : 'VIGENTE' }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 text-right text-sm font-bold" [class.text-emerald-700]="!payment.voided_at" [class.text-slate-400]="!!payment.voided_at">
+                      S/ {{ payment.amount | number:'1.2-2' }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600">{{ payment.receipt?.number || 'Sin recibo' }}</td>
+                    <td class="px-6 py-4 text-sm text-slate-500">{{ payment.reference || '-' }}</td>
+                    <td class="px-6 py-4 text-right">
+                      <div class="flex justify-end gap-2">
+                        <button
+                          (click)="printReceipt(payment)"
+                          [disabled]="!payment.receipt"
+                          class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
+                          [class.bg-white]="!!payment.receipt"
+                          [class.border]="!!payment.receipt"
+                          [class.border-slate-200]="!!payment.receipt"
+                          [class.text-slate-700]="!!payment.receipt"
+                          [class.bg-slate-100]="!payment.receipt"
+                          [class.text-slate-500]="!payment.receipt">
+                          Reimprimir
+                        </button>
+                        <button
+                          (click)="voidPayment(payment)"
+                          [disabled]="!!payment.voided_at"
+                          class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide bg-white border border-red-200 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                          Anular
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </ng-container>
+
+        <div *ngIf="!selectedStudent && !loading" class="py-20 border-2 border-dashed border-slate-50 rounded-3xl text-center">
+          <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200">
+            <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h4 class="text-slate-900 font-semibold text-xl mb-2">Selecciona un estudiante</h4>
+          <p class="text-slate-400 text-sm max-w-xs mx-auto font-medium">Busca un alumno para ver su cuenta corriente con cargos y pagos reales.</p>
+        </div>
+      </div>
+    </div>

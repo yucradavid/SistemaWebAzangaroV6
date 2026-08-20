@@ -64,6 +64,7 @@ module.exports = {
         'gradient': 'gradient 3s ease infinite',
         'subtle-zoom': 'subtleZoom 20s ease-in-out infinite',
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'scroll-reveal': 'scrollReveal 0.8s ease-out backwards',
       },
       keyframes: {
         float: {
@@ -91,6 +92,10 @@ module.exports = {
           '50%': { transform: 'translateY(12px)', opacity: '0.5' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
+        'scroll-reveal': {
+          from: { opacity: '0', transform: 'translateY(40px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
         gradient: {
           '0%, 100%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' },
@@ -98,6 +103,10 @@ module.exports = {
         subtleZoom: {
           '0%, 100%': { transform: 'scale(1)' },
           '50%': { transform: 'scale(1.1)' },
+        },
+        scrollReveal: {
+          from: { opacity: '0', transform: 'translateY(40px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
         },
       },
       backgroundSize: {

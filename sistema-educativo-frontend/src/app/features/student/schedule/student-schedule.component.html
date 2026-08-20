@@ -1,0 +1,111 @@
+<div class="min-h-screen bg-[#F8FAFC] pb-12">
+  <!-- HEADER PREMIUM -->
+  <div class="bg-white border-b border-slate-200/60 sticky top-0 z-[100] backdrop-blur-xl bg-white/80">
+    <div class="max-w-[1600px] mx-auto px-6 py-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div class="flex items-center gap-6">
+        <a routerLink="/app/dashboard/student" class="p-3 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-white hover:shadow-xl transition-all group">
+          <svg class="w-5 h-5 text-slate-600 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </a>
+        <div>
+          <p class="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600 mb-1">Mi Horario Personal</p>
+          <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+            {{ activeAcademicYearLabel }}
+            <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] rounded-full border border-blue-100 uppercase tracking-widest">{{ sectionLabel }}</span>
+          </h1>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+         <div class="hidden sm:flex flex-col items-end px-4 border-r border-slate-100">
+           <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Estudiante</p>
+           <p class="text-sm font-bold text-slate-700">{{ studentName }}</p>
+         </div>
+         <button (click)="printSchedule()" class="px-6 py-3 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest shadow-xl hover:shadow-slate-900/20 active:scale-95 transition-all">Imprimir PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-[1600px] mx-auto p-6 lg:p-10">
+    <div *ngIf="loading" class="py-20 text-center bg-white rounded-[3rem] border border-slate-200/60 shadow-sm">
+      <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <p class="mt-6 text-slate-500 font-bold uppercase tracking-widest text-xs">Sincronizando con el servidor...</p>
+    </div>
+
+    <div *ngIf="!loading && weekSchedule.length === 0" class="py-32 text-center bg-white rounded-[3rem] border border-slate-200/60 shadow-sm">
+       <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">🗓️</div>
+       <h2 class="text-2xl font-black text-slate-900">No hay horario publicado</h2>
+       <p class="text-slate-500 mt-2 font-medium">Todavía no se han asignado clases para tu sección.</p>
+    </div>
+
+    <!-- GRID DE HORARIO ESTILO ADMIN -->
+    <div *ngIf="!loading && weekSchedule.length > 0" class="bg-white border border-slate-200/60 rounded-[3rem] shadow-2xl shadow-slate-200/50 overflow-hidden relative">
+      
+      <!-- Cabecera de Días -->
+      <div class="grid bg-slate-50/50 border-b border-slate-100 sticky top-0 z-10 backdrop-blur-md"
+           [ngClass]="maxDays === 5 ? 'grid-cols-[80px_repeat(5,1fr)]' : (maxDays === 6 ? 'grid-cols-[80px_repeat(6,1fr)]' : 'grid-cols-[80px_repeat(7,1fr)]')">
+        <div class="h-16 flex items-center justify-center text-xl">⏳</div>
+        <div *ngFor="let day of weekSchedule" class="h-16 flex flex-col items-center justify-center border-l border-slate-100/60 group">
+          <span class="text-[10px] font-black uppercase text-slate-400 tracking-[0.25em] group-hover:text-blue-600 transition-colors">{{ day.day.substring(0,3) }}</span>
+          <span class="text-xs font-bold text-slate-900">{{ day.day }}</span>
+        </div>
+      </div>
+
+      <!-- Cuerpo del Horario -->
+      <div class="relative grid min-h-[1300px]" 
+           [ngClass]="maxDays === 5 ? 'grid-cols-[80px_repeat(5,1fr)]' : (maxDays === 6 ? 'grid-cols-[80px_repeat(6,1fr)]' : 'grid-cols-[80px_repeat(7,1fr)]')"
+           [style.height.px]="1300">
+        <!-- Eje de Horas -->
+        <div class="relative border-r border-slate-100 bg-slate-50/30">
+          <div *ngFor="let hour of getHourLabels()" class="absolute w-full flex items-center justify-center" [style.top.%]="getTopPosition(hour + ':00')">
+            <span class="text-[10px] font-black text-slate-400 tabular-nums">{{ hour }}:00</span>
+          </div>
+        </div>
+
+        <!-- Columnas de Días -->
+        <div *ngFor="let day of weekSchedule" class="relative border-r border-slate-100/60 group">
+          <div class="absolute inset-0 group-hover:bg-blue-50/20 transition-colors pointer-events-none"></div>
+
+          <!-- Bloques de Clase Sólidos -->
+          <div *ngFor="let slot of day.slots" 
+               class="absolute left-2 right-2 rounded-2xl shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden z-10 border border-white/10"
+               [class]="slot.colorBg"
+               [style.top.%]="getTopPosition(slot.startTime)"
+               [style.height.%]="getHeightPercent(slot.startTime, slot.endTime)">
+            
+            <div class="p-4 flex flex-col h-full text-white relative">
+              <div class="flex flex-col">
+                <h4 class="text-[13px] font-black leading-tight mb-1 uppercase tracking-tight">{{ slot.course }}</h4>
+                <span class="text-[10px] font-bold opacity-90 tabular-nums tracking-wide">{{ slot.startTime }} - {{ slot.endTime }}</span>
+              </div>
+
+              <div class="mt-auto pt-3 border-t border-white/20">
+                <p class="text-[9px] font-black uppercase tracking-widest opacity-90 truncate">{{ slot.teacher }}</p>
+                <div class="flex items-center gap-1.5 mt-1">
+                   <div class="w-1.5 h-1.5 rounded-full bg-white/40"></div>
+                   <span class="text-[9px] font-black uppercase tracking-widest opacity-80">{{ slot.room }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEYENDA INFERIOR -->
+    <div class="mt-12 flex flex-wrap items-center justify-between gap-8 p-8 bg-slate-900 rounded-[3rem] text-white shadow-2xl shadow-slate-900/20">
+      <div class="flex items-center gap-8">
+        <div class="flex items-center gap-3">
+          <div class="w-4 h-4 rounded-full bg-blue-500 border-4 border-white/20"></div>
+          <span class="text-xs font-black uppercase tracking-widest text-slate-200">Matriz Cromática Activa</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-4 h-4 rounded-full bg-emerald-500 border-4 border-white/20"></div>
+          <span class="text-xs font-black uppercase tracking-widest text-slate-200">Datos en Tiempo Real</span>
+        </div>
+      </div>
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] italic">
+        * El horario se actualiza automáticamente con la planificación académica centralizada.
+      </p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,264 @@
+    <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
+      <app-back-button></app-back-button>
+
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div class="space-y-1">
+          <h1 class="text-3xl font-semibold text-blue-900 tracking-tight">Reportes financieros</h1>
+          <p class="text-slate-500 text-sm font-medium">Morosidad y recaudacion calculadas con cargos y pagos reales.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button (click)="exportCurrentReport('excel')" class="px-5 py-2.5 bg-white border-2 border-blue-900 text-blue-900 text-xs font-semibold rounded-xl uppercase tracking-tight">
+            Exportar Excel
+          </button>
+          <button (click)="exportCurrentReport('pdf')" class="px-5 py-2.5 bg-white border-2 border-slate-200 text-slate-600 text-xs font-semibold rounded-xl uppercase tracking-tight">
+            Exportar PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-10 border-b border-slate-100 overflow-x-auto pb-px">
+        <button (click)="activeTab = 'morosidad'" [class]="activeTab === 'morosidad' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-400 hover:text-slate-600'" class="pb-4 text-xs font-semibold border-b-2 whitespace-nowrap px-1">Analisis de morosidad</button>
+        <button (click)="activeTab = 'recaudacion'" [class]="activeTab === 'recaudacion' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-400 hover:text-slate-600'" class="pb-4 text-xs font-semibold border-b-2 whitespace-nowrap px-1">Recaudacion</button>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div class="space-y-2">
+            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Anio academico</label>
+            <select [(ngModel)]="selectedYearId" (change)="loadData()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium">
+              <option *ngFor="let year of academicYears" [value]="year.id">{{ year.year }}</option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Mes</label>
+            <select [(ngModel)]="selectedMonth" (change)="calculateStats()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium">
+              <option value="">Todos</option>
+              <option value="1">Enero</option>
+              <option value="2">Febrero</option>
+              <option value="3">Marzo</option>
+              <option value="4">Abril</option>
+              <option value="5">Mayo</option>
+              <option value="6">Junio</option>
+              <option value="7">Julio</option>
+              <option value="8">Agosto</option>
+              <option value="9">Setiembre</option>
+              <option value="10">Octubre</option>
+              <option value="11">Noviembre</option>
+              <option value="12">Diciembre</option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Buscar</label>
+            <input
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="calculateStats()"
+              type="text"
+              placeholder="Alumno, concepto o referencia"
+              class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium">
+          </div>
+          <div class="space-y-2">
+            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Grado</label>
+            <select [(ngModel)]="selectedGradeLevelId" (change)="onGradeLevelChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium">
+              <option value="">Todos</option>
+              <option *ngFor="let grade of gradeLevels" [value]="grade.id">{{ grade.name }}</option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Seccion</label>
+            <select [(ngModel)]="selectedSectionId" (change)="calculateStats()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium">
+              <option value="">Todas</option>
+              <option *ngFor="let section of filteredSections" [value]="section.id">
+                {{ section.grade_level?.name || section.gradeLevel?.name || 'Seccion' }} {{ section.section_letter || section.name || '' }}
+              </option>
+            </select>
+          </div>
+          <div class="space-y-2" *ngIf="activeTab === 'morosidad'">
+            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Alcance</label>
+            <select [(ngModel)]="debtScope" (change)="calculateStats()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium">
+              <option value="todos">Pendientes y vencidos</option>
+              <option value="vencidos">Solo vencidos</option>
+            </select>
+          </div>
+          <div class="space-y-2" *ngIf="activeTab === 'recaudacion'">
+            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Metodo</label>
+            <select [(ngModel)]="selectedMethod" (change)="calculateStats()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium">
+              <option value="">Todos</option>
+              <option value="efectivo">Efectivo</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="transferencia">Transferencia</option>
+              <option value="yape">Yape</option>
+              <option value="plin">Plin</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="loading" class="flex justify-center py-20">
+        <div class="w-8 h-8 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin"></div>
+      </div>
+
+      <ng-container *ngIf="!loading && activeTab === 'morosidad'">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-t-4 border-amber-400">
+            <h3 class="text-3xl font-bold text-slate-900">S/ {{ debtStats.pending | number:'1.2-2' }}</h3>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-2">Saldo pendiente</p>
+          </div>
+          <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-t-4 border-red-500">
+            <h3 class="text-3xl font-bold text-slate-900">S/ {{ debtStats.overdue | number:'1.2-2' }}</h3>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-2">Saldo vencido</p>
+          </div>
+          <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-t-4 border-blue-500">
+            <h3 class="text-3xl font-bold text-slate-900">{{ debtStats.delinquency | number:'1.1-1' }}%</h3>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-2">% de morosidad</p>
+          </div>
+          <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-t-4 border-slate-500">
+            <h3 class="text-3xl font-bold text-slate-900">{{ overdueStudents.length }}</h3>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-2">Alumnos con deuda</p>
+          </div>
+          <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-t-4 border-violet-500">
+            <h3 class="text-3xl font-bold text-slate-900">S/ {{ debtStats.averagePerStudent | number:'1.2-2' }}</h3>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-2">Promedio por alumno</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-[1.25fr_0.85fr] gap-6">
+          <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+            <div class="p-6 border-b border-slate-50 bg-slate-50/10">
+              <h2 class="text-base font-semibold text-slate-800 tracking-tight">Alumnos con deuda ({{ overdueStudents.length }})</h2>
+            </div>
+            <div *ngIf="overdueStudents.length === 0" class="py-20 text-center text-slate-400">No hay deudas con los filtros seleccionados.</div>
+            <div *ngIf="overdueStudents.length > 0" class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="text-slate-400 text-[10px] font-semibold uppercase tracking-widest border-b border-slate-50">
+                    <th class="py-4 px-6 text-left">Alumno</th>
+                    <th class="py-4 px-6 text-center">Cargos pendientes</th>
+                    <th class="py-4 px-6 text-right">Saldo</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                  <tr *ngFor="let student of overdueStudents" class="hover:bg-slate-50/50">
+                    <td class="py-4 px-6">
+                      <div class="text-sm font-bold text-slate-700">{{ student.name }}</div>
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                      <span class="bg-red-50 text-red-600 px-3 py-1 text-xs font-bold rounded-xl">{{ student.chargesCount }} cargos</span>
+                    </td>
+                    <td class="py-4 px-6 text-right text-sm font-bold text-slate-800">S/ {{ student.totalDebt | number:'1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="p-6 border-b border-slate-50 bg-slate-50/10">
+            <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+              <div class="p-6 border-b border-slate-50 bg-slate-50/10">
+                <h2 class="text-base font-semibold text-slate-800 tracking-tight">Conceptos con mayor deuda</h2>
+              </div>
+              <div *ngIf="topDebtConcepts.length === 0" class="py-20 text-center text-slate-400">No hay conceptos con deuda para mostrar.</div>
+              <div *ngIf="topDebtConcepts.length > 0" class="p-6 space-y-4">
+                <div *ngFor="let concept of topDebtConcepts" class="rounded-2xl border border-slate-100 p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">{{ concept.label }}</p>
+                    <p class="text-[11px] text-slate-400">{{ concept.count }} cargos con saldo</p>
+                  </div>
+                  <p class="text-lg font-bold text-slate-900">S/ {{ concept.amount | number:'1.2-2' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="!loading && activeTab === 'recaudacion'">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-t-4 border-emerald-500">
+            <h3 class="text-3xl font-bold text-slate-900">S/ {{ revenueStats.total | number:'1.2-2' }}</h3>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-2">Recaudado</p>
+          </div>
+          <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-t-4 border-blue-500">
+            <h3 class="text-3xl font-bold text-slate-900">S/ {{ revenueStats.cash | number:'1.2-2' }}</h3>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-2">Efectivo</p>
+          </div>
+          <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-t-4 border-violet-500">
+            <h3 class="text-3xl font-bold text-slate-900">S/ {{ revenueStats.digital | number:'1.2-2' }}</h3>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-2">Canales digitales</p>
+          </div>
+          <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-t-4 border-slate-500">
+            <h3 class="text-3xl font-bold text-slate-900">S/ {{ revenueStats.averageTicket | number:'1.2-2' }}</h3>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-2">Ticket promedio</p>
+          </div>
+          <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-t-4 border-red-500">
+            <h3 class="text-3xl font-bold text-slate-900">S/ {{ revenueStats.expenses | number:'1.2-2' }}</h3>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-2">Egresos</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+            <div class="p-6 border-b border-slate-50 bg-slate-50/10">
+              <h2 class="text-base font-semibold text-slate-800 tracking-tight">Recaudacion por metodo</h2>
+            </div>
+            <div class="p-6 space-y-4">
+              <div *ngFor="let item of paymentBreakdown" class="rounded-2xl border border-slate-100 p-4 flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">{{ item.label }}</p>
+                  <p class="text-[11px] text-slate-400">{{ item.count }} pagos</p>
+                </div>
+                <p class="text-lg font-bold text-slate-900">S/ {{ item.amount | number:'1.2-2' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+            <div class="p-6 border-b border-slate-50 bg-slate-50/10">
+              <h2 class="text-base font-semibold text-slate-800 tracking-tight">Pagos recientes ({{ recentPayments.length }})</h2>
+            </div>
+            <div *ngIf="recentPayments.length === 0" class="py-20 text-center text-slate-400">No hay pagos con los filtros seleccionados.</div>
+            <div *ngIf="recentPayments.length > 0" class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="text-slate-400 text-[10px] font-semibold uppercase tracking-widest border-b border-slate-50">
+                    <th class="py-4 px-6 text-left">Alumno</th>
+                    <th class="py-4 px-6 text-left">Metodo</th>
+                    <th class="py-4 px-6 text-right">Monto</th>
+                    <th class="py-4 px-6 text-left">Referencia</th>
+                    <th class="py-4 px-6 text-left">Fecha</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                  <tr *ngFor="let payment of recentPayments" class="hover:bg-slate-50/50">
+                    <td class="py-4 px-6">
+                      <div class="text-sm font-semibold text-slate-700">{{ getPaymentStudentName(payment) }}</div>
+                      <div class="text-[11px] text-slate-400">{{ payment.receipt?.number || 'Sin recibo' }}</div>
+                    </td>
+                    <td class="py-4 px-6 text-sm font-medium text-slate-600">{{ getMethodLabel(payment.method) }}</td>
+                    <td class="py-4 px-6 text-right text-sm font-bold text-slate-800">S/ {{ payment.amount | number:'1.2-2' }}</td>
+                    <td class="py-4 px-6 text-sm text-slate-500">{{ payment.reference || '-' }}</td>
+                    <td class="py-4 px-6 text-sm text-slate-500">{{ payment.paid_at | date:'dd/MM/yyyy HH:mm' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+            <div class="p-6 border-b border-slate-50 bg-slate-50/10">
+              <h2 class="text-base font-semibold text-slate-800 tracking-tight">Cierres por cajero</h2>
+            </div>
+            <div *ngIf="cashierClosureBreakdown.length === 0" class="py-20 text-center text-slate-400">No hay cierres para el mes seleccionado.</div>
+            <div *ngIf="cashierClosureBreakdown.length > 0" class="p-6 space-y-4">
+              <div *ngFor="let item of cashierClosureBreakdown" class="rounded-2xl border border-slate-100 p-4 flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">{{ item.label }}</p>
+                  <p class="text-[11px] text-slate-400">{{ item.count }} cierres | Dif. acumulada: S/ {{ item.difference | number:'1.2-2' }}</p>
+                </div>
+                <p class="text-lg font-bold text-slate-900">S/ {{ item.amount | number:'1.2-2' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </div>

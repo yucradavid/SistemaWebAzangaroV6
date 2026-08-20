@@ -5,12 +5,11 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { AcademicService, Course, Section, TeacherCourseAssignment } from '@core/services/academic.service';
 import { Assignment, TaskService } from '@core/services/task.service';
-import { AdminBackButtonComponent } from "@shared/components/back-button/admin-back-button.component";
 
 @Component({
   selector: 'app-teacher-tasks',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BackButtonComponent, AdminBackButtonComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BackButtonComponent],
   templateUrl: './teacher-tasks.component.html',
   styleUrls: ['./teacher-tasks.component.css']
 })
