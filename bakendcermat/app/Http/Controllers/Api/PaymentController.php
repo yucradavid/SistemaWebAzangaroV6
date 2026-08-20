@@ -50,7 +50,7 @@ class PaymentController extends Controller
     public function store(StorePaymentRequest $request)
     {
         $data = $request->validated();
-        $actorId = $this->resolveAuthSchemaUserId($request);
+        $actorId = $this->resolveActorUserId($request);
 
         return DB::transaction(function () use ($data, $request, $actorId) {
             if (empty($data['charge_id'] ?? null)) {
@@ -169,7 +169,7 @@ class PaymentController extends Controller
 
             $lockedPayment->update([
                 'voided_at' => now(),
-                'voided_by' => $this->resolveAuthSchemaUserId($request),
+                'voided_by' => $this->resolveActorUserId($request),
                 'void_reason' => $data['reason'],
             ]);
 
@@ -343,7 +343,7 @@ class PaymentController extends Controller
         }
     }
 
-    private function resolveAuthSchemaUserId(Request $request): ?string
+    private function resolveActorUserId(Request $request): ?string
     {
         $authUser = $request->user();
 
@@ -351,32 +351,38 @@ class PaymentController extends Controller
             return null;
         }
 
-        $emailCandidates = array_values(array_filter([
-            $authUser->email ?? null,
-            $authUser->profile?->email ?? null,
-        ]));
-
-        foreach ($emailCandidates as $email) {
-            $authSchemaUserId = DB::table('auth.users')
-                ->whereRaw('lower(email) = ?', [strtolower((string) $email)])
-                ->value('id');
-
-            if ($authSchemaUserId) {
-                return (string) $authSchemaUserId;
-            }
-        }
-
+        // payments.received_by / voided_by y receipts.issued_by referencian
+        // public.users.id. El usuario autenticado por Sanctum ES la fila de
+        // public.users, por lo que su clave primaria es el valor correcto. NO se
+        // debe usar el id de auth.users: vive en otro espacio de ids y provoca
+        // violacion de FK (payments_received_by_fkey).
         $candidateIds = array_values(array_filter([
+            $authUser->getKey(),
             $authUser->id ?? null,
-            $authUser->user_id ?? null,
             $authUser->profile?->user_id ?? null,
         ]));
 
         foreach ($candidateIds as $candidateId) {
             $candidateId = (string) $candidateId;
 
-            if ($candidateId !== '' && DB::table('auth.users')->where('id', $candidateId)->exists()) {
+            if ($candidateId !== '' && DB::table('users')->where('id', $candidateId)->exists()) {
                 return $candidateId;
+            }
+        }
+
+        // Fallback: ubicar al usuario en public.users por correo.
+        $emailCandidates = array_values(array_filter([
+            $authUser->email ?? null,
+            $authUser->profile?->email ?? null,
+        ]));
+
+        foreach ($emailCandidates as $email) {
+            $publicUserId = DB::table('users')
+                ->whereRaw('lower(email) = ?', [strtolower((string) $email)])
+                ->value('id');
+
+            if ($publicUserId) {
+                return (string) $publicUserId;
             }
         }
 
