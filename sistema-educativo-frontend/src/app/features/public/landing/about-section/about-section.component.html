@@ -1,85 +1,76 @@
-<section class="py-16 md:py-24 gradient-cermat-hero relative overflow-hidden">
-      <!-- Decorative Elements -->
-      <div class="absolute inset-0 opacity-10" aria-hidden="true">
-        <div class="absolute top-0 left-0 w-96 h-96 bg-cermat-yellow-400 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-0 w-96 h-96 bg-cermat-blue-400 rounded-full blur-3xl"></div>
-      </div>
+<section class="py-24 lg:py-32 bg-white">
+  <div class="container-editorial">
 
-      <div class="container-cermat relative z-10">
-        <!-- Section Header -->
-        <div class="text-center mb-20">
-          <h2 class="text-4xl md:text-6xl font-black text-white mb-6">
-            Educación con <span class="text-cermat-yellow-400">Propósito</span>
-          </h2>
-          <div class="w-24 h-1 bg-gradient-to-r from-cermat-blue-400 via-cermat-yellow-400 to-cermat-red-500 mx-auto rounded-full" aria-hidden="true"></div>
+    <!-- Header editorial -->
+    <div class="mb-20" appScrollReveal="fadeUp">
+      <p class="label-editorial mb-4">Sobre Nosotros</p>
+      <div class="section-divider mb-6"></div>
+      <h2 class="text-[clamp(2rem,5vw,4rem)] font-black text-editorial-navy leading-[0.95] tracking-tight max-w-3xl">
+        Educación con<br/>
+        <span class="text-editorial-gold">Propósito</span>
+      </h2>
+    </div>
+
+    <!-- Layout asimétrico: texto + imagen -->
+    <div class="grid lg:grid-cols-12 gap-16 items-start">
+
+      <!-- Texto: 5 columnas -->
+      <div class="lg:col-span-5 space-y-8" appScrollReveal="fadeLeft" [delay]="200">
+        <div>
+          <p class="label-editorial mb-3">Desde 1999</p>
+          <p class="text-lg text-editorial-slate leading-relaxed">
+            Somos pioneros en educación de excelencia en Azángaro. Durante más de 25 años hemos formado generaciones de líderes comprometidos con el desarrollo de nuestra región.
+          </p>
         </div>
 
-        <div class="grid lg:grid-cols-2 gap-16 items-center mb-20">
-          <!-- Left: Content -->
-          <div class="space-y-8 text-white">
-            <div class="space-y-4">
-              <div class="flex items-center gap-3">
-                <h3 class="text-3xl font-bold">Desde 1999</h3>
-              </div>
-              <p class="text-xl text-white/90 leading-relaxed">
-                Somos <span class="font-bold text-cermat-yellow-400">pioneros</span> en educación de excelencia en Azángaro. 
-                Durante más de 25 años hemos formado generaciones de líderes comprometidos con el desarrollo de nuestra región.
-              </p>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-6">
-              <div class="glass-cermat p-6 rounded-2xl border border-white/20">
-                <div class="text-cermat-yellow-400 text-4xl font-black mb-2">500+</div>
-                <div class="text-white/80">Egresados exitosos</div>
-              </div>
-              <div class="glass-cermat p-6 rounded-2xl border border-white/20">
-                <div class="text-cermat-yellow-400 text-4xl font-black mb-2">100%</div>
-                <div class="text-white/80">Compromiso social</div>
-              </div>
-            </div>
-
-            <blockquote class="border-l-4 border-cermat-yellow-400 pl-6 py-4 italic text-lg text-white/90">
-              "Formamos no solo estudiantes, sino ciudadanos del mundo con valores sólidos y visión de futuro"
-            </blockquote>
+        <div class="flex gap-16 py-6 border-t border-editorial-border">
+          <div>
+            <div class="text-4xl font-black text-editorial-navy">500+</div>
+            <div class="label-editorial mt-2">Egresados</div>
           </div>
-
-          <!-- Right: Image Grid -->
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-4">
-              <div class="relative overflow-hidden rounded-3xl shadow-2xl group h-64">
-                <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&h=600&fit=crop" alt="Estudiantes de educación inicial" loading="eager" decoding="async" width="600" height="600" fetchpriority="high" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"/>
-                <div class="absolute inset-0 bg-gradient-to-t from-cermat-blue-900/80 to-transparent" aria-hidden="true"></div>
-                <div class="absolute bottom-4 left-4 text-white">
-                  <div class="font-bold text-lg">Educación Inicial</div>
-                </div>
-              </div>
-              <div class="relative overflow-hidden rounded-3xl shadow-2xl group h-80">
-                <img src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=600&h=600&fit=crop" alt="Estudiantes de primaria" loading="lazy" decoding="async" width="600" height="600" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"/>
-                <div class="absolute inset-0 bg-gradient-to-t from-cermat-blue-900/80 to-transparent" aria-hidden="true"></div>
-                <div class="absolute bottom-4 left-4 text-white">
-                  <div class="font-bold text-lg">Primaria</div>
-                </div>
-              </div>
-            </div>
-            <div class="space-y-4 pt-8">
-              <div class="relative overflow-hidden rounded-3xl shadow-2xl group h-80">
-                <img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&h=600&fit=crop" alt="Estudiantes de secundaria" loading="lazy" decoding="async" width="600" height="600" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"/>
-                <div class="absolute inset-0 bg-gradient-to-t from-cermat-blue-900/80 to-transparent" aria-hidden="true"></div>
-                <div class="absolute bottom-4 left-4 text-white">
-                  <div class="font-bold text-lg">Secundaria</div>
-                </div>
-              </div>
-              <div class="relative overflow-hidden rounded-3xl shadow-2xl group h-64">
-                <img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600&h=600&fit=crop" alt="Estudiantes usando tecnología" loading="lazy" decoding="async" width="600" height="600" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"/>
-                <div class="absolute inset-0 bg-gradient-to-t from-cermat-blue-900/80 to-transparent" aria-hidden="true"></div>
-                <div class="absolute bottom-4 left-4 text-white">
-                  <div class="font-bold text-lg">Tecnología</div>
-                </div>
-              </div>
-            </div>
+          <div>
+            <div class="text-4xl font-black text-editorial-navy">100%</div>
+            <div class="label-editorial mt-2">Compromiso</div>
           </div>
         </div>
 
-        
+        <blockquote class="border-l-[3px] border-editorial-gold pl-6 py-2">
+          <p class="text-base text-editorial-slate italic leading-relaxed">
+            "Formamos no solo estudiantes, sino ciudadanos del mundo con valores sólidos y visión de futuro"
+          </p>
+        </blockquote>
       </div>
-    </section>
+
+      <!-- Imagen: 7 columnas, offset dramático -->
+      <div class="lg:col-span-7 lg:-mt-12" appScrollReveal="fadeRight" [delay]="400">
+        <div class="grid grid-cols-12 gap-4">
+          <!-- Imagen grande -->
+          <div class="col-span-8">
+            <div class="aspect-[4/5] overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=800&h=1000&fit=crop&q=80"
+                alt="Estudiantes de primaria en CERMAT School" loading="eager" decoding="async" width="800" height="1000" fetchpriority="high"
+                class="w-full h-full object-cover" />
+            </div>
+          </div>
+          <!-- Columna lateral con datos -->
+          <div class="col-span-4 flex flex-col gap-4 pt-12">
+            <div class="aspect-square overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=400&fit=crop&q=80"
+                alt="Estudiantes de educación inicial" loading="lazy" decoding="async" width="400" height="400"
+                class="w-full h-full object-cover" />
+            </div>
+            <div class="bg-editorial-cream p-6 flex-1 flex flex-col justify-center">
+              <div class="text-sm font-semibold text-editorial-muted uppercase tracking-[0.15em]">Formación</div>
+              <div class="text-2xl font-black text-editorial-navy mt-1">Inicial</div>
+              <div class="text-2xl font-black text-editorial-gold">Primaria</div>
+              <div class="text-2xl font-black text-editorial-navy">Secundaria</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>

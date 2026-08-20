@@ -6,131 +6,212 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Layer de base - Solo esenciales */
 @layer base {
   * {
     @apply m-0 p-0 box-border;
   }
-  
+
   html {
     @apply scroll-smooth;
     scroll-padding-top: 80px;
   }
 
   body {
-    @apply font-sans antialiased overflow-x-hidden;
+    @apply font-sans antialiased overflow-x-hidden text-editorial-navy;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-bold leading-tight;
+    @apply font-display font-bold leading-tight tracking-tight;
   }
 }
 
-/* Layer de componentes - Utilidades personalizadas CERMAT */
 @layer components {
-  /* Contenedor institucional */
-  .container-cermat {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  .container-editorial {
+    @apply max-w-6xl mx-auto px-6 sm:px-8 lg:px-12;
   }
 
-  /* Glass effect CERMAT */
-  .glass-cermat {
-    @apply bg-white/10 backdrop-blur-xl border border-white/20;
+  .container-editorial-wide {
+    @apply max-w-7xl mx-auto px-6 sm:px-8 lg:px-12;
   }
 
-  .glass-blue {
-    @apply bg-cermat-blue-500/10 backdrop-blur-md border border-cermat-blue-400/20;
+  /* ============================================
+     BOTONES EDITORIALES — efecto relleno centro
+     ============================================ */
+  .btn-primary,
+  .btn-outline,
+  .btn-gold {
+    @apply relative z-10 overflow-hidden;
   }
 
-  /* Botones institucionales */
-  .btn-cermat-primary {
-    @apply px-8 py-4 bg-gradient-to-r from-cermat-blue-600 to-cermat-blue-800 text-white font-bold rounded-xl;
-    @apply hover:shadow-2xl hover:shadow-cermat-blue-500/50 transform hover:-translate-y-1;
-    @apply transition-all duration-300 ease-out;
+  .btn-primary::before,
+  .btn-primary::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 0;
+    background: #B8860B;
+    transition: width 0.3s ease-in-out;
+    z-index: -1;
+  }
+  .btn-primary::before { left: 50%; }
+  .btn-primary::after { right: 50%; }
+  .btn-primary:hover::before,
+  .btn-primary:hover::after { width: 50%; }
+
+  .btn-outline::before,
+  .btn-outline::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 0;
+    background: #102A43;
+    transition: width 0.3s ease-in-out;
+    z-index: -1;
+  }
+  .btn-outline::before { left: 50%; }
+  .btn-outline::after { right: 50%; }
+  .btn-outline:hover::before,
+  .btn-outline:hover::after { width: 50%; }
+
+  .btn-gold::before,
+  .btn-gold::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 0;
+    background: #D4A843;
+    transition: width 0.3s ease-in-out;
+    z-index: -1;
+  }
+  .btn-gold::before { left: 50%; }
+  .btn-gold::after { right: 50%; }
+  .btn-gold:hover::before,
+  .btn-gold:hover::after { width: 50%; }
+
+  /* Section divider */
+  .section-divider {
+    @apply w-12 h-px bg-editorial-gold;
   }
 
-  .btn-cermat-secondary {
-    @apply px-8 py-4 bg-gradient-to-r from-cermat-red-600 to-cermat-red-700 text-white font-bold rounded-xl;
-    @apply hover:shadow-2xl hover:shadow-cermat-red-500/50 transform hover:-translate-y-1;
-    @apply transition-all duration-300 ease-out;
-  }
-
-  .btn-cermat-outline {
-    @apply px-8 py-4 glass-cermat text-white border-2 border-white/40 rounded-xl font-bold;
-    @apply hover:bg-white hover:text-cermat-blue-950 transition-all duration-300;
-  }
-
-  /* Cards institucionales */
-  .card-cermat {
-    @apply bg-white rounded-2xl shadow-lg hover:shadow-2xl;
-    @apply transition-all duration-300 transform hover:-translate-y-2;
-  }
-
-  .card-cermat-glass {
-    @apply glass-cermat rounded-2xl p-8 shadow-2xl;
-    @apply border-2 border-white/20 backdrop-blur-2xl;
-    @apply hover:scale-105 transition-all duration-500;
-  }
-
-  /* Gradientes institucionales */
-  .gradient-cermat-primary {
-    @apply bg-gradient-to-r from-cermat-blue-600 to-cermat-blue-800;
-  }
-
-  .gradient-cermat-hero {
-    @apply bg-gradient-to-br from-cermat-blue-950 via-cermat-blue-900 to-slate-900;
-  }
-
-  .gradient-cermat-text {
-    @apply bg-gradient-to-r from-cermat-blue-400 via-cermat-yellow-400 to-cermat-red-500;
-    @apply bg-clip-text text-transparent;
-  }
-}
-
-/* Layer de utilidades - Extras específicos */
-@layer utilities {
-  .text-shadow-sm {
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  }
-
-  .text-shadow {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .border-3 {
-    border-width: 3px;
-  }
-
-  .focus-ring {
-    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cermat-blue-500;
+  /* Label tipográfico */
+  .label-editorial {
+    @apply text-xs font-semibold uppercase tracking-[0.2em] text-editorial-muted;
   }
 }
 
-/* Skeleton loading placeholder */
+/* ============================================
+   SCROLL REVEAL — animaciones al hacer scroll
+   ============================================ */
+.scroll-reveal-hidden {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.scroll-reveal-visible {
+  opacity: 1;
+  will-change: auto;
+}
+
+@keyframes revealFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes revealFadeLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes revealFadeRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes revealFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.reveal-fadeUp {
+  animation: revealFadeUp 0.8s ease-out forwards;
+}
+
+.reveal-fadeLeft {
+  animation: revealFadeLeft 0.8s ease-out forwards;
+}
+
+.reveal-fadeRight {
+  animation: revealFadeRight 0.8s ease-out forwards;
+}
+
+.reveal-fadeIn {
+  animation: revealFadeIn 0.8s ease-out forwards;
+}
+
+/* ============================================
+   AUTO-SCROLL GALLERY — scroll infinito CSS
+   ============================================ */
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.gallery-scroll-track {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+  animation: scroll-left 40s linear infinite;
+}
+
+.gallery-scroll-track:hover {
+  animation-play-state: paused;
+}
+
+/* Skeleton loading */
 @layer components {
   .skeleton {
-    @apply bg-gray-200 rounded animate-pulse;
-  }
-
-  .skeleton-text {
-    @apply skeleton h-4 rounded;
-  }
-
-  .skeleton-title {
-    @apply skeleton h-8 rounded w-2/3;
-  }
-
-  .skeleton-image {
-    @apply skeleton rounded-2xl w-full h-full;
+    @apply bg-editorial-border rounded animate-pulse;
   }
 }
 
-/* Respetar preferencias de reduccion de movimiento */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
 
+  .scroll-reveal-hidden {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .gallery-scroll-track {
+    animation: none !important;
+  }
+}

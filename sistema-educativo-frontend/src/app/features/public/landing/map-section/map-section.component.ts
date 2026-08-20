@@ -2,11 +2,12 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DataService } from '@core/services/data_general/data.service';
+import { ScrollRevealDirective } from '@shared/directives/scroll-reveal.directive';
 
 @Component({
   selector: 'app-map-section',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ScrollRevealDirective],
   templateUrl: './map-section.component.html',
 })
 export class MapSectionComponent {
