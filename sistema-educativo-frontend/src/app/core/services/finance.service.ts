@@ -75,6 +75,43 @@ export interface StudentDiscount {
   created_at?: string | null;
 }
 
+export interface StudentDiscountSummary {
+  student_id: string;
+  student_name: string;
+  discounts: Array<{
+    id: string;
+    name: string;
+    type: 'porcentaje' | 'monto_fijo';
+    value: number;
+    scope: string;
+  }>;
+  total_percent: number;
+  total_fixed: number;
+  annual_summary: {
+    total_charges: number;
+    total_amount: number;
+    total_discount: number;
+    total_final: number;
+  };
+  charges_breakdown: Array<{
+    id: string;
+    concept: string | null;
+    due_date: string | null;
+    installment_number: number;
+    amount: number;
+    discount_amount: number;
+    final_amount: number;
+    status: string;
+  }>;
+  sample_charge: {
+    id: string;
+    concept: string | null;
+    amount: number;
+    discount_amount: number;
+    final_amount: number;
+  } | null;
+}
+
 export interface Receipt {
   id: string;
   payment_id: string;
@@ -244,6 +281,12 @@ export class FinanceService {
 
   deleteStudentDiscount(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/student-discounts/${id}`);
+  }
+
+  getStudentDiscountSummary(studentId: string, academicYearId?: string | null): Observable<StudentDiscountSummary> {
+    return this.http.get<StudentDiscountSummary>(`${this.apiUrl}/students/${studentId}/discount-summary`, {
+      params: this.buildParams(academicYearId ? { academic_year_id: academicYearId } : {})
+    });
   }
 
   getCharges(filters: QueryFilters = {}): Observable<PaginatedResponse<Charge>> {

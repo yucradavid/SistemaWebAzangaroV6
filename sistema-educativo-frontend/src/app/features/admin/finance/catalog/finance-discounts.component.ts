@@ -1,11 +1,22 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
-import { Discount, FeeConcept, FinanceService, StudentDiscount } from '@core/services/finance.service';
+import { Discount, FeeConcept, FinanceService, StudentDiscount, StudentDiscountSummary } from '@core/services/finance.service';
 import { AcademicService } from '@core/services/academic.service';
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
+
+interface StudentDiscountGroup {
+  student_id: string;
+  academic_year_id: string;
+  student: any;
+  academic_year: any;
+  items: StudentDiscount[];
+  summary?: StudentDiscountSummary;
+  breakdownExpanded: boolean;
+}
 
 @Component({
   selector: 'app-finance-discounts',
@@ -224,7 +235,7 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
           <div class="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between gap-3">
             <div>
               <h2 class="text-base font-semibold text-slate-800 tracking-tight">Descuentos asignados</h2>
-              <p class="text-xs text-slate-400 mt-1">Relacion operativa por alumno y anio academico.</p>
+              <p class="text-xs text-slate-400 mt-1">Agrupado por alumno y anio academico, con el efecto sumado de todos sus descuentos.</p>
             </div>
             <button (click)="loadStudentDiscounts()" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold uppercase text-slate-600">
               Actualizar
@@ -236,42 +247,107 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
             <p class="text-slate-400 text-sm font-medium">Cargando descuentos asignados...</p>
           </div>
 
-          <div *ngIf="!loadingAssignments && studentDiscounts.length === 0" class="py-16 text-center text-slate-400 text-sm">
+          <div *ngIf="!loadingAssignments && groupedStudentDiscounts.length === 0" class="py-16 text-center text-slate-400 text-sm">
             No hay descuentos asignados todavia.
           </div>
 
-          <div *ngIf="!loadingAssignments && studentDiscounts.length > 0" class="overflow-x-auto">
-            <table class="w-full">
-              <thead>
-                <tr class="text-slate-400 text-[10px] font-semibold uppercase tracking-widest border-b border-slate-50">
-                  <th class="py-4 px-6 text-left">Alumno</th>
-                  <th class="py-4 px-6 text-left">Descuento</th>
-                  <th class="py-4 px-6 text-left">Anio</th>
-                  <th class="py-4 px-6 text-left">Observacion</th>
-                  <th class="py-4 px-6 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-50">
-                <tr *ngFor="let item of studentDiscounts" class="hover:bg-slate-50/50">
-                  <td class="py-4 px-6">
-                    <div class="text-sm font-semibold text-slate-800">{{ getStudentLabel(item.student) }}</div>
-                  </td>
-                  <td class="py-4 px-6">
-                    <div class="text-sm font-semibold text-slate-800">{{ item.discount?.name || 'Descuento' }}</div>
-                    <div class="text-[11px] text-slate-400">{{ item.discount?.type === 'porcentaje' ? (item.discount?.value + '%') : ('S/ ' + (item.discount?.value || 0 | number:'1.2-2')) }}</div>
-                  </td>
-                  <td class="py-4 px-6 text-sm text-slate-500">{{ item.academic_year?.year || '-' }}</td>
-                  <td class="py-4 px-6 text-sm text-slate-500">{{ item.notes || 'Sin observacion' }}</td>
-                  <td class="py-4 px-6 text-right">
-                    <button
-                      (click)="removeStudentDiscount(item)"
-                      class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide bg-white border border-red-200 text-red-600">
-                      Quitar
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div *ngIf="!loadingAssignments && groupedStudentDiscounts.length > 0" class="p-6 space-y-4 max-h-[640px] overflow-y-auto">
+            <div *ngFor="let group of groupedStudentDiscounts" class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-sm font-bold text-slate-900">{{ getStudentLabel(group.student) }}</p>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Anio academico: {{ group.academic_year?.year || '-' }}</p>
+                </div>
+                <span *ngIf="group.summary as summary" class="shrink-0 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg uppercase tracking-tight">
+                  {{ summary.total_percent }}% total
+                </span>
+              </div>
+
+              <div class="flex flex-wrap gap-2">
+                <span
+                  *ngFor="let item of group.items"
+                  class="inline-flex items-center gap-2 pl-3 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700">
+                  <span class="font-semibold">{{ item.discount?.name || 'Descuento' }}</span>
+                  <span class="text-slate-400">({{ item.discount?.type === 'porcentaje' ? (item.discount?.value + '%') : ('S/ ' + (item.discount?.value | number:'1.2-2')) }})</span>
+                  <button
+                    (click)="removeStudentDiscount(item)"
+                    title="Quitar este descuento"
+                    class="w-4 h-4 flex items-center justify-center rounded-full text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </span>
+              </div>
+
+              <div *ngIf="group.items[0]?.notes as notes" class="text-[11px] text-slate-400">Observacion: {{ notes }}</div>
+
+              <ng-container *ngIf="group.summary as summary">
+                <div *ngIf="summary.annual_summary?.total_charges; else noCharge" class="rounded-xl bg-cermat-blue-50 border border-cermat-blue-100 p-4 space-y-3">
+                  <ng-container *ngIf="summary.annual_summary as annual">
+                  <p class="text-[10px] font-bold text-cermat-blue-700 uppercase tracking-widest">Resumen anual ({{ annual.total_charges }} {{ annual.total_charges === 1 ? 'cuota' : 'cuotas' }})</p>
+                  <div class="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Total del anio</p>
+                      <p class="text-sm font-bold text-slate-800 mt-1">S/ {{ annual.total_amount | number:'1.2-2' }}</p>
+                    </div>
+                    <div>
+                      <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Descuento total</p>
+                      <p class="text-sm font-bold text-red-600 mt-1">- S/ {{ annual.total_discount | number:'1.2-2' }}</p>
+                    </div>
+                    <div>
+                      <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest">A pagar en el anio</p>
+                      <p class="text-sm font-bold text-emerald-700 mt-1">S/ {{ annual.total_final | number:'1.2-2' }}</p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    (click)="toggleBreakdown(group)"
+                    class="w-full flex items-center justify-center gap-2 text-xs font-bold text-cermat-blue-700 hover:text-cermat-blue-900 pt-2 border-t border-cermat-blue-100">
+                    {{ group.breakdownExpanded ? 'Ocultar desglose por cuota' : 'Ver desglose por cuota' }}
+                    <svg
+                      class="w-3.5 h-3.5 transition-transform"
+                      [class.rotate-180]="group.breakdownExpanded"
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  </ng-container>
+                </div>
+
+                <div *ngIf="group.breakdownExpanded" class="overflow-x-auto">
+                  <table class="w-full text-xs">
+                    <thead>
+                      <tr class="text-slate-400 font-semibold uppercase tracking-widest border-b border-slate-100">
+                        <th class="py-2 px-2 text-left">Cuota</th>
+                        <th class="py-2 px-2 text-left">Vence</th>
+                        <th class="py-2 px-2 text-right">Monto</th>
+                        <th class="py-2 px-2 text-right">Desc.</th>
+                        <th class="py-2 px-2 text-right">Final</th>
+                        <th class="py-2 px-2 text-center">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                      <tr *ngFor="let charge of summary.charges_breakdown">
+                        <td class="py-2 px-2 font-semibold text-slate-700">#{{ charge.installment_number }}</td>
+                        <td class="py-2 px-2 text-slate-500">{{ charge.due_date ? (charge.due_date | date:'dd/MM/yyyy') : '-' }}</td>
+                        <td class="py-2 px-2 text-right text-slate-700">{{ charge.amount | number:'1.2-2' }}</td>
+                        <td class="py-2 px-2 text-right text-red-600">-{{ charge.discount_amount | number:'1.2-2' }}</td>
+                        <td class="py-2 px-2 text-right font-semibold text-emerald-700">{{ charge.final_amount | number:'1.2-2' }}</td>
+                        <td class="py-2 px-2 text-center">
+                          <span [class]="charge.status === 'pagado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'" class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase">
+                            {{ charge.status }}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <ng-template #noCharge>
+                  <p class="text-xs text-slate-400 pt-3 border-t border-slate-100">Sin cargos registrados para mostrar el impacto en soles.</p>
+                </ng-template>
+              </ng-container>
+            </div>
           </div>
         </div>
       </div>
@@ -413,6 +489,7 @@ export class FinanceDiscountsComponent implements OnInit, OnDestroy {
 
   discounts: Discount[] = [];
   studentDiscounts: StudentDiscount[] = [];
+  groupedStudentDiscounts: StudentDiscountGroup[] = [];
   concepts: FeeConcept[] = [];
   academicYears: any[] = [];
   filters: { q: string; type: string; scope: string; is_active: string } = { q: '', type: '', scope: '', is_active: '' };
@@ -684,11 +761,56 @@ export class FinanceDiscountsComponent implements OnInit, OnDestroy {
     this.financeService.getStudentDiscounts({ per_page: 300 }).subscribe({
       next: (response) => {
         this.studentDiscounts = this.financeService.unwrapItems(response);
+        this.groupStudentDiscounts();
         this.loadingAssignments = false;
       },
       error: () => {
         this.loadingAssignments = false;
         Swal.fire('Error', 'No se pudieron cargar los descuentos asignados.', 'error');
+      }
+    });
+  }
+
+  private groupStudentDiscounts(): void {
+    const groups = new Map<string, StudentDiscountGroup>();
+
+    for (const item of this.studentDiscounts) {
+      const key = `${item.student_id}__${item.academic_year_id}`;
+      let group = groups.get(key);
+
+      if (!group) {
+        group = {
+          student_id: item.student_id,
+          academic_year_id: item.academic_year_id,
+          student: item.student,
+          academic_year: item.academic_year,
+          items: [],
+          breakdownExpanded: false
+        };
+        groups.set(key, group);
+      }
+
+      group.items.push(item);
+    }
+
+    this.groupedStudentDiscounts = Array.from(groups.values());
+    this.loadGroupSummaries();
+  }
+
+  private loadGroupSummaries(): void {
+    if (this.groupedStudentDiscounts.length === 0) {
+      return;
+    }
+
+    const requests = this.groupedStudentDiscounts.map((group) =>
+      this.financeService.getStudentDiscountSummary(group.student_id, group.academic_year_id)
+    );
+
+    forkJoin(requests).subscribe({
+      next: (summaries) => {
+        summaries.forEach((summary, index) => {
+          this.groupedStudentDiscounts[index].summary = summary;
+        });
       }
     });
   }
@@ -744,6 +866,10 @@ export class FinanceDiscountsComponent implements OnInit, OnDestroy {
         }
       });
     });
+  }
+
+  toggleBreakdown(group: StudentDiscountGroup): void {
+    group.breakdownExpanded = !group.breakdownExpanded;
   }
 
   getStudentLabel(student: any): string {

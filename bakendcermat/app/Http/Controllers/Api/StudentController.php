@@ -45,14 +45,17 @@ class StudentController extends Controller
         if ($request->has('student_code'))
             $query->where('student_code', $request->student_code);
 
-        if ($request->has('q')) {
-            $q = $request->q;
-            $query->where(function ($sub) use ($q) {
-                $sub->where('first_name', 'ilike', "%{$q}%")
-                    ->orWhere('last_name', 'ilike', "%{$q}%")
-                    ->orWhere('student_code', 'ilike', "%{$q}%")
-                    ->orWhere('dni', 'ilike', "%{$q}%");
-            });
+        if ($request->filled('q')) {
+            $terms = preg_split('/\s+/', trim((string) $request->q), -1, PREG_SPLIT_NO_EMPTY);
+
+            foreach ($terms as $term) {
+                $query->where(function ($sub) use ($term) {
+                    $sub->where('first_name', 'ilike', "%{$term}%")
+                        ->orWhere('last_name', 'ilike', "%{$term}%")
+                        ->orWhere('student_code', 'ilike', "%{$term}%")
+                        ->orWhere('dni', 'ilike', "%{$term}%");
+                });
+            }
         }
 
         return response()->json(

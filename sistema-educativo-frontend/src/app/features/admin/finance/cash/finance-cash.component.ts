@@ -29,7 +29,8 @@ import { Charge, FinanceService, Payment } from '@core/services/finance.service'
           </button>
           <button
             (click)="handleMovement()"
-            [disabled]="!activeClosure || loading"
+            [disabled]="!activeClosure || loading || !selectedStudent"
+            [title]="!selectedStudent ? 'Selecciona un alumno primero' : ''"
             class="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold disabled:opacity-50">
             Movimiento libre
           </button>
@@ -567,6 +568,11 @@ export class FinanceCashComponent implements OnInit {
       return;
     }
 
+    if (!this.selectedStudent) {
+      Swal.fire('Selecciona un alumno', 'Busca y selecciona un alumno antes de registrar un movimiento de caja (ej. vuelto).', 'warning');
+      return;
+    }
+
     Swal.fire({
       title: 'Nuevo movimiento libre',
       html: `
@@ -604,6 +610,7 @@ export class FinanceCashComponent implements OnInit {
       }
 
       this.saveFreeMovement({
+        student_id: this.selectedStudent.id,
         amount: result.value.amount,
         method: 'efectivo',
         paid_at: new Date().toISOString(),

@@ -616,6 +616,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,director,coordinator,secretary,finance')->group(function () {
         Route::apiResource('discounts', DiscountController::class);
         Route::apiResource('student-discounts', StudentDiscountController::class);
+        Route::get('students/{student}/discount-summary', [StudentDiscountController::class, 'summary']);
         Route::apiResource('financial-plans', FinancialPlanController::class);
         Route::apiResource('plan-installments', PlanInstallmentController::class);
     });
