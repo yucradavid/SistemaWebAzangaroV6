@@ -298,10 +298,20 @@ export class FinanceService {
   emitBatchCharges(data: {
     academic_year_id: string;
     financial_plan_id: string;
+    level?: string;
     grade_level_id?: string;
     section_id?: string;
   }): Observable<{ message: string; created_count: number }> {
     return this.http.post<{ message: string; created_count: number }>(`${this.apiUrl}/charges/batch`, data);
+  }
+
+  previewBatchCharges(data: {
+    academic_year_id: string;
+    level?: string;
+    grade_level_id?: string;
+    section_id?: string;
+  }): Observable<{ students_count: number; sections_count: number }> {
+    return this.http.post<{ students_count: number; sections_count: number }>(`${this.apiUrl}/charges/batch/preview`, data);
   }
 
   getPayments(filters: QueryFilters = {}): Observable<PaginatedResponse<Payment>> {

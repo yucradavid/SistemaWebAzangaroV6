@@ -596,6 +596,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,director,coordinator,secretary,finance')->group(function () {
         Route::apiResource('fee-concepts', FeeConceptController::class);
         Route::post('charges/batch', [ChargeController::class, 'batchStore']);
+        Route::post('charges/batch/preview', [ChargeController::class, 'batchPreview']);
         Route::post('charges/{charge}/void', [ChargeController::class, 'void']);
         Route::apiResource('charges', ChargeController::class);
     });

@@ -3,7 +3,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subject, forkJoin } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { debounceTime, takeUntil } from 'rxjs/operators';
 import Swal from 'sweetalert2';
 import { AcademicService } from '@core/services/academic.service';
 import { FinanceService, FinancialPlan } from '@core/services/finance.service';
@@ -37,6 +37,21 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
         </div>
 
         <div class="p-8 space-y-6">
+          <div class="space-y-2">
+            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Alcance de la emision</label>
+            <div class="flex flex-wrap gap-2">
+              <button *ngFor="let scope of scopeOptions"
+                      type="button"
+                      (click)="selectScope(scope.value)"
+                      [ngClass]="selectedScope === scope.value
+                        ? 'bg-cermat-blue-700 text-white'
+                        : 'bg-white border border-slate-200 text-slate-600'"
+                      class="px-4 py-2 rounded-xl text-sm font-semibold transition-all">
+                {{ scope.label }}
+              </button>
+            </div>
+          </div>
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div class="space-y-2">
               <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Anio academico <span class="text-red-500">*</span></label>
@@ -62,21 +77,31 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
             </div>
 
             <div class="space-y-2">
-              <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Grado (opcional)</label>
+              <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Nivel <span class="text-red-500">*</span></label>
+              <app-setting-filter-dropdown
+                [options]="levelOptions"
+                [selectedId]="emissionForm.get('level')?.value || ''"
+                placeholder="Selecciona un nivel"
+                (selectionChange)="emissionForm.get('level')?.setValue($event)">
+              </app-setting-filter-dropdown>
+            </div>
+
+            <div *ngIf="selectedScope !== 'nivel'" class="space-y-2" [class.opacity-60]="!emissionForm.get('level')?.value">
+              <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Grado <span class="text-red-500">*</span></label>
               <app-setting-filter-dropdown
                 [options]="gradeOptions"
                 [selectedId]="emissionForm.get('grade_level_id')?.value || ''"
-                placeholder="Todos los grados"
+                placeholder="Selecciona un grado"
                 (selectionChange)="emissionForm.get('grade_level_id')?.setValue($event)">
               </app-setting-filter-dropdown>
             </div>
 
-            <div class="space-y-2" [class.opacity-60]="!emissionForm.get('grade_level_id')?.value">
-              <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Seccion (opcional)</label>
+            <div *ngIf="selectedScope === 'seccion'" class="space-y-2" [class.opacity-60]="!emissionForm.get('grade_level_id')?.value">
+              <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Seccion <span class="text-red-500">*</span></label>
               <app-setting-filter-dropdown
                 [options]="sectionOptions"
                 [selectedId]="emissionForm.get('section_id')?.value || ''"
-                placeholder="{{ loadingSections ? 'Cargando secciones...' : 'Todas las secciones' }}"
+                placeholder="{{ loadingSections ? 'Cargando secciones...' : 'Selecciona una seccion' }}"
                 (selectionChange)="emissionForm.get('section_id')?.setValue($event)">
               </app-setting-filter-dropdown>
             </div>
@@ -101,6 +126,15 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
             </div>
           </div>
 
+          <div *ngIf="isScopeValid" class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+            <span *ngIf="loadingPreview">Calculando estudiantes afectados...</span>
+            <ng-container *ngIf="!loadingPreview && affectedStudentsCount !== null">
+              Este alcance afectara a <strong>{{ affectedStudentsCount }}</strong> estudiante(s) en
+              <strong>{{ affectedSectionsCount }}</strong> seccion(es).
+              <span *ngIf="affectedStudentsCount === 0" class="block mt-1 font-semibold">No hay estudiantes que coincidan con este alcance.</span>
+            </ng-container>
+          </div>
+
           <div *ngIf="lastEmission" class="rounded-2xl border border-emerald-100 bg-emerald-50 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <p class="text-sm font-bold text-emerald-800">Ultima emision</p>
@@ -115,7 +149,7 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
           <div class="pt-2 flex flex-wrap gap-3">
             <button
               (click)="onEmit()"
-              [disabled]="loading || loadingPlans || emissionForm.invalid"
+              [disabled]="loading || loadingPlans || !isScopeValid"
               class="px-8 py-3 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 hover:opacity-90 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
               <span *ngIf="!loading">Generar cargos masivos</span>
               <span *ngIf="loading">Procesando emision...</span>
@@ -125,7 +159,7 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
               (click)="resetOptionalFilters()"
               [disabled]="loading"
               class="px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-widest rounded-xl transition-all disabled:opacity-50">
-              Limpiar grado y seccion
+              Limpiar filtros
             </button>
           </div>
         </div>
@@ -150,12 +184,28 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
   gradeOptions: Array<{ id: string; name: string }> = [];
   sectionOptions: Array<{ id: string; name: string }> = [];
 
+  selectedScope: 'nivel' | 'grado' | 'seccion' = 'seccion';
+  scopeOptions: Array<{ value: 'nivel' | 'grado' | 'seccion'; label: string }> = [
+    { value: 'nivel', label: 'Nivel completo' },
+    { value: 'grado', label: 'Grado completo' },
+    { value: 'seccion', label: 'Seccion especifica' }
+  ];
+  levelOptions: Array<{ id: string; name: string }> = [
+    { id: 'inicial', name: 'Inicial' },
+    { id: 'primaria', name: 'Primaria' },
+    { id: 'secundaria', name: 'Secundaria' }
+  ];
+
   loading = false;
   loadingPlans = false;
   loadingSections = false;
+  loadingPreview = false;
+  affectedStudentsCount: number | null = null;
+  affectedSectionsCount: number | null = null;
   lastEmission: { message: string; created_count: number } | null = null;
 
   private destroy$ = new Subject<void>();
+  private previewTrigger$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
@@ -165,6 +215,7 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
     this.emissionForm = this.fb.group({
       academic_year_id: ['', Validators.required],
       financial_plan_id: ['', Validators.required],
+      level: [''],
       grade_level_id: [''],
       section_id: ['']
     });
@@ -175,9 +226,30 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
     return this.financialPlans.find((plan) => plan.id === planId);
   }
 
+  get isScopeValid(): boolean {
+    const value = this.emissionForm.getRawValue();
+    if (!value.academic_year_id || !value.financial_plan_id) {
+      return false;
+    }
+
+    if (this.selectedScope === 'nivel') {
+      return !!value.level;
+    }
+
+    if (this.selectedScope === 'grado') {
+      return !!value.grade_level_id;
+    }
+
+    return !!value.grade_level_id && !!value.section_id;
+  }
+
   ngOnInit(): void {
     this.loadInitialData();
     this.registerFormListeners();
+
+    this.previewTrigger$
+      .pipe(debounceTime(300), takeUntil(this.destroy$))
+      .subscribe(() => this.refreshPreview());
   }
 
   ngOnDestroy(): void {
@@ -185,10 +257,22 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  selectScope(scope: 'nivel' | 'grado' | 'seccion'): void {
+    if (this.selectedScope === scope) {
+      return;
+    }
+
+    this.selectedScope = scope;
+    this.emissionForm.patchValue({ level: '', grade_level_id: '', section_id: '' }, { emitEvent: false });
+    this.clearSections();
+    this.updateGradeOptions();
+    this.clearPreview();
+  }
+
   loadInitialData(): void {
     forkJoin({
       academicYears: this.academicService.getAcademicYears(),
-      gradeLevels: this.academicService.getGradeLevels()
+      gradeLevels: this.academicService.getGradeLevels({ per_page: 100 })
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -200,7 +284,7 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
           this.gradeLevels = Array.isArray(gradeItems) ? gradeItems : [];
 
           this.yearOptions = this.academicYears.map((year: any) => ({ id: year.id, name: String(year.year) }));
-          this.gradeOptions = this.gradeLevels.map((grade: any) => ({ id: grade.id, name: grade.name }));
+          this.updateGradeOptions();
 
           const activeYear = this.academicYears.find((year: any) => year.is_active);
           const yearId = activeYear?.id || this.academicYears[0]?.id || '';
@@ -229,6 +313,17 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
         } else {
           this.clearSections();
         }
+
+        this.schedulePreviewRefresh();
+      });
+
+    this.emissionForm.get('level')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.emissionForm.patchValue({ grade_level_id: '', section_id: '' }, { emitEvent: false });
+        this.clearSections();
+        this.updateGradeOptions();
+        this.schedulePreviewRefresh();
       });
 
     this.emissionForm.get('grade_level_id')?.valueChanges
@@ -236,7 +331,74 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
       .subscribe((gradeId) => {
         this.emissionForm.patchValue({ section_id: '' }, { emitEvent: false });
         this.loadSections(gradeId);
+        this.schedulePreviewRefresh();
       });
+
+    this.emissionForm.get('section_id')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.schedulePreviewRefresh());
+  }
+
+  private updateGradeOptions(): void {
+    const level = this.emissionForm.get('level')?.value;
+    const filtered = level ? this.gradeLevels.filter((grade: any) => grade.level === level) : this.gradeLevels;
+    this.gradeOptions = filtered.map((grade: any) => ({ id: grade.id, name: grade.name }));
+  }
+
+  private schedulePreviewRefresh(): void {
+    this.previewTrigger$.next();
+  }
+
+  private refreshPreview(): void {
+    const filters = this.buildScopeFilters();
+
+    if (!filters) {
+      this.clearPreview();
+      return;
+    }
+
+    this.loadingPreview = true;
+
+    this.financeService.previewBatchCharges(filters)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.affectedStudentsCount = response.students_count;
+          this.affectedSectionsCount = response.sections_count;
+          this.loadingPreview = false;
+        },
+        error: () => {
+          this.loadingPreview = false;
+          this.affectedStudentsCount = null;
+          this.affectedSectionsCount = null;
+        }
+      });
+  }
+
+  private buildScopeFilters(): { academic_year_id: string; level?: string; grade_level_id?: string; section_id?: string } | null {
+    const value = this.emissionForm.getRawValue();
+
+    if (!value.academic_year_id) {
+      return null;
+    }
+
+    if (this.selectedScope === 'nivel') {
+      return value.level ? { academic_year_id: value.academic_year_id, level: value.level } : null;
+    }
+
+    if (this.selectedScope === 'grado') {
+      return value.grade_level_id ? { academic_year_id: value.academic_year_id, grade_level_id: value.grade_level_id } : null;
+    }
+
+    return value.grade_level_id && value.section_id
+      ? { academic_year_id: value.academic_year_id, grade_level_id: value.grade_level_id, section_id: value.section_id }
+      : null;
+  }
+
+  private clearPreview(): void {
+    this.affectedStudentsCount = null;
+    this.affectedSectionsCount = null;
+    this.loadingPreview = false;
   }
 
   loadPlans(academicYearId: string): void {
@@ -307,19 +469,27 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
 
   resetOptionalFilters(): void {
     this.emissionForm.patchValue({
+      level: '',
       grade_level_id: '',
       section_id: ''
     });
+    this.clearSections();
+    this.updateGradeOptions();
+    this.clearPreview();
   }
 
   onEmit(): void {
-    if (this.emissionForm.invalid) {
-      Swal.fire('Error', 'Selecciona el anio academico y el plan financiero.', 'error');
+    if (!this.isScopeValid) {
+      Swal.fire('Error', 'Completa los filtros requeridos para el alcance seleccionado.', 'error');
       return;
     }
 
     const payload = this.buildPayload();
     const planName = this.selectedPlan?.name || 'Plan seleccionado';
+    const scopeLabel = this.scopeOptions.find((scope) => scope.value === this.selectedScope)?.label || '';
+    const affectedLabel = this.affectedStudentsCount !== null
+      ? `<strong>${this.affectedStudentsCount}</strong> estudiante(s) en <strong>${this.affectedSectionsCount}</strong> seccion(es)`
+      : 'los estudiantes que cumplan esos filtros';
 
     Swal.fire({
       title: 'Confirmar emision',
@@ -327,9 +497,11 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
         <div style="text-align:left;font-size:14px;line-height:1.6">
           <p><strong>Plan:</strong> ${planName}</p>
           <p><strong>Anio:</strong> ${this.getSelectedYearLabel()}</p>
+          <p><strong>Alcance:</strong> ${scopeLabel}</p>
+          <p><strong>Nivel:</strong> ${this.getSelectedLevelLabel()}</p>
           <p><strong>Grado:</strong> ${this.getSelectedGradeLabel()}</p>
           <p><strong>Seccion:</strong> ${this.getSelectedSectionLabel()}</p>
-          <p style="margin-top:12px;">Se generaran cargos para los estudiantes que cumplan esos filtros.</p>
+          <p style="margin-top:12px;">Se generaran cargos para ${affectedLabel}.</p>
         </div>
       `,
       icon: 'warning',
@@ -369,17 +541,33 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
   private buildPayload(): {
     academic_year_id: string;
     financial_plan_id: string;
+    level?: string;
     grade_level_id?: string;
     section_id?: string;
   } {
     const value = this.emissionForm.getRawValue();
 
-    return {
+    const payload: {
+      academic_year_id: string;
+      financial_plan_id: string;
+      level?: string;
+      grade_level_id?: string;
+      section_id?: string;
+    } = {
       academic_year_id: value.academic_year_id,
-      financial_plan_id: value.financial_plan_id,
-      ...(value.grade_level_id ? { grade_level_id: value.grade_level_id } : {}),
-      ...(value.section_id ? { section_id: value.section_id } : {})
+      financial_plan_id: value.financial_plan_id
     };
+
+    if (this.selectedScope === 'nivel') {
+      payload.level = value.level;
+    } else if (this.selectedScope === 'grado') {
+      payload.grade_level_id = value.grade_level_id;
+    } else {
+      payload.grade_level_id = value.grade_level_id;
+      payload.section_id = value.section_id;
+    }
+
+    return payload;
   }
 
   private clearSections(): void {
@@ -393,13 +581,26 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
     return this.yearOptions.find((year) => year.id === yearId)?.name || 'No definido';
   }
 
+  private getSelectedLevelLabel(): string {
+    const levelId = this.emissionForm.get('level')?.value;
+    return this.levelOptions.find((level) => level.id === levelId)?.name || 'No definido';
+  }
+
   private getSelectedGradeLabel(): string {
+    if (this.selectedScope === 'nivel') {
+      return 'No aplica (todo el nivel)';
+    }
+
     const gradeId = this.emissionForm.get('grade_level_id')?.value;
-    return this.gradeOptions.find((grade) => grade.id === gradeId)?.name || 'Todos';
+    return this.gradeOptions.find((grade) => grade.id === gradeId)?.name || 'No definido';
   }
 
   private getSelectedSectionLabel(): string {
+    if (this.selectedScope !== 'seccion') {
+      return 'No aplica (todas las secciones)';
+    }
+
     const sectionId = this.emissionForm.get('section_id')?.value;
-    return this.sectionOptions.find((section) => section.id === sectionId)?.name || 'Todas';
+    return this.sectionOptions.find((section) => section.id === sectionId)?.name || 'No definido';
   }
 }

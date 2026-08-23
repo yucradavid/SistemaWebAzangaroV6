@@ -97,11 +97,94 @@ class ChargeController extends Controller
         return $charge->load(['student.section.gradeLevel', 'concept', 'payments']);
     }
 
+    public function batchPreview(Request $request)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|uuid|exists:academic_years,id',
+            'level' => 'nullable|string|in:inicial,primaria,secundaria',
+            'grade_level_id' => 'nullable|uuid|exists:grade_levels,id',
+            'section_id' => 'nullable|uuid|exists:sections,id',
+        ]);
+
+        $academicYearId = $request->academic_year_id;
+
+        $studentsCount = $this->resolveEmissionStudentsQuery($request, $academicYearId)->count();
+
+        $sectionsQuery = \App\Models\Section::query()->where('academic_year_id', $academicYearId);
+
+        if ($request->filled('grade_level_id')) {
+            $sectionsQuery->where('grade_level_id', $request->grade_level_id);
+        }
+
+        if ($request->filled('section_id')) {
+            $sectionsQuery->where('id', $request->section_id);
+        }
+
+        if ($request->filled('level')) {
+            $level = $request->string('level')->lower()->value();
+            $sectionsQuery->whereHas('gradeLevel', function ($gradeLevelQuery) use ($level) {
+                $gradeLevelQuery->where('level', $level);
+            });
+        }
+
+        return response()->json([
+            'students_count' => $studentsCount,
+            'sections_count' => $sectionsQuery->count(),
+        ]);
+    }
+
+    private function resolveEmissionStudentsQuery(Request $request, string $academicYearId)
+    {
+        return Student::query()
+            ->where(function ($studentQuery) use ($academicYearId, $request) {
+                $studentQuery->whereHas('section', function ($sectionQuery) use ($academicYearId, $request) {
+                    $sectionQuery->where('academic_year_id', $academicYearId);
+
+                    if ($request->filled('grade_level_id')) {
+                        $sectionQuery->where('grade_level_id', $request->grade_level_id);
+                    }
+
+                    if ($request->filled('section_id')) {
+                        $sectionQuery->where('id', $request->section_id);
+                    }
+
+                    if ($request->filled('level')) {
+                        $level = $request->string('level')->lower()->value();
+                        $sectionQuery->whereHas('gradeLevel', function ($gradeLevelQuery) use ($level) {
+                            $gradeLevelQuery->where('level', $level);
+                        });
+                    }
+                })->orWhereHas('enrollments', function ($enrollmentQuery) use ($academicYearId, $request) {
+                    $enrollmentQuery->where('academic_year_id', $academicYearId);
+
+                    if ($request->filled('section_id')) {
+                        $enrollmentQuery->where('section_id', $request->section_id);
+                    }
+
+                    if ($request->filled('grade_level_id') || $request->filled('level')) {
+                        $enrollmentQuery->whereHas('section', function ($sectionQuery) use ($request) {
+                            if ($request->filled('grade_level_id')) {
+                                $sectionQuery->where('grade_level_id', $request->grade_level_id);
+                            }
+
+                            if ($request->filled('level')) {
+                                $level = $request->string('level')->lower()->value();
+                                $sectionQuery->whereHas('gradeLevel', function ($gradeLevelQuery) use ($level) {
+                                    $gradeLevelQuery->where('level', $level);
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+    }
+
     public function batchStore(Request $request)
     {
         $request->validate([
             'academic_year_id' => 'required|uuid|exists:academic_years,id',
             'financial_plan_id' => 'required|uuid|exists:financial_plans,id',
+            'level' => 'nullable|string|in:inicial,primaria,secundaria',
             'grade_level_id' => 'nullable|uuid|exists:grade_levels,id',
             'section_id' => 'nullable|uuid|exists:sections,id',
         ]);
@@ -115,38 +198,16 @@ class ChargeController extends Controller
             ], 422);
         }
 
-        $students = Student::query()
-            ->where(function ($studentQuery) use ($academicYearId, $request) {
-                $studentQuery->whereHas('section', function ($sectionQuery) use ($academicYearId, $request) {
-                    $sectionQuery->where('academic_year_id', $academicYearId);
-
-                    if ($request->filled('grade_level_id')) {
-                        $sectionQuery->where('grade_level_id', $request->grade_level_id);
-                    }
-
-                    if ($request->filled('section_id')) {
-                        $sectionQuery->where('id', $request->section_id);
-                    }
-                })->orWhereHas('enrollments', function ($enrollmentQuery) use ($academicYearId, $request) {
-                    $enrollmentQuery->where('academic_year_id', $academicYearId);
-
-                    if ($request->filled('section_id')) {
-                        $enrollmentQuery->where('section_id', $request->section_id);
-                    }
-
-                    if ($request->filled('grade_level_id')) {
-                        $enrollmentQuery->whereHas('section', function ($sectionQuery) use ($request) {
-                            $sectionQuery->where('grade_level_id', $request->grade_level_id);
-                        });
-                    }
-                });
-            })
-            ->get();
+        $students = $this->resolveEmissionStudentsQuery($request, $academicYearId)->get();
 
         $studentIds = $students->pluck('id')->all();
 
         if (empty($studentIds)) {
             $scope = [];
+
+            if ($request->filled('level')) {
+                $scope[] = 'nivel';
+            }
 
             if ($request->filled('grade_level_id')) {
                 $scope[] = 'grado';
