@@ -19,11 +19,22 @@ export const EBR_SCALE: GradeConversion[] = [
     color: 'bg-red-100 text-red-700 border-red-200' },
 ];
 
+export const GRADE_MAX: Record<GradeEBR, number> = {
+  'AD': 20,
+  'A': 17,
+  'B': 13,
+  'C': 10,
+};
+
 export function numberToEBR(score: number | null | undefined): GradeEBR | null {
   if (score === null || score === undefined || isNaN(score)) return null;
   if (score < 0 || score > 20) return null;
   const found = EBR_SCALE.find(g => score >= g.min && score <= g.max);
   return found?.letter ?? null;
+}
+
+export function ebrToMaxNumber(letter: GradeEBR): number {
+  return GRADE_MAX[letter];
 }
 
 export function ebrToRange(letter: GradeEBR): string {

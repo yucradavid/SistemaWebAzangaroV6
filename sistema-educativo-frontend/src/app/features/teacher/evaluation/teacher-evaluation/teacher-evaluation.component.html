@@ -199,9 +199,12 @@
                     type="number"
                     min="0"
                     max="20"
+                    step="1"
+                    maxlength="2"
                     [disabled]="isCellLocked(recordFor(student.id, competency.id))"
                     [value]="recordFor(student.id, competency.id).numericScore ?? ''"
-                    (input)="onScoreInput(student.id, competency.id, $any($event.target).value)"
+                    (input)="onScoreInput(student.id, competency.id, $event)"
+                    (keypress)="restrictToValidRange($event)"
                     placeholder="0-20"
                     class="w-16 text-center text-sm font-bold border-2 border-slate-200 rounded-lg p-1.5 focus:border-cermat-blue-400 focus:outline-none focus:ring-2 focus:ring-cermat-blue-100 disabled:bg-slate-50/50 disabled:cursor-not-allowed"
                   />
