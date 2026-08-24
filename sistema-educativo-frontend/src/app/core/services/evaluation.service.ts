@@ -16,6 +16,26 @@ export interface Evaluation {
   evaluated_at?: string;
 }
 
+export interface PeriodCoverageCourse {
+  assignment_id: string;
+  course_id: string;
+  course_name: string;
+  teacher_name: string;
+  section_name: string;
+  total_students: number;
+  evaluated_students: number;
+  coverage_percent: number;
+}
+
+export interface PeriodCoverageResponse {
+  courses: PeriodCoverageCourse[];
+  summary: {
+    total_courses_assigned: number;
+    courses_with_progress: number;
+    courses_without_progress: number;
+  };
+}
+
 export interface FinalCompetencyResult {
   id: string;
   student_id: string;
@@ -265,6 +285,10 @@ export class EvaluationService {
 
   getEvaluations(params: any = {}): Observable<any> {
     return this.http.get<any>(this.apiUrl, { params });
+  }
+
+  getPeriodCoverage(params: any = {}): Observable<PeriodCoverageResponse> {
+    return this.http.get<PeriodCoverageResponse>(`${this.apiUrl}/period-coverage`, { params });
   }
 
   getTeacherEvaluationContext(): Observable<TeacherEvaluationContext> {

@@ -400,25 +400,27 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Emisión de Cargos'
       },
       {
-        path: 'finance/charges/student',
+        path: 'finance/account',
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
-        loadComponent: () => import('./features/admin/finance/charges/finance-student.component').then(m => m.FinanceStudentComponent),
-        title: 'CERMAT - Cuenta Estudiante'
+        data: { roles: ['admin', 'director', 'secretary', 'finance', 'cashier'] },
+        loadComponent: () => import('./features/admin/finance/finance-account/finance-account.component').then(m => m.FinanceAccountComponent),
+        title: 'CERMAT - Cuenta y Caja'
+      },
+      // Rutas antiguas: redirigen al modulo unificado, preservando el tab via query param
+      {
+        path: 'finance/charges/student',
+        redirectTo: () => '/app/finance/account?tab=student',
+        pathMatch: 'full'
       },
       {
         path: 'finance/cash',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance', 'cashier'] },
-        loadComponent: () => import('./features/admin/finance/cash/finance-cash.component').then(m => m.FinanceCashComponent),
-        title: 'CERMAT - Caja Diaria'
+        redirectTo: () => '/app/finance/account?tab=cash',
+        pathMatch: 'full'
       },
       {
         path: 'finance/cash/closures',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance', 'cashier'] },
-        loadComponent: () => import('./features/admin/finance/cash/finance-closures.component').then(m => m.FinanceClosuresComponent),
-        title: 'CERMAT - Historial de Cierres'
+        redirectTo: () => '/app/finance/account?tab=closures',
+        pathMatch: 'full'
       },
       {
         path: 'finance/reports',

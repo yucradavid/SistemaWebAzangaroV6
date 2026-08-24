@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { DonutChartComponent, DonutChartSegment } from '@shared/components/charts/donut-chart.component';
+import { BarChartComponent, BarChartItem } from '@shared/components/charts/bar-chart.component';
 import { AcademicService } from '@core/services/academic.service';
 import { CashClosure, Charge, FinanceService, Payment } from '@core/services/finance.service';
 
@@ -13,7 +15,7 @@ type FinanceTab = 'morosidad' | 'recaudacion';
 @Component({
   selector: 'app-finance-reports',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule],
+  imports: [CommonModule, BackButtonComponent, FormsModule, DonutChartComponent, BarChartComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       <app-back-button></app-back-button>
@@ -262,46 +264,17 @@ type FinanceTab = 'morosidad' | 'recaudacion';
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
             <h2 class="text-base font-semibold text-slate-800 tracking-tight mb-6">Distribucion de ingresos por concepto</h2>
-            <div *ngIf="conceptRevenueChart.length === 0" class="py-16 text-center text-slate-400 text-sm">Sin ingresos para graficar con los filtros seleccionados.</div>
-            <div *ngIf="conceptRevenueChart.length > 0" class="flex flex-col sm:flex-row items-center gap-8">
-              <svg viewBox="0 0 36 36" class="w-40 h-40 flex-shrink-0">
-                <g transform="rotate(-90 18 18)">
-                  <circle
-                    *ngFor="let seg of conceptRevenueChart"
-                    cx="18" cy="18" r="15.5"
-                    fill="none"
-                    [attr.stroke]="seg.color"
-                    stroke-width="5"
-                    pathLength="100"
-                    [attr.stroke-dasharray]="seg.percent + ' ' + (100 - seg.percent)"
-                    [attr.stroke-dashoffset]="seg.dashOffset"
-                  ></circle>
-                </g>
-              </svg>
-              <div class="flex-1 w-full space-y-3">
-                <div *ngFor="let seg of conceptRevenueChart" class="flex items-center justify-between gap-3">
-                  <div class="flex items-center gap-2">
-                    <span class="w-3 h-3 rounded-full flex-shrink-0" [style.background]="seg.color"></span>
-                    <span class="text-sm font-medium text-slate-700">{{ seg.label }}</span>
-                  </div>
-                  <div class="text-right">
-                    <span class="text-sm font-bold text-slate-900">S/ {{ seg.amount | number:'1.2-2' }}</span>
-                    <span class="text-xs text-slate-400 ml-2">{{ seg.percent | number:'1.0-1' }}%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <app-donut-chart
+              [data]="conceptRevenueChart"
+              unit="S/ "
+              [decimals]="2"
+              emptyMessage="Sin ingresos para graficar con los filtros seleccionados."
+            ></app-donut-chart>
           </div>
 
           <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
             <h2 class="text-base font-semibold text-slate-800 tracking-tight mb-6">Ingresos por mes ({{ selectedYearLabel }})</h2>
-            <div class="flex items-stretch gap-2 h-56">
-              <div *ngFor="let bar of monthlyRevenueChart" class="flex-1 h-full flex flex-col justify-end items-center group relative">
-                <span class="absolute -top-6 text-[10px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">S/ {{ bar.amount | number:'1.0-0' }}</span>
-                <div class="w-full bg-blue-500 rounded-t-md min-h-[2px]" [style.height.%]="bar.heightPercent"></div>
-                <span class="mt-2 text-[10px] font-semibold text-slate-400">{{ bar.label }}</span>
-              </div>
-            </div>
+            <app-bar-chart [data]="monthlyRevenueChart" unit="S/ " [decimals]="0" [height]="224"></app-bar-chart>
           </div>
         </div>
 
@@ -417,8 +390,8 @@ export class FinanceReportsComponent implements OnInit {
   topDebtConcepts: Array<{ label: string; amount: number; count: number }> = [];
   cashierClosureBreakdown: Array<{ label: string; amount: number; count: number; difference: number }> = [];
 
-  conceptRevenueChart: Array<{ key: string; label: string; amount: number; percent: number; color: string; dashOffset: number }> = [];
-  monthlyRevenueChart: Array<{ label: string; amount: number; heightPercent: number }> = [];
+  conceptRevenueChart: DonutChartSegment[] = [];
+  monthlyRevenueChart: BarChartItem[] = [];
   sectionDelinquency: Array<{ label: string; issued: number; debt: number; percent: number }> = [];
   projectedVsCollected = { issued: 0, collected: 0, percent: 0 };
 
@@ -592,25 +565,13 @@ export class FinanceReportsComponent implements OnInit {
       groups.set(key, (groups.get(key) || 0) + Number(payment.amount || 0));
     });
 
-    const total = Array.from(groups.values()).reduce((sum, value) => sum + value, 0);
-    let cumulative = 0;
-
     this.conceptRevenueChart = ['pension', 'matricula', 'otros']
       .filter((key) => (groups.get(key) || 0) > 0)
-      .map((key) => {
-        const amount = groups.get(key) || 0;
-        const percent = total > 0 ? (amount / total) * 100 : 0;
-        const dashOffset = -cumulative;
-        cumulative += percent;
-        return {
-          key,
-          label: this.CONCEPT_CATEGORY_LABELS[key],
-          amount,
-          percent,
-          color: this.CONCEPT_CATEGORY_COLORS[key],
-          dashOffset
-        };
-      });
+      .map((key) => ({
+        label: this.CONCEPT_CATEGORY_LABELS[key],
+        value: groups.get(key) || 0,
+        color: this.CONCEPT_CATEGORY_COLORS[key]
+      }));
   }
 
   private buildMonthlyRevenueChart(): void {
@@ -628,12 +589,7 @@ export class FinanceReportsComponent implements OnInit {
       totals[month] += Number(payment.amount || 0);
     });
 
-    const max = Math.max(...totals, 1);
-    this.monthlyRevenueChart = monthLabels.map((label, index) => ({
-      label,
-      amount: totals[index],
-      heightPercent: (totals[index] / max) * 100
-    }));
+    this.monthlyRevenueChart = monthLabels.map((label, index) => ({ label, value: totals[index] }));
   }
 
   private buildSectionDelinquency(): void {

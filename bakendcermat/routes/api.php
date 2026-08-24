@@ -420,6 +420,7 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::middleware('role:admin,director,coordinator,secretary,teacher')->group(function () {
         Route::get('evaluations/my-context', [EvaluationController::class, 'myContext']);
+        Route::get('evaluations/period-coverage', [EvaluationController::class, 'periodCoverage']);
         Route::get('evaluations', [EvaluationController::class, 'index']);
         Route::post('evaluations', [EvaluationController::class, 'store']);
         Route::get('evaluations/{evaluation}', [EvaluationController::class, 'show']);
@@ -623,6 +624,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('role:admin,director,secretary,finance,cashier')->group(function () {
+        Route::get('cash-closures/opening-balance', [CashClosureController::class, 'openingBalance']);
+        Route::patch('cash-closures/opening-balance', [CashClosureController::class, 'updateOpeningBalance']);
         Route::apiResource('cash-closures', CashClosureController::class);
     });
 

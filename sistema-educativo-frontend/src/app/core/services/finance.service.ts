@@ -364,6 +364,19 @@ export class FinanceService {
     return this.http.delete<void>(`${this.apiUrl}/cash-closures/${id}`);
   }
 
+  getOpeningBalanceOverride(date?: string): Observable<{ closure_date: string; amount: number | null }> {
+    return this.http.get<{ closure_date: string; amount: number | null }>(`${this.apiUrl}/cash-closures/opening-balance`, {
+      params: this.buildParams(date ? { date } : {})
+    });
+  }
+
+  updateOpeningBalanceOverride(amount: number, date?: string): Observable<{ closure_date: string; amount: number }> {
+    return this.http.patch<{ closure_date: string; amount: number }>(`${this.apiUrl}/cash-closures/opening-balance`, {
+      amount,
+      date: date || undefined
+    });
+  }
+
   searchStudents(query: string, extraFilters: QueryFilters = {}): Observable<PaginatedResponse<any>> {
     return this.http.get<PaginatedResponse<any>>(`${this.apiUrl}/students`, {
       params: this.buildParams({ q: query, per_page: 20, ...extraFilters })

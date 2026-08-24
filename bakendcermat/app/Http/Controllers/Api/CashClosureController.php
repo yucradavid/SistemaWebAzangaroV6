@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCashClosureRequest;
 use App\Http\Requests\UpdateCashClosureRequest;
 use App\Models\CashClosure;
+use App\Models\CashOpeningBalance;
 use App\Models\Payment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 
 class CashClosureController extends Controller
 {
@@ -107,6 +110,104 @@ class CashClosureController extends Controller
     {
         $cashClosure->delete();
         return response()->noContent();
+    }
+
+    /**
+     * Devuelve el ajuste manual de saldo inicial guardado para una fecha
+     * (dia que todavia no tiene fila en cash_closures porque no se cerro).
+     */
+    public function openingBalance(Request $request)
+    {
+        $date = $request->query('date') ?: now()->toDateString();
+
+        $override = CashOpeningBalance::whereDate('closure_date', $date)->first();
+
+        return response()->json([
+            'closure_date' => $date,
+            'amount' => $override ? (float) $override->amount : null,
+        ]);
+    }
+
+    /**
+     * Persiste el ajuste manual de saldo inicial para una fecha sin cierre.
+     * Antes de este endpoint, "Ajustar saldo inicial" en Caja Diaria solo
+     * mutaba estado local del componente y se perdia al recargar la pagina.
+     */
+    public function updateOpeningBalance(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'amount' => ['required', 'numeric', 'min:0'],
+            'date' => ['nullable', 'date'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        $data = $validator->validated();
+        $closureDate = $data['date'] ?? now()->toDateString();
+
+        if (CashClosure::whereDate('closure_date', $closureDate)->exists()) {
+            return response()->json([
+                'message' => 'La caja de esa fecha ya fue cerrada, no se puede ajustar el saldo inicial.'
+            ], 422);
+        }
+
+        $override = CashOpeningBalance::updateOrCreate(
+            ['closure_date' => $closureDate],
+            [
+                'amount' => $data['amount'],
+                'updated_by' => $this->resolveActorUserId($request),
+            ]
+        );
+
+        return response()->json([
+            'closure_date' => $closureDate,
+            'amount' => (float) $override->amount,
+        ]);
+    }
+
+    private function resolveActorUserId(Request $request): ?string
+    {
+        $authUser = $request->user();
+
+        if (!$authUser) {
+            return null;
+        }
+
+        // cash_opening_balances.updated_by referencia public.users.id (igual que
+        // cash_closures.closed_by, ver 2026_06_14_000002). El usuario autenticado
+        // por Sanctum ES la fila de public.users, no la de auth.users.
+        $candidateIds = array_values(array_filter([
+            $authUser->getKey(),
+            $authUser->id ?? null,
+            $authUser->profile?->user_id ?? null,
+        ]));
+
+        foreach ($candidateIds as $candidateId) {
+            $candidateId = (string) $candidateId;
+
+            if ($candidateId !== '' && DB::table('users')->where('id', $candidateId)->exists()) {
+                return $candidateId;
+            }
+        }
+
+        $emailCandidates = array_values(array_filter([
+            $authUser->email ?? null,
+            $authUser->profile?->email ?? null,
+        ]));
+
+        foreach ($emailCandidates as $email) {
+            $publicUserId = DB::table('users')
+                ->whereRaw('lower(email) = ?', [strtolower((string) $email)])
+                ->value('id');
+
+            if ($publicUserId) {
+                return (string) $publicUserId;
+            }
+        }
+
+        return null;
     }
 
     private function summarizePaymentsForDate(string $closureDate): array
