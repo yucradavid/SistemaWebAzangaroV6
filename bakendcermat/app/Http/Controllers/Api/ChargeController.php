@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateChargeRequest;
 use App\Models\Charge;
 use App\Models\FinancialPlan;
 use App\Models\Student;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -176,7 +177,8 @@ class ChargeController extends Controller
                         });
                     }
                 });
-            });
+            })
+            ->distinct();
     }
 
     public function batchStore(Request $request)
@@ -187,6 +189,7 @@ class ChargeController extends Controller
             'level' => 'nullable|string|in:inicial,primaria,secundaria',
             'grade_level_id' => 'nullable|uuid|exists:grade_levels,id',
             'section_id' => 'nullable|uuid|exists:sections,id',
+            'student_id' => 'nullable|uuid|exists:students,id',
         ]);
 
         $academicYearId = $request->academic_year_id;
@@ -198,7 +201,13 @@ class ChargeController extends Controller
             ], 422);
         }
 
-        $students = $this->resolveEmissionStudentsQuery($request, $academicYearId)->get();
+        $studentsQuery = $this->resolveEmissionStudentsQuery($request, $academicYearId);
+
+        if ($request->filled('student_id')) {
+            $studentsQuery->where('id', $request->student_id);
+        }
+
+        $students = $studentsQuery->get();
 
         $studentIds = $students->pluck('id')->all();
 
@@ -282,8 +291,16 @@ class ChargeController extends Controller
                         $payload['created_by'] = $actorId;
                     }
 
-                    Charge::create($this->buildChargeInsert($payload));
-                    $createdCount++;
+                    try {
+                        Charge::create($this->buildChargeInsert($payload));
+                        $createdCount++;
+                    } catch (QueryException $e) {
+                        if ($e->getCode() === '23505') {
+                            continue;
+                        }
+
+                        throw $e;
+                    }
                 }
             }
         });

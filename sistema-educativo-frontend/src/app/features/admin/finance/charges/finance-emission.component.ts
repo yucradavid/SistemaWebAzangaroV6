@@ -491,6 +491,17 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
       ? `<strong>${this.affectedStudentsCount}</strong> estudiante(s) en <strong>${this.affectedSectionsCount}</strong> seccion(es)`
       : 'los estudiantes que cumplan esos filtros';
 
+    const studentCount = this.affectedStudentsCount;
+    const highlightClass = studentCount !== null && studentCount > 50 ? 'bg-amber-50' : 'bg-slate-50';
+    const countBlock = studentCount !== null
+      ? `
+        <div style="margin-top:12px;padding:12px;border-radius:12px;" class="${highlightClass}">
+          <p style="font-size:24px;font-weight:800;margin:0;">${studentCount} estudiante(s)</p>
+          <p style="font-size:13px;color:#64748b;margin:2px 0 0;">seran afectados por esta emision, en ${this.affectedSectionsCount} seccion(es)</p>
+        </div>
+      `
+      : `<p style="margin-top:12px;">Se generaran cargos para ${affectedLabel}.</p>`;
+
     Swal.fire({
       title: 'Confirmar emision',
       html: `
@@ -501,15 +512,34 @@ export class FinanceEmissionComponent implements OnInit, OnDestroy {
           <p><strong>Nivel:</strong> ${this.getSelectedLevelLabel()}</p>
           <p><strong>Grado:</strong> ${this.getSelectedGradeLabel()}</p>
           <p><strong>Seccion:</strong> ${this.getSelectedSectionLabel()}</p>
-          <p style="margin-top:12px;">Se generaran cargos para ${affectedLabel}.</p>
+          ${countBlock}
         </div>
       `,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#1d4ed8',
       cancelButtonColor: '#dc2626',
-      confirmButtonText: 'Emitir cargos',
-      cancelButtonText: 'Cancelar'
+      confirmButtonText: 'Confirmar (2s)',
+      cancelButtonText: 'Cancelar',
+      didOpen: () => {
+        const confirmBtn = Swal.getConfirmButton();
+        if (!confirmBtn) {
+          return;
+        }
+
+        confirmBtn.disabled = true;
+        let seconds = 2;
+        const interval = setInterval(() => {
+          seconds--;
+          if (seconds <= 0) {
+            clearInterval(interval);
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Emitir cargos';
+          } else {
+            confirmBtn.textContent = `Confirmar (${seconds}s)`;
+          }
+        }, 1000);
+      }
     }).then((result) => {
       if (!result.isConfirmed) {
         return;
