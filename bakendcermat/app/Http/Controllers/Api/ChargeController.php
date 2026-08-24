@@ -63,7 +63,17 @@ class ChargeController extends Controller
             $data['created_by'] = $actorId;
         }
 
-        $charge = Charge::create($this->buildChargeInsert($data));
+        try {
+            $charge = Charge::create($this->buildChargeInsert($data));
+        } catch (QueryException $e) {
+            if ($e->getCode() === '23505') {
+                return response()->json([
+                    'message' => 'Ya existe un cargo activo identico para este estudiante, concepto, fecha de vencimiento y nota.',
+                ], 422);
+            }
+
+            throw $e;
+        }
 
         return response()->json(
             $charge->load(['student.section.gradeLevel', 'concept', 'payments']),
@@ -93,7 +103,17 @@ class ChargeController extends Controller
             $this->fillChargeNoteFields($update, $data['notes']);
         }
 
-        $charge->update($update);
+        try {
+            $charge->update($update);
+        } catch (QueryException $e) {
+            if ($e->getCode() === '23505') {
+                return response()->json([
+                    'message' => 'Ya existe un cargo activo identico para este estudiante, concepto, fecha de vencimiento y nota.',
+                ], 422);
+            }
+
+            throw $e;
+        }
 
         return $charge->load(['student.section.gradeLevel', 'concept', 'payments']);
     }
@@ -239,7 +259,6 @@ class ChargeController extends Controller
             : 'otro';
 
         $createdCount = 0;
-        $notesColumn = $this->chargeNotesColumn();
         $actorId = $this->resolveActorUserId($request);
 
         DB::transaction(function () use (
@@ -247,7 +266,6 @@ class ChargeController extends Controller
             $plan,
             $academicYearId,
             $chargeType,
-            $notesColumn,
             $actorId,
             &$createdCount
         ) {
@@ -255,11 +273,19 @@ class ChargeController extends Controller
                 foreach ($plan->installments as $installment) {
                     $note = "Generado automaticamente - {$plan->name} - Cuota #{$installment->installment_number}";
 
+                    // La duplicidad se define por la obligacion real (mismo
+                    // concepto y fecha de vencimiento para el mismo alumno),
+                    // no por el texto de notes: dos corridas pueden generar
+                    // el mismo cargo con notas distintas (ej. nombre de plan
+                    // cambiado) y notes no debe permitir que se dupliquen. Se
+                    // excluyen los cargos anulados porque uno anulado ya no
+                    // representa una obligacion vigente y debe poder
+                    // regenerarse.
                     $exists = Charge::where('student_id', $student->id)
                         ->where('academic_year_id', $academicYearId)
                         ->where('concept_id', $plan->concept_id)
                         ->whereDate('due_date', $installment->due_date)
-                        ->where($notesColumn, $note)
+                        ->whereNull('voided_at')
                         ->exists();
 
                     if ($exists) {
@@ -397,11 +423,6 @@ class ChargeController extends Controller
         }
 
         return $payload;
-    }
-
-    private function chargeNotesColumn(): string
-    {
-        return Schema::hasColumn('charges', 'notes') ? 'notes' : 'description';
     }
 
     private function fillChargeNoteFields(array &$payload, ?string $notes): void
