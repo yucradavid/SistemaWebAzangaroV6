@@ -16,6 +16,26 @@ export interface Evaluation {
   evaluated_at?: string;
 }
 
+export interface PeriodCoverageCourse {
+  assignment_id: string;
+  course_id: string;
+  course_name: string;
+  teacher_name: string;
+  section_name: string;
+  total_students: number;
+  evaluated_students: number;
+  coverage_percent: number;
+}
+
+export interface PeriodCoverageResponse {
+  courses: PeriodCoverageCourse[];
+  summary: {
+    total_courses_assigned: number;
+    courses_with_progress: number;
+    courses_without_progress: number;
+  };
+}
+
 export interface FinalCompetencyResult {
   id: string;
   student_id: string;
@@ -49,7 +69,7 @@ export interface StudentFinalStatus {
   student_id: string;
   academic_year_id: string;
   grade_level_id: string;
-  final_status: 'promociona' | 'recuperacion' | 'permanece' | 'pendiente';
+  final_status: 'promociona' | 'vacacional' | 'recuperacion' | 'permanece' | 'pendiente';
   pending_competencies_count: number;
   recovery_required: boolean;
   decision_reason?: string;
@@ -169,7 +189,7 @@ export interface SectionEvaluationDashboardStudent {
     published_at?: string | null;
   } | null;
   academic_summary: {
-    final_status: 'promociona' | 'recuperacion' | 'permanece' | 'pendiente';
+    final_status: 'promociona' | 'vacacional' | 'recuperacion' | 'permanece' | 'pendiente';
     pending_competencies_count: number;
     recovery_required: boolean;
     totals: {
@@ -211,6 +231,7 @@ export interface SectionEvaluationDashboard {
     current_risk: number;
     status_breakdown: {
       promociona: number;
+      vacacional: number;
       recuperacion: number;
       permanece: number;
       pendiente: number;
@@ -265,6 +286,10 @@ export class EvaluationService {
 
   getEvaluations(params: any = {}): Observable<any> {
     return this.http.get<any>(this.apiUrl, { params });
+  }
+
+  getPeriodCoverage(params: any = {}): Observable<PeriodCoverageResponse> {
+    return this.http.get<PeriodCoverageResponse>(`${this.apiUrl}/period-coverage`, { params });
   }
 
   getTeacherEvaluationContext(): Observable<TeacherEvaluationContext> {

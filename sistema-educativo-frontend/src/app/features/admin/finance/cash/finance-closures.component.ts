@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { AuthService } from '@core/services/auth.service';
 import { CashClosure, FinanceService, Payment } from '@core/services/finance.service';
+import { FinanceCashierService } from '@core/services/finance-cashier.service';
 
 interface LiveCashClosure {
   opening_time: string;
@@ -283,6 +284,8 @@ interface LiveCashClosure {
   `,
   styles: [`
     :host { display: block; }
+    /* display:block en :host pisa el [hidden] nativo del navegador; se restaura aquí */
+    :host([hidden]) { display: none !important; }
   `]
 })
 export class FinanceClosuresComponent implements OnInit {
@@ -299,6 +302,7 @@ export class FinanceClosuresComponent implements OnInit {
 
   constructor(
     private financeService: FinanceService,
+    private financeCashier: FinanceCashierService,
     private authService: AuthService
   ) {}
 
@@ -385,24 +389,22 @@ export class FinanceClosuresComponent implements OnInit {
         const payments = this.financeService.unwrapItems(response).filter((payment) => {
           return this.getPaymentDate(payment) === todayDate;
         });
-        const totals = this.summarizePayments(payments);
-        const openingBalance = Number(this.lastClosure?.actual_balance || 0);
+        const totals = this.financeCashier.summarizeDayPayments(payments);
 
-        this.activeClosure = {
-          opening_time: new Date().toISOString(),
-          opening_balance: openingBalance,
-          cash_received: totals.cash,
-          total_cash: totals.cash,
-          total_cards: totals.cards,
-          total_transfers: totals.transfers,
-          total_yape: totals.yape,
-          total_plin: totals.plin,
-          total_amount: totals.total,
-          expected_balance: openingBalance + totals.cash,
-          payments_count: payments.length,
-          cashier: this.currentUser
-        };
-        this.loading = false;
+        // El saldo inicial de hoy puede haber sido ajustado manualmente desde
+        // Caja Diaria (persistido en cash_opening_balances); si no hay ajuste,
+        // se hereda del ultimo cierre.
+        this.financeService.getOpeningBalanceOverride(todayDate).subscribe({
+          next: (override) => {
+            const openingBalance = override.amount !== null && override.amount !== undefined
+              ? Number(override.amount)
+              : Number(this.lastClosure?.actual_balance || 0);
+            this.setActiveClosure(openingBalance, totals, payments.length);
+          },
+          error: () => {
+            this.setActiveClosure(Number(this.lastClosure?.actual_balance || 0), totals, payments.length);
+          }
+        });
       },
       error: (err) => {
         console.error('Error loading payments', err);
@@ -413,69 +415,47 @@ export class FinanceClosuresComponent implements OnInit {
     });
   }
 
+  private setActiveClosure(openingBalance: number, totals: ReturnType<FinanceCashierService['summarizeDayPayments']>, paymentsCount: number) {
+    this.activeClosure = {
+      opening_time: new Date().toISOString(),
+      opening_balance: openingBalance,
+      cash_received: totals.cash,
+      total_cash: totals.cash,
+      total_cards: totals.cards,
+      total_transfers: totals.transfers,
+      total_yape: totals.yape,
+      total_plin: totals.plin,
+      total_amount: totals.total,
+      expected_balance: openingBalance + totals.cash,
+      payments_count: paymentsCount,
+      cashier: this.currentUser
+    };
+    this.loading = false;
+  }
+
   handleCloseCash() {
     if (!this.activeClosure) {
       return;
     }
 
-    Swal.fire({
-      title: 'Cerrar caja',
-      html: `
-        <div class="space-y-4 text-left pt-4">
-          <div class="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-1">
-            <div class="text-sm font-semibold text-slate-800">Saldo esperado: S/ ${this.activeClosure.expected_balance.toFixed(2)}</div>
-            <div class="text-xs text-slate-500">Efectivo neto del dia: S/ ${this.activeClosure.cash_received.toFixed(2)}</div>
-          </div>
-          <input id="swal-actual-balance" type="number" step="0.01" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Efectivo contado">
-          <input id="swal-notes" type="text" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Observaciones (opcional)">
-        </div>
-      `,
-      icon: 'info',
-      showCancelButton: true,
-      confirmButtonText: 'Registrar cierre',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#dc2626',
-      customClass: { confirmButton: 'rounded-xl shadow-lg', popup: 'rounded-2xl' },
-      preConfirm: () => {
-        const actualValue = (document.getElementById('swal-actual-balance') as HTMLInputElement)?.value;
-        const notes = (document.getElementById('swal-notes') as HTMLInputElement)?.value || '';
+    const totals = {
+      cash: this.activeClosure.total_cash,
+      cards: this.activeClosure.total_cards,
+      transfers: this.activeClosure.total_transfers,
+      yape: this.activeClosure.total_yape,
+      plin: this.activeClosure.total_plin,
+      total: this.activeClosure.total_amount,
+      count: this.activeClosure.payments_count
+    };
 
-        if (actualValue === undefined || actualValue === null || actualValue === '') {
-          Swal.showValidationMessage('Debes ingresar el efectivo contado.');
-          return false;
-        }
-
-        return {
-          actual_balance: Number(actualValue),
-          notes
-        };
+    this.financeCashier.closeCashRegister({
+      openingBalance: this.activeClosure.opening_balance,
+      totals,
+      paymentsCount: this.activeClosure.payments_count
+    }).subscribe({
+      next: () => {
+        this.loadData();
       }
-    }).then((result) => {
-      if (!result.isConfirmed || !result.value) {
-        return;
-      }
-
-      this.financeService.createClosure({
-        closure_date: this.getTodayString(),
-        opening_balance: this.activeClosure?.opening_balance || 0,
-        cash_received: Math.max(0, this.activeClosure?.cash_received || 0),
-        actual_balance: result.value.actual_balance,
-        total_cash: Math.max(0, this.activeClosure?.total_cash || 0),
-        total_cards: this.activeClosure?.total_cards || 0,
-        total_transfers: this.activeClosure?.total_transfers || 0,
-        total_yape: this.activeClosure?.total_yape || 0,
-        total_plin: this.activeClosure?.total_plin || 0,
-        payments_count: this.activeClosure?.payments_count || 0,
-        notes: result.value.notes || null
-      }).subscribe({
-        next: () => {
-          Swal.fire('Caja cerrada', 'El cierre fue registrado correctamente.', 'success');
-          this.loadData();
-        },
-        error: (err) => {
-          Swal.fire('Error', err?.error?.message || 'No se pudo registrar el cierre.', 'error');
-        }
-      });
     });
   }
 
@@ -546,47 +526,6 @@ export class FinanceClosuresComponent implements OnInit {
     this.dateToFilter = '';
     this.statusFilter = '';
     this.cashierFilter = '';
-  }
-
-  private summarizePayments(payments: Payment[]) {
-    return payments.reduce((totals, payment) => {
-      const amount = Number(payment.amount || 0);
-
-      if (this.isEgreso(payment)) {
-        totals.cash -= amount;
-        totals.total -= amount;
-        return totals;
-      }
-
-      switch ((payment.method || '').toLowerCase()) {
-        case 'tarjeta':
-          totals.cards += amount;
-          break;
-        case 'transferencia':
-        case 'pasarela':
-          totals.transfers += amount;
-          break;
-        case 'yape':
-          totals.yape += amount;
-          break;
-        case 'plin':
-          totals.plin += amount;
-          break;
-        default:
-          totals.cash += amount;
-          break;
-      }
-
-      totals.total += amount;
-      return totals;
-    }, {
-      cash: 0,
-      cards: 0,
-      transfers: 0,
-      yape: 0,
-      plin: 0,
-      total: 0
-    });
   }
 
   private isEgreso(payment: Payment): boolean {

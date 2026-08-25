@@ -75,6 +75,43 @@ export interface StudentDiscount {
   created_at?: string | null;
 }
 
+export interface StudentDiscountSummary {
+  student_id: string;
+  student_name: string;
+  discounts: Array<{
+    id: string;
+    name: string;
+    type: 'porcentaje' | 'monto_fijo';
+    value: number;
+    scope: string;
+  }>;
+  total_percent: number;
+  total_fixed: number;
+  annual_summary: {
+    total_charges: number;
+    total_amount: number;
+    total_discount: number;
+    total_final: number;
+  };
+  charges_breakdown: Array<{
+    id: string;
+    concept: string | null;
+    due_date: string | null;
+    installment_number: number;
+    amount: number;
+    discount_amount: number;
+    final_amount: number;
+    status: string;
+  }>;
+  sample_charge: {
+    id: string;
+    concept: string | null;
+    amount: number;
+    discount_amount: number;
+    final_amount: number;
+  } | null;
+}
+
 export interface Receipt {
   id: string;
   payment_id: string;
@@ -246,6 +283,12 @@ export class FinanceService {
     return this.http.delete<void>(`${this.apiUrl}/student-discounts/${id}`);
   }
 
+  getStudentDiscountSummary(studentId: string, academicYearId?: string | null): Observable<StudentDiscountSummary> {
+    return this.http.get<StudentDiscountSummary>(`${this.apiUrl}/students/${studentId}/discount-summary`, {
+      params: this.buildParams(academicYearId ? { academic_year_id: academicYearId } : {})
+    });
+  }
+
   getCharges(filters: QueryFilters = {}): Observable<PaginatedResponse<Charge>> {
     return this.http.get<PaginatedResponse<Charge>>(`${this.apiUrl}/charges`, {
       params: this.buildParams(filters)
@@ -255,10 +298,20 @@ export class FinanceService {
   emitBatchCharges(data: {
     academic_year_id: string;
     financial_plan_id: string;
+    level?: string;
     grade_level_id?: string;
     section_id?: string;
   }): Observable<{ message: string; created_count: number }> {
     return this.http.post<{ message: string; created_count: number }>(`${this.apiUrl}/charges/batch`, data);
+  }
+
+  previewBatchCharges(data: {
+    academic_year_id: string;
+    level?: string;
+    grade_level_id?: string;
+    section_id?: string;
+  }): Observable<{ students_count: number; sections_count: number }> {
+    return this.http.post<{ students_count: number; sections_count: number }>(`${this.apiUrl}/charges/batch/preview`, data);
   }
 
   getPayments(filters: QueryFilters = {}): Observable<PaginatedResponse<Payment>> {
@@ -309,6 +362,19 @@ export class FinanceService {
 
   deleteClosure(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/cash-closures/${id}`);
+  }
+
+  getOpeningBalanceOverride(date?: string): Observable<{ closure_date: string; amount: number | null }> {
+    return this.http.get<{ closure_date: string; amount: number | null }>(`${this.apiUrl}/cash-closures/opening-balance`, {
+      params: this.buildParams(date ? { date } : {})
+    });
+  }
+
+  updateOpeningBalanceOverride(amount: number, date?: string): Observable<{ closure_date: string; amount: number }> {
+    return this.http.patch<{ closure_date: string; amount: number }>(`${this.apiUrl}/cash-closures/opening-balance`, {
+      amount,
+      date: date || undefined
+    });
   }
 
   searchStudents(query: string, extraFilters: QueryFilters = {}): Observable<PaginatedResponse<any>> {

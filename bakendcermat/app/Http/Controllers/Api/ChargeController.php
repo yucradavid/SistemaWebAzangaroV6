@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateChargeRequest;
 use App\Models\Charge;
 use App\Models\FinancialPlan;
 use App\Models\Student;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -62,7 +63,17 @@ class ChargeController extends Controller
             $data['created_by'] = $actorId;
         }
 
-        $charge = Charge::create($this->buildChargeInsert($data));
+        try {
+            $charge = Charge::create($this->buildChargeInsert($data));
+        } catch (QueryException $e) {
+            if ($e->getCode() === '23505') {
+                return response()->json([
+                    'message' => 'Ya existe un cargo activo identico para este estudiante, concepto, fecha de vencimiento y nota.',
+                ], 422);
+            }
+
+            throw $e;
+        }
 
         return response()->json(
             $charge->load(['student.section.gradeLevel', 'concept', 'payments']),
@@ -92,30 +103,60 @@ class ChargeController extends Controller
             $this->fillChargeNoteFields($update, $data['notes']);
         }
 
-        $charge->update($update);
+        try {
+            $charge->update($update);
+        } catch (QueryException $e) {
+            if ($e->getCode() === '23505') {
+                return response()->json([
+                    'message' => 'Ya existe un cargo activo identico para este estudiante, concepto, fecha de vencimiento y nota.',
+                ], 422);
+            }
+
+            throw $e;
+        }
 
         return $charge->load(['student.section.gradeLevel', 'concept', 'payments']);
     }
 
-    public function batchStore(Request $request)
+    public function batchPreview(Request $request)
     {
         $request->validate([
             'academic_year_id' => 'required|uuid|exists:academic_years,id',
-            'financial_plan_id' => 'required|uuid|exists:financial_plans,id',
+            'level' => 'nullable|string|in:inicial,primaria,secundaria',
             'grade_level_id' => 'nullable|uuid|exists:grade_levels,id',
             'section_id' => 'nullable|uuid|exists:sections,id',
         ]);
 
         $academicYearId = $request->academic_year_id;
-        $plan = FinancialPlan::with(['installments', 'concept'])->findOrFail($request->financial_plan_id);
 
-        if ($plan->installments->isEmpty()) {
-            return response()->json([
-                'message' => 'El plan seleccionado no tiene cuotas configuradas.',
-            ], 422);
+        $studentsCount = $this->resolveEmissionStudentsQuery($request, $academicYearId)->count();
+
+        $sectionsQuery = \App\Models\Section::query()->where('academic_year_id', $academicYearId);
+
+        if ($request->filled('grade_level_id')) {
+            $sectionsQuery->where('grade_level_id', $request->grade_level_id);
         }
 
-        $students = Student::query()
+        if ($request->filled('section_id')) {
+            $sectionsQuery->where('id', $request->section_id);
+        }
+
+        if ($request->filled('level')) {
+            $level = $request->string('level')->lower()->value();
+            $sectionsQuery->whereHas('gradeLevel', function ($gradeLevelQuery) use ($level) {
+                $gradeLevelQuery->where('level', $level);
+            });
+        }
+
+        return response()->json([
+            'students_count' => $studentsCount,
+            'sections_count' => $sectionsQuery->count(),
+        ]);
+    }
+
+    private function resolveEmissionStudentsQuery(Request $request, string $academicYearId)
+    {
+        return Student::query()
             ->where(function ($studentQuery) use ($academicYearId, $request) {
                 $studentQuery->whereHas('section', function ($sectionQuery) use ($academicYearId, $request) {
                     $sectionQuery->where('academic_year_id', $academicYearId);
@@ -127,6 +168,13 @@ class ChargeController extends Controller
                     if ($request->filled('section_id')) {
                         $sectionQuery->where('id', $request->section_id);
                     }
+
+                    if ($request->filled('level')) {
+                        $level = $request->string('level')->lower()->value();
+                        $sectionQuery->whereHas('gradeLevel', function ($gradeLevelQuery) use ($level) {
+                            $gradeLevelQuery->where('level', $level);
+                        });
+                    }
                 })->orWhereHas('enrollments', function ($enrollmentQuery) use ($academicYearId, $request) {
                     $enrollmentQuery->where('academic_year_id', $academicYearId);
 
@@ -134,19 +182,61 @@ class ChargeController extends Controller
                         $enrollmentQuery->where('section_id', $request->section_id);
                     }
 
-                    if ($request->filled('grade_level_id')) {
+                    if ($request->filled('grade_level_id') || $request->filled('level')) {
                         $enrollmentQuery->whereHas('section', function ($sectionQuery) use ($request) {
-                            $sectionQuery->where('grade_level_id', $request->grade_level_id);
+                            if ($request->filled('grade_level_id')) {
+                                $sectionQuery->where('grade_level_id', $request->grade_level_id);
+                            }
+
+                            if ($request->filled('level')) {
+                                $level = $request->string('level')->lower()->value();
+                                $sectionQuery->whereHas('gradeLevel', function ($gradeLevelQuery) use ($level) {
+                                    $gradeLevelQuery->where('level', $level);
+                                });
+                            }
                         });
                     }
                 });
             })
-            ->get();
+            ->distinct();
+    }
+
+    public function batchStore(Request $request)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|uuid|exists:academic_years,id',
+            'financial_plan_id' => 'required|uuid|exists:financial_plans,id',
+            'level' => 'nullable|string|in:inicial,primaria,secundaria',
+            'grade_level_id' => 'nullable|uuid|exists:grade_levels,id',
+            'section_id' => 'nullable|uuid|exists:sections,id',
+            'student_id' => 'nullable|uuid|exists:students,id',
+        ]);
+
+        $academicYearId = $request->academic_year_id;
+        $plan = FinancialPlan::with(['installments', 'concept'])->findOrFail($request->financial_plan_id);
+
+        if ($plan->installments->isEmpty()) {
+            return response()->json([
+                'message' => 'El plan seleccionado no tiene cuotas configuradas.',
+            ], 422);
+        }
+
+        $studentsQuery = $this->resolveEmissionStudentsQuery($request, $academicYearId);
+
+        if ($request->filled('student_id')) {
+            $studentsQuery->where('id', $request->student_id);
+        }
+
+        $students = $studentsQuery->get();
 
         $studentIds = $students->pluck('id')->all();
 
         if (empty($studentIds)) {
             $scope = [];
+
+            if ($request->filled('level')) {
+                $scope[] = 'nivel';
+            }
 
             if ($request->filled('grade_level_id')) {
                 $scope[] = 'grado';
@@ -169,7 +259,6 @@ class ChargeController extends Controller
             : 'otro';
 
         $createdCount = 0;
-        $notesColumn = $this->chargeNotesColumn();
         $actorId = $this->resolveActorUserId($request);
 
         DB::transaction(function () use (
@@ -177,7 +266,6 @@ class ChargeController extends Controller
             $plan,
             $academicYearId,
             $chargeType,
-            $notesColumn,
             $actorId,
             &$createdCount
         ) {
@@ -185,11 +273,19 @@ class ChargeController extends Controller
                 foreach ($plan->installments as $installment) {
                     $note = "Generado automaticamente - {$plan->name} - Cuota #{$installment->installment_number}";
 
+                    // La duplicidad se define por la obligacion real (mismo
+                    // concepto y fecha de vencimiento para el mismo alumno),
+                    // no por el texto de notes: dos corridas pueden generar
+                    // el mismo cargo con notas distintas (ej. nombre de plan
+                    // cambiado) y notes no debe permitir que se dupliquen. Se
+                    // excluyen los cargos anulados porque uno anulado ya no
+                    // representa una obligacion vigente y debe poder
+                    // regenerarse.
                     $exists = Charge::where('student_id', $student->id)
                         ->where('academic_year_id', $academicYearId)
                         ->where('concept_id', $plan->concept_id)
                         ->whereDate('due_date', $installment->due_date)
-                        ->where($notesColumn, $note)
+                        ->whereNull('voided_at')
                         ->exists();
 
                     if ($exists) {
@@ -221,8 +317,16 @@ class ChargeController extends Controller
                         $payload['created_by'] = $actorId;
                     }
 
-                    Charge::create($this->buildChargeInsert($payload));
-                    $createdCount++;
+                    try {
+                        Charge::create($this->buildChargeInsert($payload));
+                        $createdCount++;
+                    } catch (QueryException $e) {
+                        if ($e->getCode() === '23505') {
+                            continue;
+                        }
+
+                        throw $e;
+                    }
                 }
             }
         });
@@ -319,11 +423,6 @@ class ChargeController extends Controller
         }
 
         return $payload;
-    }
-
-    private function chargeNotesColumn(): string
-    {
-        return Schema::hasColumn('charges', 'notes') ? 'notes' : 'description';
     }
 
     private function fillChargeNoteFields(array &$payload, ?string $notes): void

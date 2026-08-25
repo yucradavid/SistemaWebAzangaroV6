@@ -6,7 +6,12 @@ use App\Models\AcademicYear;
 use App\Models\DescriptiveConclusion;
 use App\Models\Evaluation;
 use App\Models\FinalCompetencyResult;
+use App\Models\FinalCourseGrade;
 use App\Models\GradeLevel;
+use App\Models\Message;
+use App\Models\MessageRecipient;
+use App\Models\Notification;
+use App\Models\Profile;
 use App\Models\PromotionRule;
 use App\Models\RecoveryProcess;
 use App\Models\RecoveryResult;
@@ -14,8 +19,10 @@ use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentCourseEnrollment;
 use App\Models\StudentFinalStatus;
+use App\Models\VacationalSchool;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -27,6 +34,25 @@ class AcademicEvaluationService
         'A' => 3,
         'AD' => 4,
     ];
+
+    // Valor numerico representativo de cada letra EBR = punto medio del
+    // rango real ya usado en el frontend (sistema-educativo-frontend/src/app/
+    // shared/utils/grade-converter.ts, EBR_SCALE: AD 18-20, A 14-17, B 11-13,
+    // C 0-10). Se usa SOLO para promediar competencias y obtener la nota de
+    // curso — no se muestra al usuario, no reemplaza la nota real por
+    // competencia.
+    private const EBR_MIDPOINTS = [
+        'AD' => 19.0,
+        'A' => 15.5,
+        'B' => 12.0,
+        'C' => 5.0,
+    ];
+
+    // Umbral de cursos con nota final C que decide Escuela Vacacional (NO
+    // repite, cursos pendientes) vs repitencia (repite el año completo).
+    // Regla de negocio confirmada: 0 cursos en C -> promociona; 1 a
+    // VACATIONAL_MAX_COURSES cursos en C -> vacacional; mas que eso -> repite.
+    private const VACATIONAL_MAX_COURSES = 3;
 
     public function recalculateStudentYear(Student $student, AcademicYear $academicYear, ?string $requestedBy = null): array
     {
@@ -40,12 +66,47 @@ class AcademicEvaluationService
 
         $evaluations = $this->loadYearEvaluations($student, $academicYear);
         $finalResults = $this->persistFinalResults($student, $academicYear, $evaluations);
-        $rule = $this->resolvePromotionRule($gradeLevel);
-        $decision = $this->calculateDecision($rule, $finalResults);
-        $finalStatus = $this->persistFinalStatus($student, $academicYear, $gradeLevel, $decision, $requestedBy);
-        $recoveryProcess = $this->syncRecoveryProcess($student, $academicYear, $gradeLevel, $finalResults, $decision, $requestedBy);
+        $courseGrades = $this->persistFinalCourseGrades($student, $academicYear, $finalResults);
 
-        return $this->getStudentYearSummary($student, $academicYear, $gradeLevel, $rule, $finalStatus, $recoveryProcess);
+        // Motor generico configurable por PromotionRule: se conserva intacto
+        // y se sigue exponiendo en el resumen (por si sirve para otra
+        // finalidad a futuro), pero YA NO decide el final_status persistido
+        // — eso ahora lo hace calculateCourseBasedDecision() con la regla
+        // fija de negocio (conteo de cursos en C), ver mas abajo.
+        $rule = $this->resolvePromotionRule($gradeLevel);
+
+        $decision = $this->calculateCourseBasedDecision($courseGrades);
+        $nextGrade = $this->resolveNextGradeAssignment($gradeLevel, $decision['final_status']);
+        $finalStatus = $this->persistFinalStatus($student, $academicYear, $gradeLevel, $decision, $requestedBy, $nextGrade);
+
+        $coursesInC = $courseGrades->where('final_level', 'C');
+        $existingVacationalCourseIds = VacationalSchool::query()
+            ->where('student_id', $student->id)
+            ->where('academic_year_id', $academicYear->id)
+            ->pluck('course_id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+
+        $this->syncVacationalSchool($student, $academicYear, $coursesInC);
+
+        // Solo se notifica por los cursos NUEVOS que caen en vacacional en
+        // este recalculo — si el admin/docente presiona "Recalcular" varias
+        // veces sin que cambien los cursos en C, no se reenvia el aviso.
+        if ($decision['final_status'] === 'vacacional') {
+            $newCourseIds = array_diff(
+                $coursesInC->pluck('course_id')->map(fn ($id) => (string) $id)->all(),
+                $existingVacationalCourseIds
+            );
+
+            if ($newCourseIds !== []) {
+                $newlyAssigned = $coursesInC->filter(
+                    fn (FinalCourseGrade $grade) => in_array((string) $grade->course_id, $newCourseIds, true)
+                );
+                $this->dispatchVacationalNotifications($student, $newlyAssigned, $requestedBy);
+            }
+        }
+
+        return $this->getStudentYearSummary($student, $academicYear, $gradeLevel, $rule, $finalStatus, null);
     }
 
     public function getStudentYearSummary(
@@ -86,6 +147,18 @@ class AcademicEvaluationService
 
         $enrolledCourses = $this->loadEnrolledCourses($student, $academicYear);
 
+        $courseGrades = FinalCourseGrade::query()
+            ->with('course')
+            ->where('student_id', $student->id)
+            ->where('academic_year_id', $academicYear->id)
+            ->get();
+
+        $vacationalCourses = VacationalSchool::query()
+            ->with('course')
+            ->where('student_id', $student->id)
+            ->where('academic_year_id', $academicYear->id)
+            ->get();
+
         return [
             'student' => [
                 'id' => $student->id,
@@ -113,6 +186,8 @@ class AcademicEvaluationService
             'enrolled_courses' => $enrolledCourses,
             'areas' => array_values($this->buildAreaSummaries($finalResults)),
             'final_results' => $finalResults->values(),
+            'course_grades' => $courseGrades->values(),
+            'vacational_courses' => $vacationalCourses->values(),
             'descriptive_conclusions' => $conclusions,
             'student_final_status' => $finalStatus,
             'recovery_process' => $recoveryProcess,
@@ -186,6 +261,7 @@ class AcademicEvaluationService
                     'current_risk' => 0,
                     'status_breakdown' => [
                         'promociona' => 0,
+                        'vacacional' => 0,
                         'recuperacion' => 0,
                         'permanece' => 0,
                         'pendiente' => 0,
@@ -236,6 +312,7 @@ class AcademicEvaluationService
 
         $statusBreakdown = [
             'promociona' => 0,
+            'vacacional' => 0,
             'recuperacion' => 0,
             'permanece' => 0,
             'pendiente' => 0,
@@ -595,7 +672,8 @@ class AcademicEvaluationService
         AcademicYear $academicYear,
         GradeLevel $gradeLevel,
         array $decision,
-        ?string $requestedBy = null
+        ?string $requestedBy = null,
+        array $nextGrade = ['next_grade_level_id' => null, 'is_graduating' => false]
     ): StudentFinalStatus {
         return StudentFinalStatus::updateOrCreate(
             [
@@ -610,8 +688,299 @@ class AcademicEvaluationService
                 'decision_reason' => $decision['decision_reason'],
                 'decided_by' => $requestedBy,
                 'decided_at' => now(),
+                'next_grade_level_id' => $nextGrade['next_grade_level_id'],
+                'is_graduating' => $nextGrade['is_graduating'],
             ]
         );
+    }
+
+    // ------------------------------------------------------------------
+    // Promocion de año (Escuela Vacacional / repitencia) — regla fija de
+    // negocio, PARALELA al motor generico PromotionRule de mas arriba
+    // (calculateDecision/matchesPromotionRule/matchesPermanenceRule), que
+    // se deja intacto sin usar para no romper nada que dependa de el.
+    // ------------------------------------------------------------------
+
+    private function persistFinalCourseGrades(Student $student, AcademicYear $academicYear, Collection $finalResults): Collection
+    {
+        $persistedIds = [];
+
+        foreach ($finalResults->groupBy('course_id') as $courseId => $competencyResults) {
+            $grade = $this->calculateCourseGrade($competencyResults);
+
+            $row = FinalCourseGrade::updateOrCreate(
+                [
+                    'student_id' => $student->id,
+                    'course_id' => $courseId,
+                    'academic_year_id' => $academicYear->id,
+                ],
+                [
+                    'average_score' => $grade['average_score'],
+                    'final_level' => $grade['final_level'],
+                ]
+            );
+
+            $persistedIds[] = $row->id;
+        }
+
+        FinalCourseGrade::query()
+            ->where('student_id', $student->id)
+            ->where('academic_year_id', $academicYear->id)
+            ->when($persistedIds !== [], function ($query) use ($persistedIds) {
+                $query->whereNotIn('id', $persistedIds);
+            })
+            ->delete();
+
+        return FinalCourseGrade::query()
+            ->with('course')
+            ->where('student_id', $student->id)
+            ->where('academic_year_id', $academicYear->id)
+            ->get();
+    }
+
+    /**
+     * Nota final de un curso = promedio numerico de sus competencias,
+     * convertido de vuelta a letra EBR. Cada letra se representa por el
+     * PUNTO MEDIO de su rango real (self::EBR_MIDPOINTS) porque es el valor
+     * mas neutral posible: no favorece el extremo alto ni el bajo del rango
+     * de cada competencia individual al promediar varias.
+     */
+    private function calculateCourseGrade(Collection $competencyResults): array
+    {
+        $scores = $competencyResults->map(
+            fn (FinalCompetencyResult $result) => self::EBR_MIDPOINTS[$result->final_level] ?? self::EBR_MIDPOINTS['C']
+        );
+
+        $average = round((float) $scores->avg(), 2);
+
+        return [
+            'average_score' => $average,
+            'final_level' => $this->numberToEbr($average),
+        ];
+    }
+
+    // Mismos rangos que EBR_SCALE del frontend (grade-converter.ts):
+    // AD 18-20, A 14-17, B 11-13, C 0-10.
+    private function numberToEbr(float $score): string
+    {
+        if ($score >= 18) {
+            return 'AD';
+        }
+
+        if ($score >= 14) {
+            return 'A';
+        }
+
+        if ($score >= 11) {
+            return 'B';
+        }
+
+        return 'C';
+    }
+
+    /**
+     * Regla de negocio fija (NO configurable via PromotionRule):
+     *  - 0 cursos en C -> promociona.
+     *  - 1 a VACATIONAL_MAX_COURSES cursos en C -> vacacional (promociona
+     *    igual, pero con esos cursos pendientes en Escuela Vacacional).
+     *  - mas de VACATIONAL_MAX_COURSES cursos en C -> permanece (repite el
+     *    año completo).
+     * 'vacacional' es un final_status SEPARADO de 'promociona' — aunque el
+     * estudiante SI sube de grado en ambos casos, se distingue para que el
+     * dashboard y las notificaciones identifiquen quien tiene cursos
+     * pendientes sin cruzar contra vacational_school cada vez.
+     */
+    private function calculateCourseBasedDecision(Collection $courseGrades): array
+    {
+        if ($courseGrades->isEmpty()) {
+            return [
+                'final_status' => 'pendiente',
+                'pending_competencies_count' => 0,
+                'recovery_required' => false,
+                'decision_reason' => 'No existen cursos con nota final consolidada para el año académico.',
+            ];
+        }
+
+        $coursesInC = $courseGrades->where('final_level', 'C')->count();
+
+        if ($coursesInC === 0) {
+            return [
+                'final_status' => 'promociona',
+                'pending_competencies_count' => 0,
+                'recovery_required' => false,
+                'decision_reason' => 'El estudiante aprobó (AD/A/B) todos sus cursos.',
+            ];
+        }
+
+        if ($coursesInC <= self::VACATIONAL_MAX_COURSES) {
+            return [
+                'final_status' => 'vacacional',
+                'pending_competencies_count' => $coursesInC,
+                'recovery_required' => true,
+                'decision_reason' => "El estudiante desaprobó (C) {$coursesInC} curso(s); promociona con esos cursos pendientes en Escuela Vacacional.",
+            ];
+        }
+
+        return [
+            'final_status' => 'permanece',
+            'pending_competencies_count' => $coursesInC,
+            'recovery_required' => false,
+            'decision_reason' => 'El estudiante desaprobó (C) ' . $coursesInC . ' cursos (más de ' . self::VACATIONAL_MAX_COURSES . '); repite el año completo.',
+        ];
+    }
+
+    /**
+     * A que grado queda asignado el estudiante el PROXIMO año academico.
+     *  - 'permanece' -> el MISMO grado actual (repite).
+     *  - 'promociona' / 'vacacional' -> grade_levels.next_grade_level_id del
+     *    grado actual; si es null (5to Secundaria aprobado) es egreso, no
+     *    repitencia — se marca is_graduating=true en vez de asignar grado.
+     *  - cualquier otro estado (pendiente): sin decision de grado todavia.
+     */
+    private function resolveNextGradeAssignment(GradeLevel $gradeLevel, string $status): array
+    {
+        if ($status === 'permanece') {
+            return ['next_grade_level_id' => $gradeLevel->id, 'is_graduating' => false];
+        }
+
+        if (in_array($status, ['promociona', 'vacacional'], true)) {
+            $nextId = $gradeLevel->next_grade_level_id;
+
+            return [
+                'next_grade_level_id' => $nextId,
+                'is_graduating' => $nextId === null,
+            ];
+        }
+
+        return ['next_grade_level_id' => null, 'is_graduating' => false];
+    }
+
+    private function syncVacationalSchool(Student $student, AcademicYear $academicYear, Collection $coursesInC): void
+    {
+        $persistedIds = [];
+
+        foreach ($coursesInC as $courseGrade) {
+            $row = VacationalSchool::updateOrCreate(
+                [
+                    'student_id' => $student->id,
+                    'academic_year_id' => $academicYear->id,
+                    'course_id' => $courseGrade->course_id,
+                ],
+                [
+                    // No se incluye 'status' aca a proposito: si la fila ya
+                    // existia y estaba 'completado', un recalculo posterior
+                    // no debe reabrirla a 'pendiente'. Las filas nuevas usan
+                    // el default de la columna ('pendiente').
+                    'final_grade' => $courseGrade->final_level,
+                ]
+            );
+
+            $persistedIds[] = $row->id;
+        }
+
+        // Limpia solo lo que ya no corresponda de ESTE alumno/año (el curso
+        // dejo de estar en C en un recalculo posterior) — nunca toca otros
+        // años ni otros alumnos.
+        VacationalSchool::query()
+            ->where('student_id', $student->id)
+            ->where('academic_year_id', $academicYear->id)
+            ->when($persistedIds !== [], function ($query) use ($persistedIds) {
+                $query->whereNotIn('id', $persistedIds);
+            })
+            ->delete();
+    }
+
+    /**
+     * Reutiliza EXACTAMENTE el patron ya construido para Tutoria Academica
+     * (MessageController::createTutoriaRecipients/dispatchTutoriaNotifications):
+     * un Message ancla (category='vacacional'), un MessageRecipient por
+     * estudiante y por cada apoderado vinculado, y una Notification por
+     * cada uno con type='vacacional_asignado'.
+     */
+    private function dispatchVacationalNotifications(Student $student, Collection $newlyAssignedCourses, ?string $requestedBy): void
+    {
+        if ($newlyAssignedCourses->isEmpty()) {
+            return;
+        }
+
+        $senderProfile = $requestedBy
+            ? Profile::query()->where('user_id', $requestedBy)->first()
+            : null;
+
+        if (!$senderProfile) {
+            Log::warning('AcademicEvaluationService: no se pudo resolver un profile emisor para el aviso de Escuela Vacacional, se omite el mensaje.', [
+                'student_id' => $student->id,
+                'requested_by' => $requestedBy,
+            ]);
+
+            return;
+        }
+
+        $courseNames = $newlyAssignedCourses
+            ->map(fn (FinalCourseGrade $grade) => $grade->course?->name ?? 'Curso')
+            ->implode(', ');
+
+        $message = Message::create([
+            'student_id' => $student->id,
+            // Aviso institucional automatico, no de un docente puntual;
+            // mismo criterio de normalizacion que
+            // MessageController::resolvePersistedSenderRole (el constraint
+            // de BD solo permite 'teacher'/'guardian').
+            'sender_role' => 'teacher',
+            'sender_id' => $senderProfile->id,
+            'content' => "El estudiante {$student->full_name} desaprobó (C) los siguientes cursos y deberá recuperarlos en Escuela Vacacional: {$courseNames}.",
+            'is_read' => false,
+            'category' => 'vacacional',
+            'title' => 'Cursos asignados a Escuela Vacacional',
+            'created_at' => now(),
+        ]);
+
+        $recipients = collect();
+
+        if ($student->user_id) {
+            $recipients->push(MessageRecipient::create([
+                'message_id' => $message->id,
+                'recipient_type' => 'student',
+                'recipient_user_id' => $student->user_id,
+                'created_at' => now(),
+            ]));
+        }
+
+        $student->guardians()
+            ->whereNotNull('guardians.user_id')
+            ->get()
+            ->unique('user_id')
+            ->each(function ($guardian) use ($message, $recipients) {
+                $recipients->push(MessageRecipient::create([
+                    'message_id' => $message->id,
+                    'recipient_type' => 'guardian',
+                    'recipient_user_id' => $guardian->user_id,
+                    'created_at' => now(),
+                ]));
+            });
+
+        $notificationColumns = [
+            'title' => Schema::hasColumn('notifications', 'title'),
+            'message' => Schema::hasColumn('notifications', 'message'),
+        ];
+
+        $recipients->each(function (MessageRecipient $recipient) use ($courseNames, $notificationColumns) {
+            $payload = [
+                'user_id' => (string) $recipient->recipient_user_id,
+                'type' => 'vacacional_asignado',
+                'status' => 'no_leida',
+            ];
+
+            if ($notificationColumns['title']) {
+                $payload['title'] = 'Cursos asignados a Escuela Vacacional';
+            }
+
+            if ($notificationColumns['message']) {
+                $payload['message'] = Str::limit("Cursos pendientes: {$courseNames}.", 140);
+            }
+
+            Notification::create($payload);
+        });
     }
 
     private function syncRecoveryProcess(

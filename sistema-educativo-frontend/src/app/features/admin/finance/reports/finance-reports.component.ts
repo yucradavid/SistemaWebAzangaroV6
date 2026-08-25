@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { DonutChartComponent, DonutChartSegment } from '@shared/components/charts/donut-chart.component';
+import { BarChartComponent, BarChartItem } from '@shared/components/charts/bar-chart.component';
 import { AcademicService } from '@core/services/academic.service';
 import { CashClosure, Charge, FinanceService, Payment } from '@core/services/finance.service';
 
@@ -13,7 +15,7 @@ type FinanceTab = 'morosidad' | 'recaudacion';
 @Component({
   selector: 'app-finance-reports',
   standalone: true,
-  imports: [CommonModule, BackButtonComponent, FormsModule],
+  imports: [CommonModule, BackButtonComponent, FormsModule, DonutChartComponent, BarChartComponent],
   template: `
     <div class="min-h-[calc(100vh-80px)] p-6 sm:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in text-slate-700">
       <app-back-button></app-back-button>
@@ -139,6 +141,33 @@ type FinanceTab = 'morosidad' | 'recaudacion';
           </div>
         </div>
 
+        <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+          <div class="p-6 border-b border-slate-50 bg-slate-50/10">
+            <h2 class="text-base font-semibold text-slate-800 tracking-tight">Morosidad por seccion</h2>
+            <p class="text-[11px] text-slate-400 mt-1">% de deuda sobre el total emitido en cada seccion, para ubicar donde esta el problema.</p>
+          </div>
+          <div *ngIf="sectionDelinquency.length === 0" class="py-16 text-center text-slate-400 text-sm">No hay datos de morosidad por seccion para los filtros seleccionados.</div>
+          <div *ngIf="sectionDelinquency.length > 0" class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+            <div *ngFor="let item of sectionDelinquency">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-sm font-semibold text-slate-700">{{ item.label }}</span>
+                <span class="text-sm font-bold"
+                      [class.text-red-600]="item.percent >= 20"
+                      [class.text-amber-500]="item.percent >= 10 && item.percent < 20"
+                      [class.text-slate-600]="item.percent < 10">{{ item.percent | number:'1.1-1' }}%</span>
+              </div>
+              <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all"
+                     [class.bg-red-500]="item.percent >= 20"
+                     [class.bg-amber-400]="item.percent >= 10 && item.percent < 20"
+                     [class.bg-blue-400]="item.percent < 10"
+                     [style.width.%]="item.percent > 100 ? 100 : item.percent"></div>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">S/ {{ item.debt | number:'1.2-2' }} de deuda sobre S/ {{ item.issued | number:'1.2-2' }} emitido</p>
+            </div>
+          </div>
+        </div>
+
         <div class="grid grid-cols-1 xl:grid-cols-[1.25fr_0.85fr] gap-6">
           <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
             <div class="p-6 border-b border-slate-50 bg-slate-50/10">
@@ -210,6 +239,42 @@ type FinanceTab = 'morosidad' | 'recaudacion';
           <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-t-4 border-red-500">
             <h3 class="text-3xl font-bold text-slate-900">S/ {{ revenueStats.expenses | number:'1.2-2' }}</h3>
             <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-2">Egresos</p>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-base font-semibold text-slate-800 tracking-tight">Ingresos vs. proyectado</h2>
+              <p class="text-[11px] text-slate-400 mt-1">Recaudado sobre el total emitido (neto de descuentos) en el periodo seleccionado.</p>
+            </div>
+            <span class="text-2xl font-bold" [class.text-emerald-600]="projectedVsCollected.percent >= 100" [class.text-blue-600]="projectedVsCollected.percent < 100">
+              {{ projectedVsCollected.percent | number:'1.0-1' }}%
+            </span>
+          </div>
+          <div class="h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-full bg-blue-500 rounded-full transition-all" [style.width.%]="projectedVsCollected.percent > 100 ? 100 : projectedVsCollected.percent"></div>
+          </div>
+          <div class="flex justify-between mt-3 text-xs font-semibold text-slate-500">
+            <span>Recaudado: S/ {{ projectedVsCollected.collected | number:'1.2-2' }}</span>
+            <span>Proyectado (emitido): S/ {{ projectedVsCollected.issued | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <h2 class="text-base font-semibold text-slate-800 tracking-tight mb-6">Distribucion de ingresos por concepto</h2>
+            <app-donut-chart
+              [data]="conceptRevenueChart"
+              unit="S/ "
+              [decimals]="2"
+              emptyMessage="Sin ingresos para graficar con los filtros seleccionados."
+            ></app-donut-chart>
+          </div>
+
+          <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <h2 class="text-base font-semibold text-slate-800 tracking-tight mb-6">Ingresos por mes ({{ selectedYearLabel }})</h2>
+            <app-bar-chart [data]="monthlyRevenueChart" unit="S/ " [decimals]="0" [height]="224"></app-bar-chart>
           </div>
         </div>
 
@@ -324,6 +389,27 @@ export class FinanceReportsComponent implements OnInit {
   recentPayments: Payment[] = [];
   topDebtConcepts: Array<{ label: string; amount: number; count: number }> = [];
   cashierClosureBreakdown: Array<{ label: string; amount: number; count: number; difference: number }> = [];
+
+  conceptRevenueChart: DonutChartSegment[] = [];
+  monthlyRevenueChart: BarChartItem[] = [];
+  sectionDelinquency: Array<{ label: string; issued: number; debt: number; percent: number }> = [];
+  projectedVsCollected = { issued: 0, collected: 0, percent: 0 };
+
+  private readonly CONCEPT_CATEGORY_LABELS: Record<string, string> = {
+    pension: 'Pension',
+    matricula: 'Matricula',
+    otros: 'Otros conceptos'
+  };
+
+  private readonly CONCEPT_CATEGORY_COLORS: Record<string, string> = {
+    pension: '#3b82f6',
+    matricula: '#8b5cf6',
+    otros: '#f59e0b'
+  };
+
+  get selectedYearLabel(): string {
+    return this.academicYears.find((year: any) => year.id === this.selectedYearId)?.year || '';
+  }
 
   constructor(
     private financeService: FinanceService,
@@ -464,6 +550,101 @@ export class FinanceReportsComponent implements OnInit {
       .sort((left, right) => new Date(right.paid_at).getTime() - new Date(left.paid_at).getTime())
       .slice(0, 12);
     this.cashierClosureBreakdown = this.buildCashierClosureBreakdown();
+
+    this.buildConceptRevenueChart(incomePayments);
+    this.buildMonthlyRevenueChart();
+    this.buildSectionDelinquency();
+    this.buildProjectedVsCollected(totalCollected);
+  }
+
+  private buildConceptRevenueChart(payments: Payment[]): void {
+    const groups = new Map<string, number>();
+    payments.forEach((payment) => {
+      const type = payment.charge?.concept?.type;
+      const key = type === 'pension' ? 'pension' : type === 'matricula' ? 'matricula' : 'otros';
+      groups.set(key, (groups.get(key) || 0) + Number(payment.amount || 0));
+    });
+
+    this.conceptRevenueChart = ['pension', 'matricula', 'otros']
+      .filter((key) => (groups.get(key) || 0) > 0)
+      .map((key) => ({
+        label: this.CONCEPT_CATEGORY_LABELS[key],
+        value: groups.get(key) || 0,
+        color: this.CONCEPT_CATEGORY_COLORS[key]
+      }));
+  }
+
+  private buildMonthlyRevenueChart(): void {
+    const payments = this.getFilteredPayments({ ignoreMonthFilter: true })
+      .filter((payment) => !this.isExpense(payment));
+
+    const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
+    const totals = new Array(12).fill(0);
+
+    payments.forEach((payment) => {
+      if (!payment.paid_at) {
+        return;
+      }
+      const month = new Date(payment.paid_at).getMonth();
+      totals[month] += Number(payment.amount || 0);
+    });
+
+    this.monthlyRevenueChart = monthLabels.map((label, index) => ({ label, value: totals[index] }));
+  }
+
+  private buildSectionDelinquency(): void {
+    const charges = this.allCharges.filter((charge) => {
+      if (charge.status === 'anulado') {
+        return false;
+      }
+      if (!this.matchesMonth(charge.due_date)) {
+        return false;
+      }
+      if (!this.matchesSearch([
+        this.getStudentName(charge.student),
+        charge.concept?.name,
+        charge.notes,
+        charge.type
+      ])) {
+        return false;
+      }
+      return true;
+    });
+
+    const groups = new Map<string, { label: string; issued: number; debt: number }>();
+
+    charges.forEach((charge) => {
+      const section = charge.student?.section;
+      const label = section
+        ? `${section.grade_level?.name || section.gradeLevel?.name || ''} ${section.section_letter || section.name || ''}`.trim() || 'Sin seccion'
+        : 'Sin seccion';
+      const debt = this.getChargeDebt(charge);
+      const countsAsDebt = this.debtScope === 'vencidos' ? this.isChargeOverdue(charge) : debt > 0;
+
+      const current = groups.get(label) || { label, issued: 0, debt: 0 };
+      current.issued += this.getNetChargeAmount(charge);
+      if (countsAsDebt) {
+        current.debt += debt;
+      }
+      groups.set(label, current);
+    });
+
+    this.sectionDelinquency = Array.from(groups.values())
+      .filter((item) => item.issued > 0)
+      .map((item) => ({ ...item, percent: (item.debt / item.issued) * 100 }))
+      .sort((left, right) => right.percent - left.percent)
+      .slice(0, 10);
+  }
+
+  private buildProjectedVsCollected(collected: number): void {
+    const issued = this.getFilteredCharges({ includeSettled: true })
+      .reduce((sum, charge) => sum + this.getNetChargeAmount(charge), 0);
+
+    this.projectedVsCollected = {
+      issued,
+      collected,
+      percent: issued > 0 ? (collected / issued) * 100 : 0
+    };
   }
 
   onGradeLevelChange(): void {
@@ -504,19 +685,19 @@ export class FinanceReportsComponent implements OnInit {
     this.exportRevenueReport(format);
   }
 
-  private getFilteredCharges(): Charge[] {
+  private getFilteredCharges(options: { includeSettled?: boolean } = {}): Charge[] {
     return this.allCharges.filter((charge) => {
       if (charge.status === 'anulado') {
         return false;
       }
       const debt = this.getChargeDebt(charge);
-      if (debt <= 0) {
+      if (!options.includeSettled && debt <= 0) {
         return false;
       }
       if (!this.matchesMonth(charge.due_date)) {
         return false;
       }
-      if (this.debtScope === 'vencidos' && !this.isChargeOverdue(charge)) {
+      if (!options.includeSettled && this.debtScope === 'vencidos' && !this.isChargeOverdue(charge)) {
         return false;
       }
       if (!this.matchesSearch([
@@ -534,7 +715,7 @@ export class FinanceReportsComponent implements OnInit {
     });
   }
 
-  private getFilteredPayments(): Payment[] {
+  private getFilteredPayments(options: { ignoreMonthFilter?: boolean } = {}): Payment[] {
     return this.allPayments.filter((payment) => {
       const paymentYearId = payment.charge?.academic_year_id;
       if (paymentYearId && paymentYearId !== this.selectedYearId) {
@@ -543,7 +724,7 @@ export class FinanceReportsComponent implements OnInit {
       if (paymentYearId == null && payment.charge_id) {
         return false;
       }
-      if (!this.matchesMonth(payment.paid_at)) {
+      if (!options.ignoreMonthFilter && !this.matchesMonth(payment.paid_at)) {
         return false;
       }
       if (this.selectedMethod && this.normalizeMethod(payment.method) !== this.selectedMethod) {
@@ -702,16 +883,53 @@ export class FinanceReportsComponent implements OnInit {
   }
 
   private exportDebtReport(format: 'excel' | 'pdf') {
+    if (format === 'excel') {
+      const charges = this.getFilteredCharges();
+      const excelRows = charges.map((charge) => {
+        const section = charge.student?.section;
+        const sectionLabel = section
+          ? `${section.grade_level?.name || section.gradeLevel?.name || ''} ${section.section_letter || section.name || ''}`.trim() || 'Sin seccion'
+          : 'Sin seccion';
+        return [
+          this.getStudentName(charge.student) || 'Sin identificar',
+          sectionLabel,
+          charge.concept?.name || charge.notes || 'Cargo directo',
+          charge.due_date ? new Date(charge.due_date).toLocaleDateString('es-PE') : '-',
+          Number(charge.amount || 0),
+          Number(charge.discount_amount || 0),
+          this.getNetChargeAmount(charge),
+          this.getChargeDebt(charge),
+          this.isChargeOverdue(charge) ? 'Vencido' : 'Pendiente'
+        ];
+      });
+
+      const totalsRow = [
+        'TOTALES', '', '', '',
+        excelRows.reduce((sum, row) => sum + Number(row[4]), 0),
+        excelRows.reduce((sum, row) => sum + Number(row[5]), 0),
+        excelRows.reduce((sum, row) => sum + Number(row[6]), 0),
+        excelRows.reduce((sum, row) => sum + Number(row[7]), 0),
+        ''
+      ];
+
+      this.downloadExcel({
+        filename: `reporte-morosidad-${this.selectedYearId}.xls`,
+        reportTitle: 'Reporte de Morosidad',
+        periodLabel: this.buildPeriodLabel(),
+        headers: ['Alumno', 'Seccion', 'Concepto', 'Vencimiento', 'Monto', 'Descuento', 'Monto Neto', 'Saldo', 'Estado'],
+        columnWidths: [190, 110, 170, 100, 95, 95, 105, 95, 100],
+        currencyColumns: [4, 5, 6, 7],
+        rows: excelRows,
+        totalsRow
+      });
+      return;
+    }
+
     const rows = this.overdueStudents.map((student) => ({
       Alumno: student.name,
       Cargos: student.chargesCount,
       Saldo: student.totalDebt.toFixed(2)
     }));
-
-    if (format === 'excel') {
-      this.downloadCsv(`reporte-morosidad-${this.selectedYearId}.csv`, rows);
-      return;
-    }
 
     const tableHtml = rows.length > 0
       ? rows.map((row) => `
@@ -744,6 +962,39 @@ export class FinanceReportsComponent implements OnInit {
   }
 
   private exportRevenueReport(format: 'excel' | 'pdf') {
+    if (format === 'excel') {
+      const payments = this.getFilteredPayments()
+        .filter((payment) => !this.isExpense(payment))
+        .sort((left, right) => new Date(right.paid_at).getTime() - new Date(left.paid_at).getTime());
+
+      const excelRows = payments.map((payment) => [
+        payment.paid_at ? new Date(payment.paid_at).toLocaleString('es-PE') : '-',
+        this.getPaymentStudentName(payment),
+        payment.charge?.concept?.name || payment.charge?.notes || 'Cargo directo',
+        this.getMethodLabel(payment.method),
+        Number(payment.amount || 0),
+        payment.reference || '-'
+      ]);
+
+      const totalsRow = [
+        'TOTALES', '', '', '',
+        excelRows.reduce((sum, row) => sum + Number(row[4]), 0),
+        ''
+      ];
+
+      this.downloadExcel({
+        filename: `reporte-recaudacion-${this.selectedYearId}.xls`,
+        reportTitle: 'Reporte de Recaudacion',
+        periodLabel: this.buildPeriodLabel(),
+        headers: ['Fecha', 'Alumno', 'Concepto', 'Metodo de pago', 'Monto', 'Referencia'],
+        columnWidths: [150, 190, 170, 120, 100, 140],
+        currencyColumns: [4],
+        rows: excelRows,
+        totalsRow
+      });
+      return;
+    }
+
     const rows = this.recentPayments.map((payment) => ({
       Alumno: this.getPaymentStudentName(payment),
       Metodo: this.getMethodLabel(payment.method),
@@ -751,11 +1002,6 @@ export class FinanceReportsComponent implements OnInit {
       Referencia: payment.reference || '',
       Fecha: payment.paid_at ? new Date(payment.paid_at).toLocaleString() : ''
     }));
-
-    if (format === 'excel') {
-      this.downloadCsv(`reporte-recaudacion-${this.selectedYearId}.csv`, rows);
-      return;
-    }
 
     const tableHtml = rows.length > 0
       ? rows.map((row) => `
@@ -792,29 +1038,106 @@ export class FinanceReportsComponent implements OnInit {
     `);
   }
 
-  private downloadCsv(filename: string, rows: Array<Record<string, string | number>>) {
-    if (rows.length === 0) {
+  private buildPeriodLabel(): string {
+    const monthLabel = this.getMonthLabel(this.selectedMonth);
+    return `Anio ${this.selectedYearLabel || '-'} - ${monthLabel === 'Todos' ? 'Todos los meses' : monthLabel}`;
+  }
+
+  private downloadExcel(config: {
+    filename: string;
+    reportTitle: string;
+    periodLabel: string;
+    headers: string[];
+    columnWidths: number[];
+    currencyColumns: number[];
+    rows: Array<Array<string | number>>;
+    totalsRow?: Array<string | number>;
+  }) {
+    if (config.rows.length === 0) {
       Swal.fire('Sin datos', 'No hay datos para exportar con los filtros actuales.', 'info');
       return;
     }
 
-    const headers = Object.keys(rows[0]);
-    const csv = [
-      headers.join(','),
-      ...rows.map((row) => headers.map((header) => this.toCsvValue(row[header])).join(','))
-    ].join('\n');
+    const headerBg = '#1e3a8a';
+    const colCount = config.headers.length;
+    const generatedAt = new Date().toLocaleString('es-PE');
 
-    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    // Formato Excel con prefijo literal entre comillas: mantiene la celda como numero real
+    // (sumable, con formato de moneda nativo) en vez de texto "S/ 123.45" no operable.
+    const currencyFormat = `&quot;S/&quot; #,##0.00`;
+
+    const dataCell = (value: string | number, colIndex: number): string => {
+      if (config.currencyColumns.includes(colIndex)) {
+        const numeric = Number(value || 0);
+        return `<td style="border:1px solid #cbd5e1;padding:6px 10px;text-align:right;mso-number-format:'${currencyFormat}';" valign="bottom">${numeric.toFixed(2)}</td>`;
+      }
+      return `<td style="border:1px solid #cbd5e1;padding:6px 10px;">${this.escapeHtml(String(value ?? ''))}</td>`;
+    };
+
+    const headerRow = config.headers
+      .map((header, index) => `<th style="border:1px solid #1e3a8a;background:${headerBg};color:#ffffff;font-weight:bold;padding:8px 10px;text-align:${config.currencyColumns.includes(index) ? 'right' : 'left'};">${this.escapeHtml(header)}</th>`)
+      .join('');
+
+    const dataRows = config.rows
+      .map((row) => `<tr>${row.map((cell, index) => dataCell(cell, index)).join('')}</tr>`)
+      .join('');
+
+    const totalsHtml = config.totalsRow
+      ? `<tr>${config.totalsRow.map((cell, index) => {
+          const isCurrency = config.currencyColumns.includes(index);
+          const value = isCurrency ? Number(cell || 0).toFixed(2) : String(cell ?? '');
+          const numberFormat = isCurrency ? `mso-number-format:'${currencyFormat}';` : '';
+          return `<td style="border-top:2px solid #0f172a;border-left:1px solid #cbd5e1;border-right:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1;padding:8px 10px;font-weight:bold;background:#f1f5f9;${isCurrency ? 'text-align:right;' : ''}${numberFormat}">${this.escapeHtml(value)}</td>`;
+        }).join('')}</tr>`
+      : '';
+
+    const colgroup = `<colgroup>${config.columnWidths.map((width) => `<col style="width:${width}px;">`).join('')}</colgroup>`;
+
+    const html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="UTF-8">
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>Reporte</x:Name>
+                <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheets>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+      </head>
+      <body>
+        <table style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;">
+          ${colgroup}
+          <tr><td colspan="${colCount}" style="font-size:20px;font-weight:bold;color:#1e3a8a;padding:6px 4px;">COLEGIO CERMAT</td></tr>
+          <tr><td colspan="${colCount}" style="font-size:14px;font-weight:bold;color:#0f172a;padding:2px 4px;">${this.escapeHtml(config.reportTitle)}</td></tr>
+          <tr><td colspan="${colCount}" style="font-size:11px;color:#475569;padding:2px 4px;">Periodo: ${this.escapeHtml(config.periodLabel)}</td></tr>
+          <tr><td colspan="${colCount}" style="font-size:11px;color:#475569;padding:2px 4px;">Generado el: ${this.escapeHtml(generatedAt)}</td></tr>
+          <tr><td colspan="${colCount}" style="padding:6px;"></td></tr>
+          <tr>${headerRow}</tr>
+          ${dataRows}
+          ${totalsHtml}
+          <tr><td colspan="${colCount}" style="padding:10px 4px;font-size:9px;color:#94a3b8;font-style:italic;">Documento generado automaticamente por el sistema CERMAT</td></tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\uFEFF', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = filename;
+    link.download = config.filename;
     link.click();
     URL.revokeObjectURL(url);
   }
 
   private openPrintWindow(title: string, body: string) {
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1100,height=800');
+    const printWindow = window.open('', '_blank', 'width=1100,height=800');
     if (!printWindow) {
       Swal.fire('Bloqueado', 'El navegador bloqueo la ventana de impresion.', 'warning');
       return;
@@ -856,11 +1179,6 @@ export class FinanceReportsComponent implements OnInit {
         <div style="font-size:20px;font-weight:700;color:#0f172a;">${formatted}</div>
       </div>
     `;
-  }
-
-  private toCsvValue(value: string | number): string {
-    const text = String(value ?? '');
-    return `"${text.replace(/"/g, '""')}"`;
   }
 
   private getMonthLabel(month: string): string {

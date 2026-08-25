@@ -420,6 +420,7 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::middleware('role:admin,director,coordinator,secretary,teacher')->group(function () {
         Route::get('evaluations/my-context', [EvaluationController::class, 'myContext']);
+        Route::get('evaluations/period-coverage', [EvaluationController::class, 'periodCoverage']);
         Route::get('evaluations', [EvaluationController::class, 'index']);
         Route::post('evaluations', [EvaluationController::class, 'store']);
         Route::get('evaluations/{evaluation}', [EvaluationController::class, 'show']);
@@ -538,8 +539,9 @@ Route::middleware('auth:sanctum')->group(function () {
     | Mensajería interna entre usuarios autorizados.
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:admin,director,coordinator,secretary,teacher,guardian')->group(function () {
+    Route::middleware('role:admin,director,coordinator,secretary,teacher,guardian,student')->group(function () {
         Route::get('messages/threads', [MessageController::class, 'threads']);
+        Route::put('messages/{message}/recipient-read', [MessageController::class, 'markRecipientRead']);
         Route::apiResource('messages', MessageController::class)
             ->only(['index', 'store', 'show', 'update', 'destroy']);
     });
@@ -596,6 +598,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,director,coordinator,secretary,finance')->group(function () {
         Route::apiResource('fee-concepts', FeeConceptController::class);
         Route::post('charges/batch', [ChargeController::class, 'batchStore']);
+        Route::post('charges/batch/preview', [ChargeController::class, 'batchPreview']);
         Route::post('charges/{charge}/void', [ChargeController::class, 'void']);
         Route::apiResource('charges', ChargeController::class);
     });
@@ -616,11 +619,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,director,coordinator,secretary,finance')->group(function () {
         Route::apiResource('discounts', DiscountController::class);
         Route::apiResource('student-discounts', StudentDiscountController::class);
+        Route::get('students/{student}/discount-summary', [StudentDiscountController::class, 'summary']);
         Route::apiResource('financial-plans', FinancialPlanController::class);
         Route::apiResource('plan-installments', PlanInstallmentController::class);
     });
 
     Route::middleware('role:admin,director,secretary,finance,cashier')->group(function () {
+        Route::get('cash-closures/opening-balance', [CashClosureController::class, 'openingBalance']);
+        Route::patch('cash-closures/opening-balance', [CashClosureController::class, 'updateOpeningBalance']);
         Route::apiResource('cash-closures', CashClosureController::class);
     });
 

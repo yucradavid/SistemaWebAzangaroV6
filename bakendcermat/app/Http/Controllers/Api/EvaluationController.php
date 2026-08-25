@@ -100,6 +100,12 @@ class EvaluationController extends Controller
         if ($request->filled('section_id')) {
             $this->applySectionFilter($query, (string) $request->section_id);
         }
+        if ($request->filled('grade_level_id')) {
+            $this->applyGradeLevelFilter($query, (string) $request->grade_level_id);
+        }
+        if ($request->filled('teacher_id')) {
+            $this->applyAssignedTeacherFilter($query, (string) $request->teacher_id);
+        }
 
         $perPage = max(1, min((int) $request->integer('per_page', 50), 1000));
 
@@ -108,6 +114,95 @@ class EvaluationController extends Controller
         $this->appendReopenInfo($paginator->getCollection());
 
         return $paginator;
+    }
+
+    /**
+     * Cobertura de evaluacion por asignacion (curso x seccion x docente) para un
+     * periodo: compara teacher_course_assignments (lo asignado) contra evaluations
+     * (lo efectivamente cargado), usando LEFT JOIN para que las asignaciones sin
+     * ninguna nota registrada SI aparezcan en el resultado, con 0% de cobertura.
+     *
+     * "evaluado" = el alumno tiene al menos 1 fila en evaluations para ese curso
+     * y periodo (cualquier competencia, cualquier status incluyendo borrador) -
+     * mide si el docente cargo algo, no si termino de calificar todas las
+     * competencias.
+     */
+    public function periodCoverage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'period_id' => ['required', 'uuid'],
+            'grade_level_id' => ['nullable', 'uuid'],
+            'section_id' => ['nullable', 'uuid'],
+            'teacher_id' => ['nullable', 'uuid'],
+        ]);
+
+        $period = Period::query()->find((string) $request->query('period_id'));
+
+        if (! $period) {
+            return response()->json(['message' => 'Periodo no encontrado.'], 404);
+        }
+
+        $rows = DB::table('teacher_course_assignments as tca')
+            ->join('courses as c', 'c.id', '=', 'tca.course_id')
+            ->join('teachers as t', 't.id', '=', 'tca.teacher_id')
+            ->join('sections as s', 's.id', '=', 'tca.section_id')
+            ->join('grade_levels as gl', 'gl.id', '=', 's.grade_level_id')
+            ->leftJoin('student_course_enrollments as sce', function ($join) {
+                $join->on('sce.course_id', '=', 'tca.course_id')
+                    ->on('sce.section_id', '=', 'tca.section_id')
+                    ->on('sce.academic_year_id', '=', 'tca.academic_year_id')
+                    ->where('sce.status', '=', 'active');
+            })
+            ->leftJoin('evaluations as e', function ($join) use ($period) {
+                $join->on('e.course_id', '=', 'tca.course_id')
+                    ->on('e.student_id', '=', 'sce.student_id')
+                    ->where('e.period_id', '=', $period->id);
+            })
+            ->where('tca.academic_year_id', $period->academic_year_id)
+            ->where('tca.is_active', true)
+            ->when($request->filled('grade_level_id'), fn ($q) => $q->where('gl.id', (string) $request->query('grade_level_id')))
+            ->when($request->filled('section_id'), fn ($q) => $q->where('tca.section_id', (string) $request->query('section_id')))
+            ->when($request->filled('teacher_id'), fn ($q) => $q->where('tca.teacher_id', (string) $request->query('teacher_id')))
+            ->groupBy('tca.id', 'tca.course_id', 'c.name', 't.first_name', 't.last_name', 'tca.section_id', 'gl.name', 's.section_letter')
+            ->selectRaw(
+                'tca.id as assignment_id, tca.course_id, c.name as course_name, '
+                . 't.first_name as teacher_first_name, t.last_name as teacher_last_name, '
+                . 'tca.section_id, gl.name as grade_name, s.section_letter, '
+                . 'count(distinct sce.student_id) as total_students, '
+                . 'count(distinct e.student_id) as evaluated_students'
+            )
+            ->orderBy('c.name')
+            ->orderBy('gl.name')
+            ->orderBy('s.section_letter')
+            ->get();
+
+        $courses = $rows->map(function ($row) {
+            $total = (int) $row->total_students;
+            $evaluated = (int) $row->evaluated_students;
+            $coverage = $total > 0 ? (int) round(($evaluated / $total) * 100) : 0;
+
+            return [
+                'assignment_id' => $row->assignment_id,
+                'course_id' => $row->course_id,
+                'course_name' => $row->course_name,
+                'teacher_name' => trim("{$row->teacher_first_name} {$row->teacher_last_name}"),
+                'section_name' => trim("{$row->grade_name} - {$row->section_letter}"),
+                'total_students' => $total,
+                'evaluated_students' => $evaluated,
+                'coverage_percent' => $coverage,
+            ];
+        })->values();
+
+        $withProgress = $courses->filter(fn ($course) => $course['coverage_percent'] > 0)->count();
+
+        return response()->json([
+            'courses' => $courses,
+            'summary' => [
+                'total_courses_assigned' => $courses->count(),
+                'courses_with_progress' => $withProgress,
+                'courses_without_progress' => $courses->count() - $withProgress,
+            ],
+        ]);
     }
 
     public function store(StoreEvaluationRequest $request): JsonResponse
@@ -372,6 +467,41 @@ class EvaluationController extends Controller
                 ->whereColumn('sce.course_id', 'evaluations.course_id')
                 ->whereColumn('p.id', 'evaluations.period_id')
                 ->where('sce.section_id', $sectionId)
+                ->where('sce.status', 'active');
+        });
+    }
+
+    private function applyGradeLevelFilter(Builder $query, string $gradeLevelId): void
+    {
+        $query->whereExists(function ($subQuery) use ($gradeLevelId) {
+            $subQuery->select(DB::raw(1))
+                ->from('student_course_enrollments as sce')
+                ->join('sections as sec', 'sec.id', '=', 'sce.section_id')
+                ->join('periods as p', 'p.academic_year_id', '=', 'sce.academic_year_id')
+                ->whereColumn('sce.student_id', 'evaluations.student_id')
+                ->whereColumn('sce.course_id', 'evaluations.course_id')
+                ->whereColumn('p.id', 'evaluations.period_id')
+                ->where('sec.grade_level_id', $gradeLevelId)
+                ->where('sce.status', 'active');
+        });
+    }
+
+    private function applyAssignedTeacherFilter(Builder $query, string $teacherId): void
+    {
+        $query->whereExists(function ($subQuery) use ($teacherId) {
+            $subQuery->select(DB::raw(1))
+                ->from('student_course_enrollments as sce')
+                ->join('teacher_course_assignments as tca', function ($join) {
+                    $join->on('tca.course_id', '=', 'sce.course_id')
+                        ->on('tca.section_id', '=', 'sce.section_id')
+                        ->on('tca.academic_year_id', '=', 'sce.academic_year_id');
+                })
+                ->join('periods as p', 'p.academic_year_id', '=', 'sce.academic_year_id')
+                ->whereColumn('sce.student_id', 'evaluations.student_id')
+                ->whereColumn('sce.course_id', 'evaluations.course_id')
+                ->whereColumn('p.id', 'evaluations.period_id')
+                ->where('tca.teacher_id', $teacherId)
+                ->where('tca.is_active', true)
                 ->where('sce.status', 'active');
         });
     }

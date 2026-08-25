@@ -166,11 +166,52 @@
               </td>
               <td class="py-6 px-6">
                 <div class="flex flex-col gap-3">
+                  <!-- Conversion automatica: nota numerica -> EBR -->
                   <div class="flex items-center justify-center gap-2">
-                    <button *ngFor="let grade of ['AD', 'A', 'B', 'C']"
-                            (click)="setGrade(student, grade); $event.stopPropagation()"
-                            [disabled]="student.status === 'publicada' || saving"
-                            [class]="student.grade === grade ? getGradeSelectedClass(grade) : 'px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 text-xs font-bold hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed'">
+                    <input
+                      type="number"
+                      min="0"
+                      max="20"
+                      step="1"
+                      maxlength="2"
+                      [disabled]="student.status === 'publicada' || saving"
+                      [value]="student.numericScore ?? ''"
+                      (input)="onScoreInput(student, $event)"
+                      (keypress)="restrictToValidRange($event)"
+                      (click)="$event.stopPropagation()"
+                      placeholder="0-20"
+                      class="w-16 text-center text-sm font-bold border-2 border-slate-200 rounded-lg p-1.5 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50/50 disabled:cursor-not-allowed"
+                    />
+
+                    <span *ngIf="student.grade"
+                          class="inline-flex flex-col items-center justify-center w-12 h-12 rounded-xl border-2 font-black text-sm transition-all duration-200"
+                          [class]="getGradeColorClass(student.grade)">
+                      <span class="text-base leading-none">{{ student.grade }}</span>
+                      <span class="text-[9px] leading-none mt-0.5 opacity-70">{{ getScorePreview(student.grade) }}</span>
+                    </span>
+
+                    <span *ngIf="!student.grade"
+                          class="w-12 h-12 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 text-xs">
+                      —
+                    </span>
+                  </div>
+
+                  <div class="flex justify-center gap-1.5 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/50 shadow-inner">
+                    <button
+                      *ngFor="let grade of ['AD', 'A', 'B', 'C']"
+                      (click)="setGrade(student, grade); $event.stopPropagation()"
+                      [disabled]="student.status === 'publicada' || saving"
+                      [ngClass]="[
+                        'w-9 h-9 rounded-lg text-sm font-bold transition-all duration-300 focus:outline-none flex items-center justify-center',
+                        (student.status === 'publicada' || saving) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105',
+                        student.grade === grade
+                          ? (grade === 'AD' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-md shadow-emerald-500/30'
+                            : grade === 'A' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-md shadow-blue-500/30'
+                            : grade === 'B' ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md shadow-amber-500/30'
+                            : 'bg-gradient-to-br from-rose-400 to-rose-600 text-white shadow-md shadow-rose-500/30')
+                          : 'bg-transparent text-slate-500 hover:bg-white hover:shadow-sm hover:text-slate-800'
+                      ]"
+                    >
                       {{ grade }}
                     </button>
                   </div>

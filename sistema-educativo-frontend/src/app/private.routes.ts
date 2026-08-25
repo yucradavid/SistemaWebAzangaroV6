@@ -73,6 +73,11 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Mis Comunicados'
       },
       {
+        path: 'student/tutoria',
+        loadComponent: () => import('./features/student/tutoria/student-tutoria.component').then(m => m.StudentTutoriaComponent),
+        title: 'CERMAT - Tutoría Académica'
+      },
+      {
         path: 'dashboard/metrics/student',
         loadComponent: () => import('./features/student/metrics/student-metrics.component').then(m => m.MetricsStudentComponent),
         title: 'CERMAT - Mi Progreso'
@@ -400,25 +405,27 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Emisión de Cargos'
       },
       {
-        path: 'finance/charges/student',
+        path: 'finance/account',
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance'] },
-        loadComponent: () => import('./features/admin/finance/charges/finance-student.component').then(m => m.FinanceStudentComponent),
-        title: 'CERMAT - Cuenta Estudiante'
+        data: { roles: ['admin', 'director', 'secretary', 'finance', 'cashier'] },
+        loadComponent: () => import('./features/admin/finance/finance-account/finance-account.component').then(m => m.FinanceAccountComponent),
+        title: 'CERMAT - Cuenta y Caja'
+      },
+      // Rutas antiguas: redirigen al modulo unificado, preservando el tab via query param
+      {
+        path: 'finance/charges/student',
+        redirectTo: () => '/app/finance/account?tab=student',
+        pathMatch: 'full'
       },
       {
         path: 'finance/cash',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance', 'cashier'] },
-        loadComponent: () => import('./features/admin/finance/cash/finance-cash.component').then(m => m.FinanceCashComponent),
-        title: 'CERMAT - Caja Diaria'
+        redirectTo: () => '/app/finance/account?tab=cash',
+        pathMatch: 'full'
       },
       {
         path: 'finance/cash/closures',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'secretary', 'finance', 'cashier'] },
-        loadComponent: () => import('./features/admin/finance/cash/finance-closures.component').then(m => m.FinanceClosuresComponent),
-        title: 'CERMAT - Historial de Cierres'
+        redirectTo: () => '/app/finance/account?tab=closures',
+        pathMatch: 'full'
       },
       {
         path: 'finance/reports',
@@ -438,6 +445,11 @@ export const PRIVATE_ROUTES: Routes = [
         path: 'communications/admin',
         loadComponent: () => import('./features/admin/communications/communications-management.component').then(m => m.CommunicationsManagementComponent),
         title: 'CERMAT - Gestionar Comunicados'
+      },
+      {
+        path: 'tutoria-academica/admin',
+        loadComponent: () => import('./features/shared/tutoria-academica/tutoria-academica.component').then(m => m.TutoriaAcademicaComponent),
+        title: 'CERMAT - Tutoría Académica'
       },
       {
         path: 'communications/review',
@@ -613,7 +625,8 @@ export const PRIVATE_ROUTES: Routes = [
           moduleTitle: 'Comunicados y Mensajería',
           tabs: [
             { path: 'comunicados', label: 'Comunicados', icon: ICONS.megaphone },
-            { path: 'mensajeria', label: 'Mensajería', icon: ICONS.mail }
+            { path: 'mensajeria', label: 'Mensajería', icon: ICONS.mail },
+            { path: 'tutoria', label: 'Tutoría Académica', icon: ICONS.alertTriangle }
           ]
         },
         loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
@@ -629,6 +642,11 @@ export const PRIVATE_ROUTES: Routes = [
             path: 'mensajeria',
             loadComponent: () => import('./features/teacher/messages/teacher-messages/teacher-messages.component').then(m => m.TeacherMessagesComponent),
             title: 'CERMAT - Mensajería'
+          },
+          {
+            path: 'tutoria',
+            loadComponent: () => import('./features/shared/tutoria-academica/tutoria-academica.component').then(m => m.TutoriaAcademicaComponent),
+            title: 'CERMAT - Tutoría Académica'
           }
         ]
       },

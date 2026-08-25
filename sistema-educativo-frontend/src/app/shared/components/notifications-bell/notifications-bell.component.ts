@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { Subscription, timer } from 'rxjs';
 import Swal from 'sweetalert2';
 import { AuthService } from '@core/services/auth.service';
@@ -11,6 +12,10 @@ import { EvaluationService, EvaluationReopenRequest } from '@core/services/evalu
  * - Badge con no leídas + dropdown con las últimas 10 (polling cada 30s).
  * - Para admin/director/coordinator: acciones inline Aprobar/Rechazar sobre
  *   solicitudes de reapertura de notas aún pendientes.
+ * - Al hacer click en un item se marca como leida y, si el tipo tiene una
+ *   ruta conocida para el rol del usuario actual, navega ahi (ver
+ *   resolveLink). El mapeo es por rol del VIEWER, nunca por datos de la
+ *   notificacion, para no poder terminar en una ruta de otro rol.
  */
 @Component({
   selector: 'app-notifications-bell',
@@ -55,9 +60,13 @@ import { EvaluationService, EvaluationReopenRequest } from '@core/services/evalu
         <div *ngFor="let n of notifications"
           (click)="onNotificationClick(n)"
           class="px-4 py-3 border-b border-slate-50 cursor-pointer transition-colors hover:bg-slate-50"
-          [ngClass]="n.status === 'no_leida' ? 'bg-blue-50/60' : ''">
+          [ngClass]="[n.status === 'no_leida' ? (isTutoria(n) ? '' : 'bg-blue-50/60') : '', getTypeAccentClass(n.type)]">
           <div class="flex items-start gap-2">
-            <span *ngIf="n.status === 'no_leida'" class="mt-1.5 w-2 h-2 rounded-full bg-cermat-blue-600 shrink-0"></span>
+            <svg *ngIf="isTutoria(n)" class="mt-0.5 w-4 h-4 text-rose-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+              <line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>
+            </svg>
+            <span *ngIf="!isTutoria(n) && n.status === 'no_leida'" class="mt-1.5 w-2 h-2 rounded-full bg-cermat-blue-600 shrink-0"></span>
             <div class="min-w-0 flex-1">
               <p class="text-xs font-bold text-slate-800">{{ n.title || 'Notificación' }}</p>
               <p class="text-xs text-slate-500 mt-0.5 leading-snug">{{ n.message }}</p>
@@ -87,6 +96,7 @@ export class NotificationsBellComponent implements OnInit, OnDestroy {
   private notificationService = inject(NotificationService);
   private evaluationService = inject(EvaluationService);
   private authService = inject(AuthService);
+  private router = inject(Router);
 
   isOpen = false;
   notifications: AppNotification[] = [];
@@ -147,6 +157,18 @@ export class NotificationsBellComponent implements OnInit, OnDestroy {
     }
   }
 
+  isTutoria(n: AppNotification): boolean {
+    return n.type === 'tutoria_registrada';
+  }
+
+  getTypeAccentClass(type: string): string {
+    if (type === 'tutoria_registrada') {
+      return 'border-l-4 border-rose-500 bg-rose-50/40';
+    }
+
+    return '';
+  }
+
   isActionableReopen(n: AppNotification): boolean {
     return this.isApprover
       && n.type === 'solicitud_reapertura'
@@ -156,16 +178,65 @@ export class NotificationsBellComponent implements OnInit, OnDestroy {
   }
 
   onNotificationClick(n: AppNotification): void {
-    if (n.status !== 'no_leida') {
-      return;
+    if (n.status === 'no_leida') {
+      this.notificationService.markAsRead(n.id).subscribe({
+        next: () => {
+          n.status = 'leida';
+          this.unreadCount = Math.max(0, this.unreadCount - 1);
+        }
+      });
     }
 
-    this.notificationService.markAsRead(n.id).subscribe({
-      next: () => {
-        n.status = 'leida';
-        this.unreadCount = Math.max(0, this.unreadCount - 1);
-      }
-    });
+    const link = this.resolveLink(n);
+    if (link) {
+      this.close();
+      this.router.navigateByUrl(link);
+    }
+  }
+
+  // Ruta a la que navegar segun el tipo de notificacion y el rol del
+  // usuario que la esta viendo (this.role, nunca datos de la notificacion
+  // en si). Solo se mapean tipos que realmente se crean hoy en el backend
+  // (tutoria_registrada, comunicado_nuevo, solicitud_reapertura) — el resto
+  // del enum (pago_registrado, tarea_nueva, evaluacion_publicada, etc.) no
+  // los crea ningun controller todavia, asi que no hay ruta que mapear con
+  // evidencia real; se dejan sin accion (mismo comportamiento que hoy).
+  private resolveLink(n: AppNotification): string | null {
+    const role = this.role;
+    // AuthService.mapBackendUser() traduce el rol 'guardian' que devuelve el
+    // backend a 'apoderado' para el resto del frontend (ver getHomeRoute()/
+    // isAdminWorkspaceRole(), que ya verifican ambos strings por el mismo
+    // motivo) — this.role practicamente nunca vale 'guardian' en runtime,
+    // asi que hay que comprobar los dos.
+    const isGuardian = role === 'apoderado' || role === 'guardian';
+
+    if (n.type === 'tutoria_registrada') {
+      if (role === 'student') return '/app/student/tutoria';
+      if (isGuardian) return '/app/apoderado/comunicacion/mensajeria';
+      if (role === 'teacher') return '/app/teacher/comunicacion/mensajeria';
+      if (role && ['admin', 'director', 'coordinator', 'secretary'].includes(role)) return '/app/messages/admin';
+      return null;
+    }
+
+    if (n.type === 'comunicado_nuevo') {
+      // Mismo type se usa tanto para "nuevo mensaje" (MessageController) como
+      // para "tu comunicado fue aprobado/archivado" (AnnouncementController).
+      // Para guardian es siempre lo primero; para admin-tier es siempre lo
+      // segundo; para teacher es ambiguo, se prioriza el caso mas frecuente.
+      if (isGuardian) return '/app/apoderado/comunicacion/mensajeria';
+      if (role === 'teacher') return '/app/teacher/comunicacion/mensajeria';
+      if (role && ['admin', 'director', 'coordinator', 'secretary'].includes(role)) return '/app/communications/admin';
+      return null;
+    }
+
+    if (n.type === 'solicitud_reapertura') {
+      // Admin-tier ya tiene las acciones Aprobar/Rechazar inline en la propia
+      // campana (ver isActionableReopen) — no hace falta navegar.
+      if (role === 'teacher') return '/app/teacher/academico/evaluacion';
+      return null;
+    }
+
+    return null;
   }
 
   markAllAsRead(): void {

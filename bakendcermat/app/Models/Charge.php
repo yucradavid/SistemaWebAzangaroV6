@@ -43,12 +43,6 @@ class Charge extends Model
         'voided_at' => 'datetime',
     ];
 
-    protected $appends = [
-        'discount_amount',
-        'paid_amount',
-        'notes',
-    ];
-
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class, 'student_id');

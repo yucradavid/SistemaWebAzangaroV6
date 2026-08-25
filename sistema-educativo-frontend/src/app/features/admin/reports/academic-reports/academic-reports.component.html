@@ -209,6 +209,58 @@
       </div>
     </div>
 
+    <div *ngIf="selectedYear && selectedGrade" class="grid gap-6 lg:grid-cols-2">
+      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h3 class="mb-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+          % Asistencia por sección ({{ currentGradeLabel() }})
+        </h3>
+        <div *ngIf="loadingSectionsChart" class="flex items-center justify-center py-10">
+          <div class="h-6 w-6 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+        </div>
+        <app-bar-chart
+          *ngIf="!loadingSectionsChart && sectionAttendanceChart.length > 0"
+          [data]="sectionAttendanceChart"
+          color="#2563eb"
+          unit=""
+          [decimals]="1"
+        ></app-bar-chart>
+        <p *ngIf="!loadingSectionsChart && sectionAttendanceChart.length === 0" class="py-10 text-center text-sm text-slate-400">
+          Sin datos de asistencia para las secciones de este grado.
+        </p>
+      </div>
+
+      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h3 class="mb-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+          Faltas / Tardanzas / Justificadas
+        </h3>
+        <app-bar-chart
+          *ngIf="attendanceData.length > 0"
+          [data]="attendanceIncidentsChart"
+          color="#dc2626"
+        ></app-bar-chart>
+        <p *ngIf="attendanceData.length === 0" class="py-10 text-center text-sm text-slate-400">
+          Selecciona una sección para ver el detalle de incidencias.
+        </p>
+      </div>
+
+      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm lg:col-span-2">
+        <h3 class="mb-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+          % Asistencia por alumno ({{ currentSectionLabel() }})
+        </h3>
+        <app-bar-chart
+          *ngIf="attendanceByStudentChart.length > 0"
+          [data]="attendanceByStudentChart"
+          color="#16a34a"
+          unit=""
+          [decimals]="1"
+          [minBarWidth]="48"
+        ></app-bar-chart>
+        <p *ngIf="attendanceByStudentChart.length === 0" class="py-10 text-center text-sm text-slate-400">
+          Selecciona una sección para ver la asistencia por alumno.
+        </p>
+      </div>
+    </div>
+
     <div class="grid gap-6 md:grid-cols-3">
       <div class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
         <div class="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
@@ -380,25 +432,12 @@
     <div class="grid gap-6 md:grid-cols-2">
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
         <h3 class="mb-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Distribucion de Calificaciones</h3>
-        <div class="space-y-4">
-          <div
-            *ngFor="let g of [
-              { l: 'AD', n: gradeDistribution.AD, c: 'bg-green-500' },
-              { l: 'A', n: gradeDistribution.A, c: 'bg-blue-500' },
-              { l: 'B', n: gradeDistribution.B, c: 'bg-yellow-400' },
-              { l: 'C', n: gradeDistribution.C, c: 'bg-red-500' }
-            ]"
-            class="space-y-1.5"
-          >
-            <div class="flex items-center justify-between text-xs font-bold uppercase tracking-tight">
-              <span class="text-slate-600">{{ g.l }}</span>
-              <span class="text-slate-900">{{ g.n }}%</span>
-            </div>
-            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-              <div class="h-full transition-all duration-1000" [class]="g.c" [style.width]="g.n + '%'"></div>
-            </div>
-          </div>
-        </div>
+        <app-donut-chart
+          [data]="gradeDistributionChart"
+          unit=""
+          [decimals]="0"
+          emptyMessage="Sin calificaciones para graficar con los filtros seleccionados."
+        ></app-donut-chart>
       </div>
 
       <div class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
