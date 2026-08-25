@@ -43,4 +43,40 @@ class SystemSettingController extends Controller
             'value' => (int) $setting->value,
         ]);
     }
+
+    // GET /api/system-settings/taller-tolerance-minutes
+    public function getTallerToleranceMinutes()
+    {
+        $setting = SystemSetting::query()->where('key', 'taller_tolerance_minutes')->first();
+
+        return response()->json([
+            'key' => 'taller_tolerance_minutes',
+            'value' => (int) ($setting->value ?? 30),
+            'description' => $setting->description ?? null,
+        ]);
+    }
+
+    // PUT /api/system-settings/taller-tolerance-minutes
+    public function updateTallerToleranceMinutes(Request $request)
+    {
+        $data = $request->validate([
+            'value' => ['required', 'integer', 'min:0'],
+        ], [
+            'value.min' => 'La tolerancia de taller debe ser mayor o igual a 0.',
+        ]);
+
+        $setting = SystemSetting::query()->updateOrCreate(
+            ['key' => 'taller_tolerance_minutes'],
+            [
+                'value' => (string) $data['value'],
+                'description' => 'Minutos de tolerancia despues de finalizar taller/banda, para la hora limite de salida',
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Tolerancia de taller actualizada',
+            'key' => 'taller_tolerance_minutes',
+            'value' => (int) $setting->value,
+        ]);
+    }
 }

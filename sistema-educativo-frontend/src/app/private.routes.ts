@@ -320,9 +320,37 @@ export const PRIVATE_ROUTES: Routes = [
       {
         path: 'attendance/approvals',
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'coordinator', 'secretary', 'administrative'] },
-        loadComponent: () => import('./features/admin/attendance/attendance-approvals/attendance-approvals.component').then(m => m.AttendanceApprovalsComponent),
-        title: 'CERMAT - Aprobación de Justificaciones'
+        data: {
+          roles: ['admin', 'director', 'coordinator', 'secretary', 'administrative'],
+          moduleTitle: 'Gestion de Asistencia',
+          tabs: [
+            { path: 'horarios', label: 'Horarios', icon: ICONS.clock },
+            { path: 'turnos', label: 'Asignar Turnos', icon: ICONS.shuffle },
+            { path: 'qr', label: 'Generar QR', icon: ICONS.qrCode },
+            { path: 'marcar', label: 'Marcar Asistencia', icon: ICONS.scanLine },
+          ],
+        },
+        loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
+        children: [
+          { path: '', redirectTo: 'horarios', pathMatch: 'full' },
+          {
+            path: 'horarios',
+            loadComponent: () => import('./features/admin/attendance/schedule-config/schedule-config.component').then(m => m.ScheduleConfigComponent),
+          },
+          {
+            path: 'turnos',
+            loadComponent: () => import('./features/admin/attendance/shift-assignment/shift-assignment.component').then(m => m.ShiftAssignmentComponent),
+          },
+          {
+            path: 'qr',
+            loadComponent: () => import('./features/admin/attendance/qr-generator/qr-generator.component').then(m => m.QrGeneratorComponent),
+          },
+          {
+            path: 'marcar',
+            loadComponent: () => import('./features/admin/attendance/student-checkpoint/student-checkpoint.component').then(m => m.StudentCheckpointComponent),
+          },
+        ],
+        title: 'CERMAT - Gestion de Asistencia'
       },
 
       // ── Reportes ─────────────────────────────────────────

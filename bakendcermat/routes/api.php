@@ -40,6 +40,10 @@ use App\Http\Controllers\Api\EnrollmentApplicationController;
 use App\Http\Controllers\Api\TeacherCourseAssignmentController;
 use App\Http\Controllers\Api\StudentCourseEnrollmentController;
 use App\Http\Controllers\Api\SystemSettingController;
+use App\Http\Controllers\Api\AttendanceScheduleConfigController;
+use App\Http\Controllers\Api\ShiftAssignmentController;
+use App\Http\Controllers\Api\StudentExtracurricularActivityController;
+use App\Http\Controllers\Api\StudentQrController;
 
 // Tareas / Entregas
 use App\Http\Controllers\Api\AssignmentController;
@@ -48,6 +52,7 @@ use App\Http\Controllers\Api\AssignmentSubmissionController;
 
 // Asistencia
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\AttendanceCheckpointController;
 use App\Http\Controllers\Api\DailyAttendanceController;
 use App\Http\Controllers\Api\AttendanceJustificationController;
 
@@ -176,7 +181,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
         Route::get('profiles/stats', [ProfileController::class, 'stats']);
         Route::apiResource('profiles', ProfileController::class);
+
+        Route::get('students/extracurricular', [StudentExtracurricularActivityController::class, 'index']);
+        Route::post('students/extracurricular/assign', [StudentExtracurricularActivityController::class, 'assign']);
+        Route::put('students/extracurricular/{id}/deactivate', [StudentExtracurricularActivityController::class, 'deactivate']);
+
         Route::apiResource('students', StudentController::class);
+
+        Route::post('students/qr/generate', [StudentQrController::class, 'generate']);
+        Route::post('students/qr/regenerate/preview', [StudentQrController::class, 'regeneratePreview']);
+        Route::post('students/qr/regenerate', [StudentQrController::class, 'regenerate']);
+        Route::get('students/{student}/carnet', [StudentQrController::class, 'carnet']);
+
         Route::apiResource('guardians', GuardianController::class);
         Route::apiResource('student-guardians', StudentGuardianController::class);
         Route::get('users', [UserController::class, 'index']);
@@ -291,6 +307,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('system-settings/max-courses-per-teacher', [SystemSettingController::class, 'updateMaxCoursesPerTeacher']);
     });
 
+    Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
+        Route::get('system-settings/taller-tolerance-minutes', [SystemSettingController::class, 'getTallerToleranceMinutes']);
+        Route::put('system-settings/taller-tolerance-minutes', [SystemSettingController::class, 'updateTallerToleranceMinutes']);
+
+        Route::get('attendance/schedule-config', [AttendanceScheduleConfigController::class, 'index']);
+        Route::put('attendance/schedule-config/{shift}/{checkpointType}', [AttendanceScheduleConfigController::class, 'update']);
+
+        Route::get('shift-assignments/sections', [ShiftAssignmentController::class, 'indexSections']);
+        Route::put('shift-assignments/sections', [ShiftAssignmentController::class, 'updateSectionShifts']);
+        Route::get('shift-assignments/teachers', [ShiftAssignmentController::class, 'indexTeacherShifts']);
+        Route::put('shift-assignments/teachers', [ShiftAssignmentController::class, 'updateTeacherShifts']);
+    });
+
     /*
     |--------------------------------------------------------------------------
     | MÓDULO: TAREAS
@@ -377,6 +406,9 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::post('attendance/daily/self-checkpoint', [DailyAttendanceController::class, 'selfCheckpoint'])
         ->middleware('role:student,teacher');
+
+    Route::post('attendance/daily/student-checkpoint', [AttendanceCheckpointController::class, 'studentCheckpoint'])
+        ->middleware('role:admin,director,coordinator,secretary,administrative');
     Route::get('attendance/daily/my-history', [DailyAttendanceController::class, 'myDailyHistory'])
         ->middleware('role:teacher');
 
