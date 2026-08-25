@@ -28,6 +28,7 @@ class StoreNotificationRequest extends FormRequest
                     'comunicado_nuevo',
                     'tarea_nueva',
                     'recordatorio_pago',
+                    'tutoria_registrada',
                 ])
             ],
 

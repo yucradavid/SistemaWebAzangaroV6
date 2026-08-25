@@ -73,6 +73,11 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Mis Comunicados'
       },
       {
+        path: 'student/tutoria',
+        loadComponent: () => import('./features/student/tutoria/student-tutoria.component').then(m => m.StudentTutoriaComponent),
+        title: 'CERMAT - Tutoría Académica'
+      },
+      {
         path: 'dashboard/metrics/student',
         loadComponent: () => import('./features/student/metrics/student-metrics.component').then(m => m.MetricsStudentComponent),
         title: 'CERMAT - Mi Progreso'
@@ -442,6 +447,11 @@ export const PRIVATE_ROUTES: Routes = [
         title: 'CERMAT - Gestionar Comunicados'
       },
       {
+        path: 'tutoria-academica/admin',
+        loadComponent: () => import('./features/shared/tutoria-academica/tutoria-academica.component').then(m => m.TutoriaAcademicaComponent),
+        title: 'CERMAT - Tutoría Académica'
+      },
+      {
         path: 'communications/review',
         loadComponent: () => import('./features/admin/communications/communications-approval.component').then(m => m.CommunicationsApprovalComponent),
         title: 'CERMAT - Aprobar Comunicados'
@@ -615,7 +625,8 @@ export const PRIVATE_ROUTES: Routes = [
           moduleTitle: 'Comunicados y Mensajería',
           tabs: [
             { path: 'comunicados', label: 'Comunicados', icon: ICONS.megaphone },
-            { path: 'mensajeria', label: 'Mensajería', icon: ICONS.mail }
+            { path: 'mensajeria', label: 'Mensajería', icon: ICONS.mail },
+            { path: 'tutoria', label: 'Tutoría Académica', icon: ICONS.alertTriangle }
           ]
         },
         loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
@@ -631,6 +642,11 @@ export const PRIVATE_ROUTES: Routes = [
             path: 'mensajeria',
             loadComponent: () => import('./features/teacher/messages/teacher-messages/teacher-messages.component').then(m => m.TeacherMessagesComponent),
             title: 'CERMAT - Mensajería'
+          },
+          {
+            path: 'tutoria',
+            loadComponent: () => import('./features/shared/tutoria-academica/tutoria-academica.component').then(m => m.TutoriaAcademicaComponent),
+            title: 'CERMAT - Tutoría Académica'
           }
         ]
       },

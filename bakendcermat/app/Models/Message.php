@@ -23,6 +23,8 @@ class Message extends Model
         'sender_id',
         'content',
         'is_read',
+        'category',
+        'title',
         'created_at',
     ];
 
@@ -39,5 +41,10 @@ class Message extends Model
     public function sender(): BelongsTo
     {
         return $this->belongsTo(Profile::class, 'sender_id');
+    }
+
+    public function recipients()
+    {
+        return $this->hasMany(MessageRecipient::class, 'message_id');
     }
 }

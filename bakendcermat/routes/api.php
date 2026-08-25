@@ -539,8 +539,9 @@ Route::middleware('auth:sanctum')->group(function () {
     | Mensajería interna entre usuarios autorizados.
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:admin,director,coordinator,secretary,teacher,guardian')->group(function () {
+    Route::middleware('role:admin,director,coordinator,secretary,teacher,guardian,student')->group(function () {
         Route::get('messages/threads', [MessageController::class, 'threads']);
+        Route::put('messages/{message}/recipient-read', [MessageController::class, 'markRecipientRead']);
         Route::apiResource('messages', MessageController::class)
             ->only(['index', 'store', 'show', 'update', 'destroy']);
     });

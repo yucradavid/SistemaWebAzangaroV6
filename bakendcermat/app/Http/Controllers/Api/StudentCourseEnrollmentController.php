@@ -17,7 +17,7 @@ class StudentCourseEnrollmentController extends Controller
     public function index(Request $request)
     {
         $q = StudentCourseEnrollment::query()
-            ->with(['student', 'course', 'section.gradeLevel', 'academicYear']);
+            ->with(['student.guardians', 'course', 'section.gradeLevel', 'academicYear']);
 
         if ($request->user()?->profile?->role === 'teacher') {
             $teacherId = Teacher::query()
@@ -56,6 +56,27 @@ class StudentCourseEnrollmentController extends Controller
         }
         if ($request->filled('status')) {
             $q->where('status', $request->string('status'));
+        }
+        if ($request->filled('grade_level_id')) {
+            $q->whereHas('section', function ($sectionQuery) use ($request) {
+                $sectionQuery->where('grade_level_id', $request->string('grade_level_id'));
+            });
+        }
+        if ($request->filled('level')) {
+            $level = $request->string('level')->lower()->value();
+            $q->whereHas('section.gradeLevel', function ($gradeLevelQuery) use ($level) {
+                $gradeLevelQuery->where('level', $level);
+            });
+        }
+        if ($request->filled('q')) {
+            $term = trim((string) $request->string('q'));
+            $q->whereHas('student', function ($studentQuery) use ($term) {
+                $studentQuery->where(function ($sub) use ($term) {
+                    $sub->where('first_name', 'ilike', "%{$term}%")
+                        ->orWhere('last_name', 'ilike', "%{$term}%")
+                        ->orWhere('student_code', 'ilike', "%{$term}%");
+                });
+            });
         }
 
         $perPage = (int) $request->integer('per_page', 15);

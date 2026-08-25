@@ -184,6 +184,12 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
             path: '/app/communications/admin'
           },
           {
+            title: 'Tutoría Académica',
+            description: 'Registrar mensajes de tutoría a un alumno y su apoderado',
+            icon: ICONS.alertTriangle,
+            path: '/app/tutoria-academica/admin'
+          },
+          {
             title: 'Aprobar Comunicados',
             description: 'Revisión de anuncios institucionales',
             icon: ICONS.megaphone,
