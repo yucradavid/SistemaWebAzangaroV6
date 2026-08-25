@@ -47,3 +47,62 @@ export function getEBRColor(letter: GradeEBR | null): string {
   return EBR_SCALE.find(g => g.letter === letter)?.color
     ?? 'bg-slate-100 text-slate-400 border-slate-200';
 }
+
+// Punto medio del rango real de cada letra EBR — mismo criterio que el
+// backend (AcademicEvaluationService::EBR_MIDPOINTS). Se usa SOLO para
+// promediar competencias y obtener la nota de curso, no se muestra al
+// usuario como nota individual.
+export const EBR_MIDPOINTS: Record<GradeEBR, number> = {
+  AD: 19.0,
+  A: 15.5,
+  B: 12.0,
+  C: 5.0,
+};
+
+export interface CourseResultLike {
+  course_id?: string | null;
+  final_level?: GradeEBR | null;
+  course?: { name?: string | null } | null;
+}
+
+// Nota final de un curso = promedio de sus competencias convertidas con
+// EBR_MIDPOINTS, redondeado a 2 decimales y devuelto a letra. Replica
+// EXACTAMENTE AcademicEvaluationService::persistFinalCourseGrades porque
+// no hay endpoint publico de final_course_grades: quien decide Escuela
+// Vacacional en el backend es esta misma formula sobre estos mismos datos.
+export function calculateCourseLetter(levels: GradeEBR[]): GradeEBR | null {
+  if (levels.length === 0) return null;
+  const avg = Math.round(
+    (levels.reduce((sum, level) => sum + EBR_MIDPOINTS[level], 0) / levels.length) * 100
+  ) / 100;
+  return numberToEBR(avg);
+}
+
+// Cursos con nota final en C (desaprobados) a partir de
+// final-competency-results agrupados por curso. Usado por el aviso de
+// Escuela Vacacional (evaluation-review y detalle de estudiantes).
+export function getFailedCourseNamesFromResults(results: CourseResultLike[]): string[] {
+  const byCourse = new Map<string, { name: string; levels: GradeEBR[] }>();
+
+  results.forEach((result) => {
+    if (!result.course_id) return;
+
+    const entry = byCourse.get(result.course_id) || {
+      name: result.course?.name || 'Curso',
+      levels: [],
+    };
+    if (result.final_level) {
+      entry.levels.push(result.final_level);
+    }
+    byCourse.set(result.course_id, entry);
+  });
+
+  const failed: string[] = [];
+  byCourse.forEach((entry) => {
+    if (calculateCourseLetter(entry.levels) === 'C') {
+      failed.push(entry.name);
+    }
+  });
+
+  return failed.sort((a, b) => a.localeCompare(b));
+}

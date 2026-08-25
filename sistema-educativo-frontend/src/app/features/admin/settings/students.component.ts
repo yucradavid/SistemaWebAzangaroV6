@@ -8,7 +8,9 @@ import { BackButtonComponent } from '@shared/components/back-button/back-button.
 import { SettingMetricCardComponent } from '@shared/components/setting-metric-card/setting-metric-card.component';
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
 import { AcademicService, Course, Section, StudentCourseEnrollment } from '@core/services/academic.service';
+import { EvaluationService, StudentFinalStatus } from '@core/services/evaluation.service';
 import { UserService, UserProfile } from '@core/services/user.service';
+import { getFailedCourseNamesFromResults } from '@shared/utils/grade-converter';
 
 interface StudentRecord {
   id: string;
@@ -28,6 +30,35 @@ interface StudentViewModel {
   student: StudentRecord | null;
   enrollments: StudentCourseEnrollment[];
 }
+
+type DetailStudentFinalStatus = StudentFinalStatus & {
+  next_grade_level_id?: string | null;
+  is_graduating?: boolean;
+};
+
+// Restriccion de matricula en un año FUTURO segun la decision persistida
+// del año anterior (student_final_statuses): permanece -> solo secciones
+// del MISMO grado; promociona/vacacional -> solo secciones del grado
+// siguiente (next_grade_level_id).
+interface AssignGradeRule {
+  loading: boolean;
+  bannerType: 'none' | 'danger' | 'success' | 'warning';
+  bannerText: string;
+  vacacionalCourses: string[];
+  restricted: boolean;
+  allowedGradeLevelId: string;
+  allowedGradeName: string;
+}
+
+const IDLE_ASSIGN_RULE: AssignGradeRule = {
+  loading: false,
+  bannerType: 'none',
+  bannerText: '',
+  vacacionalCourses: [],
+  restricted: false,
+  allowedGradeLevelId: '',
+  allowedGradeName: '',
+};
 
 @Component({
   selector: 'app-students',
@@ -291,8 +322,32 @@ interface StudentViewModel {
                     </app-setting-filter-dropdown>
                   </div>
 
+                  <!-- Condicion del año anterior al matricular en un año futuro -->
+                  <div *ngIf="assignRule.loading" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 flex items-center gap-3">
+                    <div class="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-xs font-semibold text-slate-500">Verificando condicion academica del año anterior...</p>
+                  </div>
+
+                  <div *ngIf="!assignRule.loading && assignRule.bannerType !== 'none'" class="rounded-2xl border px-4 py-3 space-y-2"
+                       [class]="assignRule.bannerType === 'danger'
+                         ? 'bg-red-50 border-red-200 text-red-700'
+                         : assignRule.bannerType === 'success'
+                           ? 'bg-green-50 border-green-200 text-green-700'
+                           : 'bg-yellow-50 border-yellow-200 text-yellow-700'">
+                    <p class="text-xs font-bold leading-snug">{{ assignRule.bannerText }}</p>
+                    <ul *ngIf="assignRule.vacacionalCourses.length > 0" class="list-disc list-inside text-xs font-semibold space-y-0.5">
+                      <li *ngFor="let course of assignRule.vacacionalCourses">{{ course }}</li>
+                    </ul>
+                    <p *ngIf="assignRule.bannerType === 'warning' && assignRule.vacacionalCourses.length === 0" class="text-xs font-medium opacity-80">
+                      No se encontraron registros de cursos desaprobados; verifica las notas finales antes de matricular.
+                    </p>
+                  </div>
+
                   <div class="space-y-2">
                     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Seccion</label>
+                    <p *ngIf="!assignRule.loading && assignRule.restricted" class="text-[11px] font-semibold text-slate-400 -mt-1">
+                      Mostrando únicamente secciones de {{ assignRule.allowedGradeName }}.
+                    </p>
                     <app-setting-filter-dropdown
                       [options]="sectionOptionsForAssign"
                       [selectedId]="assignForm.section_id"
@@ -317,7 +372,7 @@ interface StudentViewModel {
 
                   <button
                     (click)="assignCourseToDetailStudent()"
-                    [disabled]="assigningCourse || !detailStudent.student || !assignForm.academic_year_id || !assignForm.section_id || !assignForm.course_id || isCourseAlreadyAssigned(assignForm.course_id, assignForm.academic_year_id)"
+                    [disabled]="assigningCourse || assignRule.loading || !detailStudent.student || !assignForm.academic_year_id || !assignForm.section_id || !assignForm.course_id || isCourseAlreadyAssigned(assignForm.course_id, assignForm.academic_year_id)"
                     class="w-full px-6 py-3 bg-gradient-to-r from-blue-900 to-red-600 text-white text-sm font-bold rounded-2xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                     {{ assigningCourse ? 'Asignando...' : 'Asignar curso al estudiante' }}
                   </button>
@@ -341,6 +396,7 @@ export class StudentsComponent implements OnInit {
   enrollmentsList: StudentCourseEnrollment[] = [];
   studentRecords: StudentRecord[] = [];
   academicYears: any[] = [];
+  gradeLevels: any[] = [];
   sections: Section[] = [];
   courses: Course[] = [];
 
@@ -359,10 +415,13 @@ export class StudentsComponent implements OnInit {
     section_id: '',
     course_id: ''
   };
+  assignRule: AssignGradeRule = { ...IDLE_ASSIGN_RULE };
+  private assignRuleSeq = 0;
 
   constructor(
     private userService: UserService,
-    private academicService: AcademicService
+    private academicService: AcademicService,
+    private evaluationService: EvaluationService
   ) {}
 
   get totalStudents() { return this.studentsData.length; }
@@ -395,10 +454,20 @@ export class StudentsComponent implements OnInit {
   get sectionOptionsForAssign() {
     return this.sections
       .filter((section: any) => {
-        if (!this.assignForm.academic_year_id) {
-          return true;
+        if (this.assignForm.academic_year_id && String(section.academic_year_id || '') !== this.assignForm.academic_year_id) {
+          return false;
         }
-        return String(section.academic_year_id || '') === this.assignForm.academic_year_id;
+
+        // Restriccion por decision del año anterior (permanece/promovido):
+        // solo secciones del grado permitido, ya resuelta la consulta.
+        if (this.assignRule.restricted && !this.assignRule.loading) {
+          const sectionGradeId = String(section.grade_level_id || section.gradeLevel?.id || '');
+          if (sectionGradeId !== this.assignRule.allowedGradeLevelId) {
+            return false;
+          }
+        }
+
+        return true;
       })
       .map((section: any) => ({
         id: section.id,
@@ -426,6 +495,7 @@ export class StudentsComponent implements OnInit {
       studentRows: this.academicService.getStudents({ per_page: 100 }),
       enrollments: this.academicService.getEnrolledStudents({ per_page: 300 }),
       academicYears: this.academicService.getAcademicYears({ per_page: 100 }),
+      gradeLevels: this.academicService.getGradeLevels({ per_page: 100 }),
       sections: this.academicService.getSections({ per_page: 300 }),
       courses: this.academicService.getCourses({ per_page: 300 })
     }).subscribe({
@@ -434,6 +504,7 @@ export class StudentsComponent implements OnInit {
         this.studentRecords = this.extractCollection<StudentRecord>(res.studentRows);
         this.enrollmentsList = this.extractCollection<StudentCourseEnrollment>(res.enrollments);
         this.academicYears = this.extractCollection<any>(res.academicYears);
+        this.gradeLevels = this.extractCollection<any>(res.gradeLevels);
         this.sections = this.extractCollection<Section>(res.sections);
         this.courses = this.extractCollection<Course>(res.courses);
 
@@ -544,12 +615,14 @@ export class StudentsComponent implements OnInit {
     };
 
     this.showDetailModal = true;
+    this.evaluateAssignGradeRule();
   }
 
   closeStudentDetail() {
     this.showDetailModal = false;
     this.detailStudent = null;
     this.assigningCourse = false;
+    this.assignRule = { ...IDLE_ASSIGN_RULE };
     this.assignForm = {
       academic_year_id: '',
       section_id: '',
@@ -565,11 +638,189 @@ export class StudentsComponent implements OnInit {
       this.assignForm.section_id = '';
       this.assignForm.course_id = '';
     }
+
+    this.evaluateAssignGradeRule();
   }
 
   onAssignSectionChange(sectionId: string) {
     this.assignForm.section_id = sectionId;
     this.assignForm.course_id = '';
+  }
+
+  // Al elegir un año FUTURO en el panel Asignar curso se consulta como
+  // quedo cerrado el año anterior del estudiante (student_final_statuses)
+  // para restringir las secciones al grado que le corresponde y avisar con
+  // un banner. Sin año anterior o sin decision registrada no hay
+  // restriccion.
+  evaluateAssignGradeRule(): void {
+    const seq = ++this.assignRuleSeq;
+    const student = this.detailStudent?.student || null;
+    const selectedYear = this.academicYears.find((year: any) => year.id === this.assignForm.academic_year_id) || null;
+    const activeYear = this.academicYears.find((year: any) => year.is_active) || null;
+    const prevYear = selectedYear
+      ? this.academicYears.find((year: any) => Number(year.year) === Number(selectedYear.year) - 1)
+      : null;
+
+    // Futuro = posterior al año activo del sistema; sin activo de
+    // referencia no se asume nada.
+    const isFutureYear = !!selectedYear && !!activeYear && Number(selectedYear.year) > Number(activeYear.year);
+
+    if (!student?.id || !selectedYear || !prevYear || !isFutureYear) {
+      this.assignRule = { ...IDLE_ASSIGN_RULE };
+      return;
+    }
+
+    this.assignRule = { ...IDLE_ASSIGN_RULE, loading: true };
+
+    this.evaluationService.getStudentFinalStatuses({
+      student_id: student.id,
+      academic_year_id: prevYear.id,
+      per_page: 1,
+    }).subscribe({
+      next: (response) => {
+        if (seq !== this.assignRuleSeq) {
+          return;
+        }
+
+        const rows = this.extractCollection<DetailStudentFinalStatus>(response);
+        this.applyAssignRule(rows[0] || null, student, prevYear, seq);
+      },
+      error: (err) => {
+        console.error('[students] student final status error:', err);
+        if (seq !== this.assignRuleSeq) {
+          return;
+        }
+        this.assignRule = { ...IDLE_ASSIGN_RULE };
+      }
+    });
+  }
+
+  private applyAssignRule(
+    finalStatus: DetailStudentFinalStatus | null,
+    student: StudentRecord,
+    prevYear: any,
+    seq: number
+  ): void {
+    if (!finalStatus?.final_status || finalStatus.final_status === 'pendiente') {
+      this.assignRule = { ...IDLE_ASSIGN_RULE };
+      return;
+    }
+
+    if (finalStatus.is_graduating) {
+      this.assignRule = {
+        ...IDLE_ASSIGN_RULE,
+        bannerType: 'success',
+        bannerText: `El estudiante culminó ${prevYear.year} y egresa del colegio.`,
+      };
+      return;
+    }
+
+    if (finalStatus.final_status === 'permanece') {
+      const currentSection = this.sections.find((section: any) => section.id === student.section_id) as any;
+      const currentGradeLevelId = String(currentSection?.grade_level_id || currentSection?.gradeLevel?.id || '');
+
+      if (!currentGradeLevelId) {
+        // Sin grado actual resuelto no se puede restringir sin bloquear
+        // todo el desplegable; se deja libre y sin aviso.
+        this.assignRule = { ...IDLE_ASSIGN_RULE };
+        return;
+      }
+
+      this.setAssignRule(seq, {
+        restricted: true,
+        allowedGradeLevelId: currentGradeLevelId,
+        allowedGradeName: this.resolveGradeLevelName(currentGradeLevelId),
+        bannerType: 'danger',
+        bannerText: 'Estudiante en condición PERMANECE: Re-matricula obligatoria en el mismo grado.',
+      });
+      return;
+    }
+
+    if (finalStatus.final_status === 'promociona' || finalStatus.final_status === 'vacacional') {
+      const nextGradeLevelId = String(finalStatus.next_grade_level_id || '');
+
+      if (!nextGradeLevelId) {
+        this.assignRule = { ...IDLE_ASSIGN_RULE };
+        return;
+      }
+
+      const nextGradeName = this.resolveGradeLevelName(nextGradeLevelId);
+
+      if (finalStatus.final_status === 'promociona') {
+        this.setAssignRule(seq, {
+          restricted: true,
+          allowedGradeLevelId: nextGradeLevelId,
+          allowedGradeName: nextGradeName,
+          bannerType: 'success',
+          bannerText: `Estudiante Promovido a ${nextGradeName}.`,
+        });
+        return;
+      }
+
+      // vacacional: sube de grado igual que promociona, pero se advierte en
+      // ambar con los cursos que quedaron en C y debe recuperar.
+      this.evaluationService.getFinalCompetencyResults({
+        student_id: student.id,
+        academic_year_id: prevYear.id,
+        per_page: 300,
+      }).subscribe({
+        next: (resultsResponse) => {
+          if (seq !== this.assignRuleSeq) {
+            return;
+          }
+
+          const results = this.extractCollection<any>(resultsResponse);
+          this.setAssignRule(seq, {
+            restricted: true,
+            allowedGradeLevelId: nextGradeLevelId,
+            allowedGradeName: nextGradeName,
+            bannerType: 'warning',
+            bannerText: `Estudiante promovido a ${nextGradeName}, PERO tiene cursos pendientes de Escuela Vacacional (${prevYear.year}):`,
+            vacacionalCourses: getFailedCourseNamesFromResults(results),
+          });
+        },
+        error: (err) => {
+          console.error('[students] final competency results error:', err);
+          if (seq !== this.assignRuleSeq) {
+            return;
+          }
+          this.setAssignRule(seq, {
+            restricted: true,
+            allowedGradeLevelId: nextGradeLevelId,
+            allowedGradeName: nextGradeName,
+            bannerType: 'warning',
+            bannerText: `Estudiante promovido a ${nextGradeName}, con cursos pendientes de Escuela Vacacional (${prevYear.year}).`,
+          });
+        }
+      });
+    }
+  }
+
+  private setAssignRule(seq: number, rule: Partial<AssignGradeRule>): void {
+    if (seq !== this.assignRuleSeq) {
+      return;
+    }
+
+    this.assignRule = {
+      ...IDLE_ASSIGN_RULE,
+      ...rule,
+    };
+
+    // Si la seccion preseleccionada queda fuera del grado permitido, se
+    // limpia junto con el curso dependiente.
+    if (this.assignRule.restricted && this.assignForm.section_id) {
+      const section = this.sections.find((item: any) => item.id === this.assignForm.section_id) as any;
+      const sectionGradeId = String(section?.grade_level_id || section?.gradeLevel?.id || '');
+      if (sectionGradeId !== this.assignRule.allowedGradeLevelId) {
+        this.assignForm.section_id = '';
+        this.assignForm.course_id = '';
+      }
+    }
+  }
+
+  private resolveGradeLevelName(gradeLevelId: string): string {
+    const gradeLevel = this.gradeLevels.find((item: any) => item.id === gradeLevelId);
+    return gradeLevel?.name || 'grado siguiente';
   }
 
   assignCourseToDetailStudent() {

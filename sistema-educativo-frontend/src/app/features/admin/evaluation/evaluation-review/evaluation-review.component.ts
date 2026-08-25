@@ -4,7 +4,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
+import Swal from 'sweetalert2';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
+import { getFailedCourseNamesFromResults } from '@shared/utils/grade-converter';
 import { DonutChartComponent, DonutChartSegment } from '@shared/components/charts/donut-chart.component';
 import { BarChartComponent, BarChartItem } from '@shared/components/charts/bar-chart.component';
 import { AcademicService, Period } from '@core/services/academic.service';
@@ -33,6 +35,8 @@ interface RiskStudentItem {
   pendingCompetencies: number;
   recoveryRequired: boolean;
   decisionReason: string;
+  nextGradeLevelId: string;
+  isGraduating: boolean;
 }
 
 type ReviewStudentFinalStatus = StudentFinalStatus & {
@@ -45,7 +49,18 @@ type ReviewStudentFinalStatus = StudentFinalStatus & {
     id: string;
     name?: string;
   };
+  next_grade_level_id?: string | null;
+  is_graduating?: boolean;
 };
+
+const RISK_TABS = [
+  { key: 'todos', label: 'Todos' },
+  { key: 'promocionan', label: 'Promocionan' },
+  { key: 'vacacional', label: 'Vacacional' },
+  { key: 'permanecen', label: 'Permanecen' },
+] as const;
+
+type RiskTab = typeof RISK_TABS[number]['key'];
 
 type ReviewFinalCompetencyResult = FinalCompetencyResult & {
   student?: {
@@ -102,6 +117,12 @@ export class EvaluationReviewComponent implements OnInit {
   readonly coursePageSize = 10;
   courseSearchTerm = '';
 
+  riskTabs = RISK_TABS;
+  riskTab: RiskTab = 'todos';
+  riskPage = 1;
+  readonly riskPageSize = 10;
+  gradeLevelsById = new Map<string, string>();
+
   ebrDistributionChart: DonutChartSegment[] = [];
   coverageBarChart: BarChartItem[] = [];
 
@@ -114,10 +135,13 @@ export class EvaluationReviewComponent implements OnInit {
 
   statusBreakdown = {
     promociona: 0,
+    vacacional: 0,
     recuperacion: 0,
     permanece: 0,
     pendiente: 0,
   };
+
+  sendingWhatsappId = '';
 
   kpis: ReviewKpi[] = [
     { label: 'Evaluaciones del periodo', value: '0', icon: '<path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M11 16V9"/><path d="M15 16V5"/><path d="M19 16v-7"/>', tone: 'slate' },
@@ -154,6 +178,7 @@ export class EvaluationReviewComponent implements OnInit {
         this.gradeLevels = this.normalizeCollection(gradeLevels);
         this.sections = this.normalizeCollection(sections);
         this.teachers = this.normalizeCollection(teachers);
+        this.refreshGradeLevelsById();
       },
       error: (error) => {
         console.error('[evaluation-review] filter options error:', error);
@@ -251,6 +276,70 @@ export class EvaluationReviewComponent implements OnInit {
 
   toggleCompletedCourses(): void {
     this.showCompletedCourses = !this.showCompletedCourses;
+  }
+
+  setRiskTab(tab: RiskTab): void {
+    this.riskTab = tab;
+    this.riskPage = 1;
+  }
+
+  get filteredRiskStudents(): RiskStudentItem[] {
+    switch (this.riskTab) {
+      case 'promocionan':
+        return this.riskStudents.filter((student) => student.finalStatus === 'promociona');
+      case 'vacacional':
+        return this.riskStudents.filter((student) => student.finalStatus === 'vacacional');
+      case 'permanecen':
+        return this.riskStudents.filter((student) => student.finalStatus === 'permanece');
+      default:
+        return this.riskStudents;
+    }
+  }
+
+  get riskTabCounts(): Record<RiskTab, number> {
+    const count = (finalStatus: string): number =>
+      this.riskStudents.filter((student) => student.finalStatus === finalStatus).length;
+
+    return {
+      todos: this.riskStudents.length,
+      promocionan: count('promociona'),
+      vacacional: count('vacacional'),
+      permanecen: count('permanece'),
+    };
+  }
+
+  get riskTotalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredRiskStudents.length / this.riskPageSize));
+  }
+
+  get pagedRiskStudents(): RiskStudentItem[] {
+    const start = (this.riskPage - 1) * this.riskPageSize;
+    return this.filteredRiskStudents.slice(start, start + this.riskPageSize);
+  }
+
+  goToRiskPage(page: number): void {
+    this.riskPage = Math.min(Math.max(1, page), this.riskTotalPages);
+  }
+
+  // Grado que cursara el estudiante el proximo año segun la decision
+  // persistida (student_final_statuses.next_grade_level_id): promociona y
+  // vacacional -> grado siguiente; permanece -> el MISMO grado (repite);
+  // is_graduating -> egreso, sin grado siguiente. Se resuelve contra el
+  // catalogo de grados ya cargado porque /student-final-statuses devuelve
+  // solo el UUID, sin la relacion nextGradeLevel.
+  resolveProjectedGrade(student: RiskStudentItem): string {
+    if (!student.nextGradeLevelId) {
+      return student.isGraduating ? 'Egresa' : '-';
+    }
+    return this.gradeLevelsById.get(student.nextGradeLevelId) || '-';
+  }
+
+  private refreshGradeLevelsById(): void {
+    this.gradeLevelsById = new Map(
+      this.gradeLevels
+        .map((grade) => [String(grade.id), String(grade.name || '')] as const)
+        .filter(([id, name]) => id && name)
+    );
   }
 
   get readyToClose(): boolean {
@@ -418,12 +507,103 @@ export class EvaluationReviewComponent implements OnInit {
   getStatusBadgeClass(status: string): string {
     const map: Record<string, string> = {
       promociona: 'bg-green-50 text-green-700 border-green-200',
+      vacacional: 'bg-orange-50 text-orange-700 border-orange-200',
       recuperacion: 'bg-yellow-50 text-yellow-700 border-yellow-200',
       permanece: 'bg-red-50 text-red-700 border-red-200',
       pendiente: 'bg-slate-50 text-slate-600 border-slate-200',
     };
 
     return map[status] || map['pendiente'];
+  }
+
+  // Cursos con nota final en C del año activo para el aviso de Escuela
+  // Vacacional. La formula (promedio EBR por curso) vive compartida en
+  // grade-converter.ts::getFailedCourseNamesFromResults — misma que usa el
+  // detalle de estudiantes — porque replica la del backend y no debe
+  // divergir entre pantallas.
+  getVacacionalCourseNames(studentId: string): string[] {
+    return getFailedCourseNamesFromResults(
+      this.finalResults.filter((result) => result.student_id === studentId)
+    );
+  }
+
+  // Envio 100% manual al apoderado: mismo patron de Admision
+  // (enrollment-approvals.component.ts::shareCredentialsViaWhatsapp) y de
+  // Tutoria Academica — abre wa.me con el mensaje pre-armado y quien envia
+  // revisa y presiona enviar. El telefono se resuelve on-demand desde
+  // student-course-enrollments porque /student-final-statuses no trae
+  // guardians.
+  sendVacationalWhatsapp(student: RiskStudentItem): void {
+    const courseNames = this.getVacacionalCourseNames(student.id);
+
+    if (courseNames.length === 0) {
+      void Swal.fire({
+        icon: 'warning',
+        title: 'Sin cursos desaprobados',
+        text: `No se encontraron cursos con nota final en C para ${student.name} en el año activo.`,
+        confirmButtonText: 'Entendido',
+      });
+      return;
+    }
+
+    if (!this.activeAcademicYearId || this.sendingWhatsappId) {
+      return;
+    }
+
+    this.sendingWhatsappId = student.id;
+    this.academicService.getStudentCourseEnrollments({
+      student_id: student.id,
+      academic_year_id: this.activeAcademicYearId,
+      per_page: 100,
+    }).pipe(
+      finalize(() => {
+        this.sendingWhatsappId = '';
+      })
+    ).subscribe({
+      next: (response) => {
+        const rows = this.normalizeCollection<any>(response);
+        const guardians = rows[0]?.student?.guardians || [];
+        const guardian =
+          guardians.find((item: any) => item.is_primary && String(item.phone || '').trim())
+          || guardians.find((item: any) => String(item.phone || '').trim());
+
+        const rawPhone = String(guardian?.phone || '').replace(/\D/g, '');
+        if (!rawPhone) {
+          void Swal.fire({
+            icon: 'warning',
+            title: 'Sin numero de WhatsApp',
+            text: `${student.name} no tiene un telefono de apoderado registrado.`,
+            confirmButtonText: 'Entendido',
+          });
+          return;
+        }
+
+        const fullPhone = rawPhone.startsWith('51') ? rawPhone : '51' + rawPhone;
+        const guardianName = [guardian?.first_name, guardian?.last_name].filter(Boolean).join(' ').trim();
+
+        const lines: string[] = [
+          `Hola ${guardianName || 'apoderado(a)'},`,
+          '',
+          `Le informamos que ${student.name} pasara al siguiente grado, pero desaprobó (C) los siguientes cursos y deberá recuperarlos en Escuela Vacacional:`,
+          '',
+          ...courseNames.map((name) => `• ${name}`),
+          '',
+          'Le pedimos estar atentos a las fechas y modalidad de la Escuela Vacacional que el colegio comunicará oportunamente.',
+        ];
+
+        const message = encodeURIComponent(lines.join('\n'));
+        window.open(`https://wa.me/${fullPhone}?text=${message}`, '_blank');
+      },
+      error: (error) => {
+        console.error('[evaluation-review] guardian phone error:', error);
+        void Swal.fire({
+          icon: 'error',
+          title: 'No se pudo consultar el apoderado',
+          text: 'Ocurrió un error al buscar el telefono del apoderado. Intenta nuevamente.',
+          confirmButtonText: 'Entendido',
+        });
+      }
+    });
   }
 
   getCoverageBadgeClass(percent: number): string {
@@ -452,6 +632,7 @@ export class EvaluationReviewComponent implements OnInit {
 
     this.statusBreakdown = {
       promociona: this.studentStatuses.filter((status) => status.final_status === 'promociona').length,
+      vacacional: this.studentStatuses.filter((status) => status.final_status === 'vacacional').length,
       recuperacion: this.studentStatuses.filter((status) => status.final_status === 'recuperacion').length,
       permanece: this.studentStatuses.filter((status) => status.final_status === 'permanece').length,
       pendiente: this.studentStatuses.filter((status) => !status.final_status || status.final_status === 'pendiente').length,
@@ -468,7 +649,7 @@ export class EvaluationReviewComponent implements OnInit {
     ];
 
     this.riskStudents = this.studentStatuses
-      .filter((status) => ['recuperacion', 'permanece'].includes(status.final_status) || status.recovery_required)
+      .filter((status) => ['promociona', 'vacacional', 'recuperacion', 'permanece'].includes(status.final_status) || status.recovery_required)
       .map((status) => ({
         id: status.student_id,
         name: status.student?.full_name || 'Sin nombre',
@@ -478,8 +659,13 @@ export class EvaluationReviewComponent implements OnInit {
         pendingCompetencies: status.pending_competencies_count,
         recoveryRequired: status.recovery_required,
         decisionReason: status.decision_reason || '',
+        nextGradeLevelId: String(status.next_grade_level_id || ''),
+        isGraduating: !!status.is_graduating,
       }))
       .sort((a, b) => b.pendingCompetencies - a.pendingCompetencies);
+
+    this.refreshGradeLevelsById();
+    this.riskPage = 1;
 
     this.buildEbrDistributionChart();
     this.buildCoverageBarChart();
@@ -522,6 +708,8 @@ export class EvaluationReviewComponent implements OnInit {
     this.coursePage = 1;
     this.showCompletedCourses = false;
     this.riskStudents = [];
+    this.riskTab = 'todos';
+    this.riskPage = 1;
     this.pendingEvaluations = 0;
     this.supportRequiredCount = 0;
     this.consecutiveCCount = 0;
@@ -530,6 +718,7 @@ export class EvaluationReviewComponent implements OnInit {
     this.coverageBarChart = [];
     this.statusBreakdown = {
       promociona: 0,
+      vacacional: 0,
       recuperacion: 0,
       permanece: 0,
       pendiente: 0,

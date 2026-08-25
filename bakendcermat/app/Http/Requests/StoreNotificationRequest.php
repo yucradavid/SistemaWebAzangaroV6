@@ -29,6 +29,7 @@ class StoreNotificationRequest extends FormRequest
                     'tarea_nueva',
                     'recordatorio_pago',
                     'tutoria_registrada',
+                    'vacacional_asignado',
                 ])
             ],
 

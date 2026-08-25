@@ -69,7 +69,7 @@ export interface StudentFinalStatus {
   student_id: string;
   academic_year_id: string;
   grade_level_id: string;
-  final_status: 'promociona' | 'recuperacion' | 'permanece' | 'pendiente';
+  final_status: 'promociona' | 'vacacional' | 'recuperacion' | 'permanece' | 'pendiente';
   pending_competencies_count: number;
   recovery_required: boolean;
   decision_reason?: string;
@@ -189,7 +189,7 @@ export interface SectionEvaluationDashboardStudent {
     published_at?: string | null;
   } | null;
   academic_summary: {
-    final_status: 'promociona' | 'recuperacion' | 'permanece' | 'pendiente';
+    final_status: 'promociona' | 'vacacional' | 'recuperacion' | 'permanece' | 'pendiente';
     pending_competencies_count: number;
     recovery_required: boolean;
     totals: {
@@ -231,6 +231,7 @@ export interface SectionEvaluationDashboard {
     current_risk: number;
     status_breakdown: {
       promociona: number;
+      vacacional: number;
       recuperacion: number;
       permanece: number;
       pendiente: number;

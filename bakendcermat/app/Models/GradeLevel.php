@@ -19,6 +19,7 @@ class GradeLevel extends Model
         'level',
         'grade',
         'name',
+        'next_grade_level_id',
         'created_at'
     ];
 
@@ -30,6 +31,11 @@ class GradeLevel extends Model
     public function sections()
     {
         return $this->hasMany(Section::class);
+    }
+
+    public function nextGradeLevel()
+    {
+        return $this->belongsTo(GradeLevel::class, 'next_grade_level_id');
     }
 
     public function courses()
