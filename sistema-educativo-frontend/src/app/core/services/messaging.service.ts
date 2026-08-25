@@ -32,6 +32,8 @@ export type MessageSenderRole =
   | 'teacher'
   | 'guardian';
 
+export type MessageCategory = 'general' | 'tutoria';
+
 export interface Message {
   id: string;
   student_id: string;
@@ -39,9 +41,12 @@ export interface Message {
   sender_id: string;
   content: string;
   is_read: boolean;
+  category?: MessageCategory;
+  title?: string | null;
   created_at?: string;
   student?: any;
   sender?: any;
+  recipients?: Array<{ recipient_type: 'student' | 'guardian'; recipient_user_id: string; read_at?: string | null }>;
 }
 
 export interface NotificationItem {
@@ -179,12 +184,23 @@ export class MessagingService {
     return this.http.get<PaginatedResponse<MessageThreadSummary>>(`${this.apiUrl}/messages/threads`, { params });
   }
 
-  sendMessage(data: Pick<Message, 'student_id' | 'content'>): Observable<Message> {
+  sendMessage(data: Pick<Message, 'student_id' | 'content'> & { category?: MessageCategory; title?: string }): Observable<Message> {
     return this.http.post<Message>(`${this.apiUrl}/messages`, data);
   }
 
   markAsRead(id: string, data: { is_read: boolean }): Observable<Message> {
     return this.http.put<Message>(`${this.apiUrl}/messages/${id}`, data);
+  }
+
+  // Bandeja propia del estudiante (Tutoria Academica): lista mensajes donde
+  // el estudiante autenticado es destinatario explicito via message_recipients.
+  getStudentInbox(): Observable<PaginatedResponse<Message>> {
+    return this.http.get<PaginatedResponse<Message>>(`${this.apiUrl}/messages`);
+  }
+
+  // Lectura independiente por destinatario (no toca messages.is_read).
+  markRecipientRead(messageId: string): Observable<{ read_at: string }> {
+    return this.http.put<{ read_at: string }>(`${this.apiUrl}/messages/${messageId}/recipient-read`, {});
   }
 
   // --- Notifications ---

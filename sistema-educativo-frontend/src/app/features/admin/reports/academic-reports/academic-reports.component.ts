@@ -18,7 +18,9 @@ import {
   SectionEvaluationReportResponse,
 } from '@core/services/report.service';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
-import { catchError, of } from 'rxjs';
+import { BarChartComponent, BarChartItem } from '@shared/components/charts/bar-chart.component';
+import { DonutChartComponent, DonutChartSegment } from '@shared/components/charts/donut-chart.component';
+import { catchError, forkJoin, of } from 'rxjs';
 
 type TabType = 'attendance' | 'evaluation' | 'siagie';
 type ReportExportType = 'attendance' | 'evaluation';
@@ -45,7 +47,7 @@ interface EvaluationRow {
 @Component({
   selector: 'app-academic-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BackButtonComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BackButtonComponent, BarChartComponent, DonutChartComponent],
   templateUrl: './academic-reports.component.html',
 })
 export class AcademicReportsComponent implements OnInit {
@@ -82,6 +84,12 @@ export class AcademicReportsComponent implements OnInit {
   gradeDistribution = { AD: 0, A: 0, B: 0, C: 0 };
   studentsAtRisk = 0;
 
+  // % de asistencia por seccion del grado seleccionado (fetch paralelo,
+  // una llamada por seccion via forkJoin — no hay endpoint agregado en el
+  // backend para esto).
+  sectionAttendanceChart: BarChartItem[] = [];
+  loadingSectionsChart = false;
+
   ngOnInit() {
     this.loading = true;
     this.academicService.getAcademicYears().subscribe({
@@ -111,6 +119,7 @@ export class AcademicReportsComponent implements OnInit {
     this.activeTab = tab;
     this.error = '';
     this.loadTabData();
+    this.maybeLoadSectionsAttendanceChart();
   }
 
   onYearChange() {
@@ -130,6 +139,7 @@ export class AcademicReportsComponent implements OnInit {
   onPeriodChange() {
     this.resetReportData();
     this.loadTabData();
+    this.maybeLoadSectionsAttendanceChart();
   }
 
   onGradeChange() {
@@ -290,6 +300,36 @@ export class AcademicReportsComponent implements OnInit {
     }
 
     return 'Los datos mostrados provienen del backend y respetan el periodo seleccionado.';
+  }
+
+  get attendanceByStudentChart(): BarChartItem[] {
+    return this.attendanceRowsForView.map((row) => ({
+      label: row.student_name,
+      value: row.attendance_percentage,
+    }));
+  }
+
+  get attendanceIncidentsChart(): BarChartItem[] {
+    const tardiesAndJustifications = this.attendanceData.reduce((acc, row) => {
+      acc.tardies += row.total_tardies;
+      acc.justifications += row.total_justifications;
+      return acc;
+    }, { tardies: 0, justifications: 0 });
+
+    return [
+      { label: 'Faltas', value: this.totalAbsences },
+      { label: 'Tardanzas', value: tardiesAndJustifications.tardies },
+      { label: 'Justificadas', value: tardiesAndJustifications.justifications },
+    ];
+  }
+
+  get gradeDistributionChart(): DonutChartSegment[] {
+    return [
+      { label: 'AD', value: this.gradeDistribution.AD, color: '#22c55e' },
+      { label: 'A', value: this.gradeDistribution.A, color: '#3b82f6' },
+      { label: 'B', value: this.gradeDistribution.B, color: '#eab308' },
+      { label: 'C', value: this.gradeDistribution.C, color: '#ef4444' },
+    ];
   }
 
   get quickStats(): Array<{ label: string; value: string; tone: string }> {
@@ -868,6 +908,43 @@ export class AcademicReportsComponent implements OnInit {
     this.totalAbsences = 0;
     this.gradeDistribution = { AD: 0, A: 0, B: 0, C: 0 };
     this.studentsAtRisk = 0;
+    this.sectionAttendanceChart = [];
+  }
+
+  private maybeLoadSectionsAttendanceChart(): void {
+    if (this.activeTab !== 'attendance' || !this.selectedYear || !this.selectedGrade) {
+      return;
+    }
+
+    this.loadSectionsAttendanceChart();
+  }
+
+  private loadSectionsAttendanceChart(): void {
+    if (this.sections.length === 0) {
+      this.sectionAttendanceChart = [];
+      return;
+    }
+
+    this.loadingSectionsChart = true;
+    const params = this.buildAttendanceParams();
+
+    forkJoin(
+      this.sections.map((section) =>
+        this.reportService.getSectionAttendanceReport(section.id, params).pipe(catchError(() => of(null)))
+      )
+    ).subscribe((responses) => {
+      this.sectionAttendanceChart = this.sections.reduce<BarChartItem[]>((chart, section, index) => {
+        const response = responses[index];
+        if (response) {
+          chart.push({
+            label: `Sección ${section.section_letter}`,
+            value: Number(response.stats?.avg_attendance || 0),
+          });
+        }
+        return chart;
+      }, []);
+      this.loadingSectionsChart = false;
+    });
   }
 
   private loadSectionsForSelectedGrade() {
@@ -887,6 +964,7 @@ export class AcademicReportsComponent implements OnInit {
         if (this.selectedSection && !this.sections.some((section) => section.id === this.selectedSection)) {
           this.selectedSection = '';
         }
+        this.maybeLoadSectionsAttendanceChart();
       },
       error: () => this.error = 'No se pudieron cargar las secciones.'
     });

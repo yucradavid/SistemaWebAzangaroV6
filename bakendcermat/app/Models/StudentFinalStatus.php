@@ -24,11 +24,14 @@ class StudentFinalStatus extends Model
         'decision_reason',
         'decided_by',
         'decided_at',
+        'next_grade_level_id',
+        'is_graduating',
     ];
 
     protected $casts = [
         'pending_competencies_count' => 'integer',
         'recovery_required' => 'boolean',
+        'is_graduating' => 'boolean',
         'decided_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -47,6 +50,11 @@ class StudentFinalStatus extends Model
     public function gradeLevel(): BelongsTo
     {
         return $this->belongsTo(GradeLevel::class, 'grade_level_id');
+    }
+
+    public function nextGradeLevel(): BelongsTo
+    {
+        return $this->belongsTo(GradeLevel::class, 'next_grade_level_id');
     }
 
     public function decider(): BelongsTo

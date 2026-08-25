@@ -143,12 +143,6 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
             description: 'Generación masiva de deudas',
             icon: ICONS.creditCard,
             path: '/app/finance/charges/emission'
-          },
-          {
-            title: 'Cuenta Corriente',
-            description: 'Estado de cuenta por estudiante',
-            icon: ICONS.users,
-            path: '/app/finance/charges/student'
           }
         ]
       },
@@ -156,16 +150,10 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
         title: 'Caja y Tesorería',
         items: [
           {
-            title: 'Caja Diaria',
-            description: 'Registro de cobros y pagos',
+            title: 'Cuenta y Caja',
+            description: 'Cuenta corriente, caja diaria y cierres',
             icon: ICONS.dollarSign,
-            path: '/app/finance/cash'
-          },
-          {
-            title: 'Cierres de Caja',
-            description: 'Historial de cierres y arqueos',
-            icon: ICONS.landmark,
-            path: '/app/finance/cash/closures'
+            path: '/app/finance/account'
           }
         ]
       },
@@ -206,13 +194,19 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
             title: 'Bandeja de Entrada',
             description: 'Mensajería directa con apoderados',
             icon: ICONS.messageSquare,
-            path: '/app/messages/teacher'
+            path: '/app/messages/admin'
           },
           {
             title: 'Gestionar Comunicados',
             description: 'Crear y editar avisos',
             icon: ICONS.megaphone,
-            path: '/app/communications/teacher'
+            path: '/app/communications/admin'
+          },
+          {
+            title: 'Tutoría Académica',
+            description: 'Registrar mensajes de tutoría a un alumno y su apoderado',
+            icon: ICONS.alertTriangle,
+            path: '/app/tutoria-academica/admin'
           },
           {
             title: 'Aprobar Comunicados',
@@ -298,6 +292,12 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
             description: 'Parámetros del proceso de admisión',
             icon: ICONS.fileText,
             path: '/app/settings/enrollments'
+          },
+          {
+            title: 'Tipos de Documento',
+            description: 'Catálogo configurable de documentos de matrícula',
+            icon: ICONS.fileText,
+            path: '/app/settings/document-types'
           }
         ]
       }
@@ -344,6 +344,12 @@ export const ADMIN_MODULES_LIST: AdminModuleEntry[] = [
             description: 'Gestionar noticias de la página pública',
             icon: ICONS.newspaper,
             path: '/app/settings/news'
+          },
+          {
+            title: 'Portadas',
+            description: 'Configurar la imagen de portada de cada página pública',
+            icon: ICONS.newspaper,
+            path: '/app/settings/website/page-covers'
           }
         ]
       }

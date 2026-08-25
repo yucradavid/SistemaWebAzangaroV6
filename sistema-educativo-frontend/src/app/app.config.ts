@@ -1,9 +1,8 @@
 import { ApplicationConfig } from '@angular/core';
 import { provideRouter, withInMemoryScrolling, withViewTransitions } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { providePrimeNG } from 'primeng/config';
-import Aura from '@primeng/themes/aura';
+import { provideClientHydration } from '@angular/platform-browser';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
@@ -30,20 +29,12 @@ export const appConfig: ApplicationConfig = {
       withFetch(),
       withInterceptors([authInterceptor, errorInterceptor, backendInterceptor])
     ),
-
-    // Animaciones (async para PrimeNG)
-    provideAnimationsAsync(),
-
-    // PrimeNG — tema Aura con colores CERMAT
-    providePrimeNG({
-      theme: {
-        preset: Aura,
-        options: {
-          darkModeSelector: false,
-          prefix: 'p',
-        },
-      },
-    }),
+    
+    // Hydration para SSR (Server-Side Rendering)
+    provideClientHydration(),
+    
+    // Animaciones
+    provideAnimations(),
   ],
 };
 

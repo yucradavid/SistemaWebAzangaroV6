@@ -54,6 +54,8 @@ export class ApoderadoFinanceComponent implements OnInit {
   chargeFilter: ChargeFilter = 'all';
   paymentFilter: PaymentFilter = 'all';
   movementSearch = '';
+  showVoidedCharges = false;
+  private expandedVoidReasons = new Set<string>();
   activeAcademicYearId = '';
   activeAcademicYearLabel = 'Todo el historial';
   lastSummary: StudentFinancialSummaryResponse | null = null;
@@ -75,7 +77,7 @@ export class ApoderadoFinanceComponent implements OnInit {
         label: 'Emitido neto',
         value: `S/ ${Number(totals?.net_total || 0).toFixed(2)}`,
         helper: `Incluye descuentos por S/ ${Number(totals?.total_discount || 0).toFixed(2)}`,
-        tone: 'bg-slate-900 text-white border-slate-900',
+        tone: 'bg-slate-50 text-slate-900 border-slate-200',
       },
       {
         label: 'Pagado',
@@ -111,7 +113,7 @@ export class ApoderadoFinanceComponent implements OnInit {
         label: 'Pendiente familiar',
         value: `S/ ${pending.toFixed(2)}`,
         helper: `${studentsWithDebt} hijo(s) con saldo pendiente`,
-        tone: 'bg-slate-950 text-white border-slate-950',
+        tone: 'bg-slate-50 text-slate-900 border-slate-200',
       },
       {
         label: 'Pagado familiar',
@@ -196,10 +198,6 @@ export class ApoderadoFinanceComponent implements OnInit {
     return this.payments.filter((payment) => !payment.voided_at);
   }
 
-  get studentSectionLabel(): string {
-    return this.selectedStudent ? this.getSectionLabel(this.selectedStudent) : 'Sin grado';
-  }
-
   get statusBanner(): { title: string; message: string; tone: string } | null {
     if (!this.selectedStudent || !this.lastSummary) {
       return null;
@@ -229,28 +227,53 @@ export class ApoderadoFinanceComponent implements OnInit {
       };
     }
 
-    if (this.charges.length > 0) {
+    const nonVoidedCharges = this.charges.filter((charge) => charge.status !== 'anulado');
+
+    if (nonVoidedCharges.length === 0) {
       return {
-        title: 'Cuenta al dia',
-        message: 'No hay cargos con saldo pendiente en el periodo consultado.',
-        tone: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+        title: 'Sin cargos generados',
+        message: 'Aun no se han generado cargos para este periodo.',
+        tone: 'bg-slate-50 border-slate-200 text-slate-600',
       };
     }
 
     return {
-      title: 'Sin movimientos',
-      message: 'Todavia no existen cargos ni pagos registrados para este estudiante en el filtro actual.',
-      tone: 'bg-slate-50 border-slate-200 text-slate-600',
+      title: 'Cuenta al dia',
+      message: 'No hay cargos con saldo pendiente en el periodo consultado.',
+      tone: 'bg-emerald-50 border-emerald-200 text-emerald-700',
     };
   }
 
-  onStudentChange(): void {
-    if (this.summaries.length === 0) {
-      this.loadFinance();
-      return;
+  get voidedChargesInView(): number {
+    if (this.chargeFilter !== 'all') {
+      return 0;
     }
 
-    this.applySelectedSummary();
+    return this.filteredCharges.filter((charge) => charge.status === 'anulado').length;
+  }
+
+  get visibleCharges(): StudentFinancialCharge[] {
+    if (this.chargeFilter !== 'all' || this.showVoidedCharges) {
+      return this.filteredCharges;
+    }
+
+    return this.filteredCharges.filter((charge) => charge.status !== 'anulado');
+  }
+
+  toggleVoidedCharges(): void {
+    this.showVoidedCharges = !this.showVoidedCharges;
+  }
+
+  toggleVoidReason(id: string): void {
+    if (this.expandedVoidReasons.has(id)) {
+      this.expandedVoidReasons.delete(id);
+    } else {
+      this.expandedVoidReasons.add(id);
+    }
+  }
+
+  isVoidReasonExpanded(id: string): boolean {
+    return this.expandedVoidReasons.has(id);
   }
 
   onScopeChange(): void {

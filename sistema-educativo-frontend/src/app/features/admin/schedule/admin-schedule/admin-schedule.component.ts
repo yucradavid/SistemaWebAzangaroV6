@@ -54,9 +54,13 @@ export class AdminScheduleComponent implements OnInit {
   scheduleForm: FormGroup;
 
   // BATCH PLANNING STATE
-  pendingChanges: Record<string, any> = {}; 
+  pendingChanges: Record<string, any> = {};
   selectedChangeIds: Set<string> = new Set();
   showBatchModal = false;
+
+  // BATCH SAVE RESULT STATE (guardado parcial)
+  batchConflicts: Array<{ id: string; courseName: string; block: any; message: string }> = [];
+  batchSuccessCount = 0;
 
   toggleSelection(id: string) {
     if (this.selectedChangeIds.has(id)) {
@@ -304,6 +308,41 @@ export class AdminScheduleComponent implements OnInit {
     this.suggestions = slots;
   }
 
+  // Huecos libres en TODA la semana para un bloque en conflicto (resolución de lote).
+  // A diferencia de updateSuggestions(), no depende de getVisibleDays()/maxDays (una
+  // preferencia de vista del usuario, no necesariamente la semana completa), y el hueco
+  // debe ser al menos tan largo como la duración real del curso a reubicar.
+  // Reutiliza getSchedulesByDay(), que ya fusiona pendingChanges sobre schedules, así que
+  // automáticamente respeta las posiciones nuevas de otros cambios pendientes del mismo lote.
+  findFreeSlotsForConflict(block: any, excludeId: string): Array<{ dayId: number; start: number; end: number }> {
+    const slots: Array<{ dayId: number; start: number; end: number }> = [];
+    const gridStart = this.gridStartHour * 60;
+    const gridEnd = this.gridEndHour * 60;
+    const neededMinutes = this.timeToMinutes(block.end_time) - this.timeToMinutes(block.start_time);
+
+    this.days.slice(0, 6).forEach(day => {
+      const dayBlocks = this.getSchedulesByDay(day.id)
+        .filter((b: any) => b.id !== excludeId)
+        .map((b: any) => ({ start: this.timeToMinutes(b.start_time), end: this.timeToMinutes(b.end_time) }))
+        .sort((a, b) => a.start - b.start);
+
+      let currentPointer = gridStart;
+
+      dayBlocks.forEach(b => {
+        if (b.start - currentPointer >= neededMinutes) {
+          slots.push({ dayId: day.id, start: currentPointer, end: currentPointer + neededMinutes });
+        }
+        currentPointer = Math.max(currentPointer, b.end);
+      });
+
+      if (gridEnd - currentPointer >= neededMinutes) {
+        slots.push({ dayId: day.id, start: currentPointer, end: currentPointer + neededMinutes });
+      }
+    });
+
+    return slots;
+  }
+
   applySuggestion(slot: any) {
     const startStr = this.minutesToTime(slot.start);
     const endStr = this.minutesToTime(slot.end);
@@ -424,9 +463,14 @@ export class AdminScheduleComponent implements OnInit {
     });
 
     this.saving = true;
-    
-    // GUARDADO SECUENCIAL ROBUSTO
-    import('rxjs').then(({ from, concatMap, of, catchError, finalize }) => {
+    this.batchConflicts = [];
+    this.batchSuccessCount = 0;
+
+    // GUARDADO PARCIAL: cada bloque es un PUT independiente (arquitectura sin cambios).
+    // Lo que cambia es que un 422 individual ya NO detiene ni descarta el resto del lote:
+    // se acumula en batchConflicts para resolverlo aparte, mientras los válidos se aplican
+    // y desaparecen de pendingChanges de inmediato, igual que hoy.
+    import('rxjs').then(({ from, concatMap, of, map, catchError, finalize }) => {
       from(selectedIds).pipe(
         concatMap(id => {
           const rawItem = this.pendingChanges[id];
@@ -442,6 +486,7 @@ export class AdminScheduleComponent implements OnInit {
           };
 
           return this.scheduleService.updateSchedule(id, payload).pipe(
+            map(() => ({ error: false, id })),
             catchError(err => {
               const serverMsg = err.error?.message || err.error?.error || 'Conflicto de validación';
               return of({ error: true, id, msg: serverMsg });
@@ -454,27 +499,30 @@ export class AdminScheduleComponent implements OnInit {
         })
       ).subscribe({
         next: (res: any) => {
-          if (res && !res.error) {
-            // El concatMap garantiza orden, así que podemos usar shift() sobre la lista ordenada
-            const currentId = selectedIds.shift();
-            if (currentId) {
-              delete this.pendingChanges[currentId];
-              this.selectedChangeIds.delete(currentId);
-            }
-          } else if (res.error) {
-            const courseName = this.getCourseName(this.pendingChanges[res.id]?.course_id);
-            Swal.fire({ 
-              icon: 'error', 
-              title: `Error en ${courseName}`, 
-              text: res.msg,
-              toast: true, position: 'top-end', timer: 5000 
-            });
-            selectedIds.shift();
+          if (!res.error) {
+            this.batchSuccessCount++;
+            delete this.pendingChanges[res.id];
+          } else {
+            const rawItem = this.pendingChanges[res.id];
+            const courseName = this.getCourseName(rawItem?.course_id, rawItem);
+            this.batchConflicts.push({ id: res.id, courseName, block: rawItem, message: res.msg });
           }
         },
         complete: () => {
-          if (this.getPendingChangesCount() === 0) {
-            Swal.fire({ icon: 'success', title: '¡Hecho!', text: 'Todos los cambios se sincronizaron en el orden correcto.', toast: true, position: 'top-end', timer: 3000 });
+          if (this.batchConflicts.length === 0) {
+            Swal.fire({ icon: 'success', title: '¡Hecho!', text: `${this.batchSuccessCount} cambio(s) guardado(s) correctamente.`, toast: true, position: 'top-end', timer: 3000 });
+          } else {
+            Swal.fire({
+              icon: 'warning',
+              title: `${this.batchSuccessCount} guardado(s), ${this.batchConflicts.length} con conflicto`,
+              text: 'Los cambios sin cruce ya se aplicaron. Los que chocan quedaron pendientes para resolverlos.',
+              toast: true, position: 'top-end', timer: 5000
+            });
+          }
+          if (this.batchConflicts.length > 0) {
+            this.selectedChangeIds = new Set(this.batchConflicts.map(c => c.id));
+          } else {
+            this.selectedChangeIds.clear();
           }
         }
       });

@@ -223,22 +223,54 @@ export class TeacherEvaluationComponent implements OnInit, AfterViewInit {
     this.success = '';
   }
 
-  onScoreInput(studentId: string, competencyId: string, value: string): void {
+  onScoreInput(studentId: string, competencyId: string, event: Event): void {
     const record = this.recordFor(studentId, competencyId);
 
     if (this.isCellLocked(record)) {
       return;
     }
 
-    const num = parseInt(value, 10);
-    record.numericScore = isNaN(num) ? null : num;
+    const input = event.target as HTMLInputElement;
+    const raw = parseFloat(input.value);
 
-    const ebr = numberToEBR(record.numericScore);
+    if (isNaN(raw)) {
+      record.numericScore = null;
+      return;
+    }
+
+    // Clamp estricto al rango 0-20: min/max del input HTML no bloquean el
+    // tecleo directo ni el pegado (paste), solo las flechas de spinner.
+    // Redondeamos porque la escala EBR es entera (step=1); sin esto, un
+    // valor decimal entre dos tramos (ej. 10.5) no mapearia a ninguna
+    // letra y dejaria la nota anterior "pegada" — el mismo bug que
+    // estamos corrigiendo, solo que por decimales en vez de fuera de rango.
+    let value = Math.round(raw);
+    value = Math.min(20, Math.max(0, value));
+
+    record.numericScore = value;
+    input.value = String(value);
+
+    const ebr = numberToEBR(value);
     if (ebr) {
       record.grade = ebr;
       record.status = 'borrador';
       record.dirty = true;
       this.success = '';
+    }
+  }
+
+  restrictToValidRange(event: KeyboardEvent): void {
+    if (!/^[0-9]$/.test(event.key)) {
+      return;
+    }
+
+    const input = event.target as HTMLInputElement;
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const projectedValue = input.value.slice(0, start) + event.key + input.value.slice(end);
+
+    if (parseInt(projectedValue, 10) > 20) {
+      event.preventDefault();
     }
   }
 

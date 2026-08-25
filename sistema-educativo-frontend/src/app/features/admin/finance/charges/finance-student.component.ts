@@ -8,6 +8,7 @@ import Swal from 'sweetalert2';
 import { AcademicService } from '@core/services/academic.service';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { Charge, FinanceService, Payment } from '@core/services/finance.service';
+import { FinanceCashierService } from '@core/services/finance-cashier.service';
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
 
 @Component({
@@ -43,7 +44,8 @@ export class FinanceStudentComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private financeService: FinanceService,
-    private academicService: AcademicService
+    private academicService: AcademicService,
+    private financeCashier: FinanceCashierService
   ) {
     this.searchForm = this.fb.group({
       q: ['']
@@ -294,95 +296,35 @@ export class FinanceStudentComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const remaining = this.getOutstandingAmount(charge);
-    if (remaining <= 0) {
-      Swal.fire('Sin saldo', 'Este cargo ya se encuentra cancelado.', 'info');
-      return;
-    }
+    this.financeCashier.collectChargePayment(charge)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (payment) => {
+          this.activeTab = 'payments';
+          this.loadAccount();
 
-    Swal.fire({
-      title: 'Registrar pago',
-      html: `
-        <div class="space-y-4 pt-4 text-left">
-          <div class="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-1">
-            <div class="text-sm font-semibold text-slate-800">${charge.concept?.name || charge.notes || 'Cargo'}</div>
-            <div class="text-xs text-slate-500">Saldo pendiente: S/ ${remaining.toFixed(2)}</div>
-          </div>
-          <input id="swal-payment-amount" type="number" step="0.01" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Monto a cobrar">
-          <select id="swal-payment-method" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm">
-            <option value="efectivo">Efectivo</option>
-            <option value="transferencia">Transferencia</option>
-            <option value="tarjeta">Tarjeta</option>
-            <option value="yape">Yape</option>
-            <option value="plin">Plin</option>
-          </select>
-          <input id="swal-payment-reference" type="text" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Referencia / operacion (opcional)">
-          <input id="swal-payment-notes" type="text" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" placeholder="Observacion (opcional)">
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Registrar pago',
-      cancelButtonText: 'Cancelar',
-      preConfirm: () => {
-        const amount = Number((document.getElementById('swal-payment-amount') as HTMLInputElement)?.value);
-        const method = (document.getElementById('swal-payment-method') as HTMLSelectElement)?.value;
-        const reference = (document.getElementById('swal-payment-reference') as HTMLInputElement)?.value || '';
-        const notes = (document.getElementById('swal-payment-notes') as HTMLInputElement)?.value || '';
-
-        if (!amount || amount <= 0) {
-          Swal.showValidationMessage('Ingresa un monto valido.');
-          return false;
-        }
-
-        if (amount > remaining) {
-          Swal.showValidationMessage(`El monto no puede superar el saldo pendiente de S/ ${remaining.toFixed(2)}.`);
-          return false;
-        }
-
-        return { amount, method, reference, notes };
-      }
-    }).then((result) => {
-      if (!result.isConfirmed) {
-        return;
-      }
-
-      this.financeService.createPayment({
-        charge_id: charge.id,
-        amount: result.value.amount,
-        method: result.value.method,
-        reference: result.value.reference || null,
-        notes: result.value.notes || null,
-        paid_at: new Date().toISOString()
-      })
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (payment) => {
-            this.activeTab = 'payments';
-            this.loadAccount();
-
-            if (payment.receipt) {
-              Swal.fire({
-                title: 'Pago registrado',
-                html: `Pago registrado correctamente.<br><br><strong>Recibo:</strong> ${payment.receipt.number || 'Generado'}`,
-                icon: 'success',
-                showCancelButton: true,
-                confirmButtonText: 'Imprimir recibo',
-                cancelButtonText: 'Cerrar'
-              }).then((printResult) => {
-                if (printResult.isConfirmed) {
-                  this.printReceipt(payment);
-                }
-              });
-              return;
-            }
-
-            Swal.fire('Pago registrado', 'El pago fue registrado correctamente.', 'success');
-          },
-          error: (error) => {
-            Swal.fire('Error', error?.error?.message || 'No se pudo registrar el pago.', 'error');
+          if (payment.receipt) {
+            Swal.fire({
+              title: 'Pago registrado',
+              html: `Pago registrado correctamente.<br><br><strong>Recibo:</strong> ${payment.receipt.number || 'Generado'}`,
+              icon: 'success',
+              showCancelButton: true,
+              confirmButtonText: 'Imprimir recibo',
+              cancelButtonText: 'Cerrar'
+            }).then((printResult) => {
+              if (printResult.isConfirmed) {
+                this.printReceipt(payment);
+              }
+            });
+            return;
           }
-        });
-    });
+
+          Swal.fire('Pago registrado', 'El pago fue registrado correctamente.', 'success');
+        },
+        error: () => {
+          // El modal compartido ya muestra el error al usuario.
+        }
+      });
   }
 
   voidCharge(charge: Charge): void {

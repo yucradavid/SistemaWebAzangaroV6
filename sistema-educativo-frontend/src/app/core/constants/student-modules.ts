@@ -39,6 +39,12 @@ export const STUDENT_MODULES_LIST: StudentModuleEntry[] = [
     path: '/app/communications/student'
   },
   {
+    title: 'Tutoría Académica',
+    description: 'Mensajes de tutoría registrados por tus docentes',
+    icon: ICONS.alertTriangle,
+    path: '/app/student/tutoria'
+  },
+  {
     title: 'Mi Progreso',
     description: 'Estadísticas de tu rendimiento académico',
     icon: ICONS.activity,

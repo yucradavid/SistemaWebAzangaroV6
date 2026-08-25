@@ -1,0 +1,168 @@
+<app-back-button></app-back-button>
+
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+  <div class="rounded-3xl border border-rose-200 bg-rose-50/60 p-6 shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+          <line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Tutoría Académica</h1>
+        <p class="text-sm text-slate-600 mt-0.5">
+          Busca un alumno y registra un mensaje de tutoría — llega a su bandeja, a la de su apoderado, y a la campanita de ambos con aviso destacado.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buscador -->
+  <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+    <label class="block space-y-2">
+      <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Buscar por nombre o código</span>
+      <input
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchTermChange()"
+        type="text"
+        placeholder="Ej. Yeraldinño, EST000021..."
+        class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:bg-white focus:ring-4 focus:ring-rose-500/10">
+    </label>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <label class="space-y-2">
+        <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Nivel</span>
+        <select
+          [(ngModel)]="selectedLevel"
+          (ngModelChange)="onLevelChange()"
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-rose-400 focus:bg-white focus:ring-4 focus:ring-rose-500/10">
+          <option value="">Todos los niveles</option>
+          <option *ngFor="let level of levelOptions" [value]="level.value">{{ level.label }}</option>
+        </select>
+      </label>
+
+      <label class="space-y-2">
+        <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Grado</span>
+        <select
+          [(ngModel)]="selectedGradeLevelId"
+          (ngModelChange)="onGradeChange()"
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-rose-400 focus:bg-white focus:ring-4 focus:ring-rose-500/10">
+          <option value="">Todos los grados</option>
+          <option *ngFor="let grade of filteredGradeOptions" [value]="grade.value">{{ grade.label }}</option>
+        </select>
+      </label>
+
+      <label class="space-y-2">
+        <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Sección</span>
+        <select
+          [(ngModel)]="selectedSectionId"
+          (ngModelChange)="onSectionChange()"
+          [disabled]="!selectedGradeLevelId"
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-rose-400 focus:bg-white focus:ring-4 focus:ring-rose-500/10 disabled:opacity-50 disabled:cursor-not-allowed">
+          <option value="">Todas las secciones</option>
+          <option *ngFor="let section of filteredSectionOptions" [value]="section.value">{{ section.label }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="flex justify-end">
+      <button type="button" (click)="clearFilters()" class="text-xs font-bold text-slate-500 hover:text-slate-700">
+        Limpiar filtros
+      </button>
+    </div>
+  </div>
+
+  <!-- Resultados -->
+  <div>
+    <div *ngIf="loadingResults" class="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+      <div class="mx-auto h-8 w-8 rounded-full border-4 border-slate-200 border-t-rose-500 animate-spin"></div>
+      <p class="mt-3 text-sm font-medium text-slate-500">Buscando estudiantes...</p>
+    </div>
+
+    <div *ngIf="!loadingResults && searched && results.length === 0" class="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+      <p class="text-sm font-medium text-slate-500">No se encontraron estudiantes para estos filtros.</p>
+    </div>
+
+    <div *ngIf="!loadingResults && results.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <button
+        *ngFor="let student of results"
+        type="button"
+        (click)="selectStudent(student)"
+        class="text-left rounded-3xl border p-5 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        [ngClass]="selectedStudent?.studentId === student.studentId ? 'border-rose-300 bg-rose-50/50' : 'border-slate-200'">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-black text-slate-600 shrink-0">
+            {{ getInitial(student.fullName) }}
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-slate-900 truncate">{{ student.fullName }}</p>
+            <p class="text-xs text-slate-500 truncate">{{ student.sectionLabel }}</p>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center justify-between text-[11px] text-slate-400">
+          <span>{{ student.studentCode || 'Sin código' }}</span>
+          <span *ngIf="student.guardianPhone" class="inline-flex items-center gap-1 text-emerald-600 font-bold">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.3A8.7 8.7 0 0 0 4.6 17l-1.1 4 4.2-1.1a8.7 8.7 0 0 0 12-7.8 8.6 8.6 0 0 0-2.1-5.8Z" opacity=".15"/><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.6 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.1.1-1.8-.1-.4-.1-1-.3-1.7-.6-3-1.3-4.9-4.3-5.1-4.5-.1-.2-1.2-1.6-1.2-3s.8-2.2 1-2.5c.3-.3.6-.3.8-.3h.6c.2 0 .5 0 .7.5.3.7.9 2.2 1 2.4.1.2.2.4.1.6-.1.2-.2.4-.4.6l-.5.6c-.2.2-.3.4-.1.7.2.3.9 1.5 1.9 2.4 1.3 1.2 2.4 1.5 2.7 1.7.3.2.5.1.7-.1l1-1.1c.2-.3.5-.2.8-.1l2.1 1c.3.1.5.2.6.3.1.2.1.9-.1 1.6Z"/></svg>
+            WhatsApp
+          </span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Formulario de registro -->
+<div *ngIf="selectedStudent" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="closeForm()"></div>
+  <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
+    <div class="bg-rose-50 border-b border-rose-100 px-6 py-4 flex items-center justify-between">
+      <div>
+        <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-rose-500">Registrar tutoría</p>
+        <h3 class="text-lg font-bold text-slate-900">{{ selectedStudent.fullName }}</h3>
+        <p class="text-xs text-slate-500">{{ selectedStudent.sectionLabel }}</p>
+      </div>
+      <button (click)="closeForm()" class="text-slate-400 hover:text-slate-700 transition-colors">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="p-6 space-y-4">
+      <label class="block space-y-2">
+        <span class="text-sm font-semibold text-slate-700">Título</span>
+        <input
+          [(ngModel)]="messageTitle"
+          type="text"
+          maxlength="255"
+          placeholder="Ej: Falta consecutiva, Conducta inapropiada..."
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:bg-white focus:ring-4 focus:ring-rose-500/10">
+      </label>
+
+      <label class="block space-y-2">
+        <span class="text-sm font-semibold text-slate-700">Mensaje de tutoría</span>
+        <textarea
+          [(ngModel)]="messageBody"
+          rows="5"
+          placeholder="Describe el motivo del mensaje de tutoría académica..."
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:bg-white focus:ring-4 focus:ring-rose-500/10 resize-none"></textarea>
+      </label>
+
+      <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer" [class.opacity-50]="!selectedStudent.guardianPhone">
+        <input type="checkbox" [(ngModel)]="sendWhatsapp" [disabled]="!selectedStudent.guardianPhone" class="w-4 h-4 accent-rose-600">
+        <span class="text-sm font-medium text-slate-700">
+          Enviar también por WhatsApp al apoderado
+          <span *ngIf="!selectedStudent.guardianPhone" class="block text-xs text-slate-400">Sin teléfono de apoderado registrado.</span>
+        </span>
+      </label>
+
+      <div class="flex gap-3 pt-2">
+        <button type="button" (click)="closeForm()" class="flex-1 px-5 py-2.5 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-xl transition-colors">
+          Cancelar
+        </button>
+        <button type="button" (click)="submit()" [disabled]="!canSubmit" class="flex-1 px-5 py-2.5 bg-rose-600 text-white hover:bg-rose-700 font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          {{ sending ? 'Registrando...' : 'Registrar y enviar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

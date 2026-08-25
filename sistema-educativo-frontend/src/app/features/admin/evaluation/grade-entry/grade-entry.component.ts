@@ -8,13 +8,15 @@ import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { AcademicService, Competency, Course, Period } from '@core/services/academic.service';
 import { Evaluation, EvaluationService, SectionEvaluationDashboardStudent } from '@core/services/evaluation.service';
+import { GRADE_MAX, GradeEBR, ebrToRange, getEBRColor, numberToEBR } from '../../../../shared/utils/grade-converter';
 
 interface EnrolledStudent {
   id: string;
   name: string;
   code: string;
   initials: string;
-  grade: 'AD' | 'A' | 'B' | 'C' | null;
+  grade: GradeEBR | null;
+  numericScore?: number | null;
   observation: string;
   evaluation_id?: string;
   status?: string;
@@ -266,6 +268,7 @@ export class GradeEntryComponent implements OnInit {
             code: student.student_code || 'N/A',
             initials: this.getInitials(student.full_name || 'N A'),
             grade: null,
+            numericScore: null,
             observation: '',
             status: '',
             dirty: false,
@@ -342,12 +345,70 @@ export class GradeEntryComponent implements OnInit {
     this.selectedStudentId = studentId;
   }
 
-  setGrade(student: EnrolledStudent, grade: any) {
+  setGrade(student: EnrolledStudent, grade: any, updateNumericScore: boolean = true) {
     if (student.status === 'publicada') return;
     student.grade = grade;
+    if (updateNumericScore) {
+      student.numericScore = GRADE_MAX[grade as GradeEBR] ?? null;
+    }
     student.status = student.status || 'borrador';
     student.dirty = true;
     this.successMessage = '';
+  }
+
+  onScoreInput(student: EnrolledStudent, event: Event) {
+    if (student.status === 'publicada') return;
+
+    const input = event.target as HTMLInputElement;
+    const raw = parseFloat(input.value);
+
+    if (isNaN(raw)) {
+      student.numericScore = null;
+      return;
+    }
+
+    // Clamp estricto al rango 0-20: min/max del input HTML no bloquean el
+    // tecleo directo ni el pegado (paste), solo las flechas de spinner.
+    // Redondeamos porque la escala EBR es entera (step=1); sin esto, un
+    // valor decimal entre dos tramos (ej. 10.5) no mapearia a ninguna
+    // letra y dejaria la nota anterior "pegada" — el mismo bug que
+    // estamos corrigiendo, solo que por decimales en vez de fuera de rango.
+    let value = Math.round(raw);
+    value = Math.min(20, Math.max(0, value));
+
+    student.numericScore = value;
+    input.value = String(value);
+
+    const letter = numberToEBR(value);
+    if (letter) {
+      // false: onScoreInput ya fijo numericScore al valor clampeado exacto;
+      // no se debe sobreescribir con el maximo de la letra (GRADE_MAX).
+      this.setGrade(student, letter, false);
+    }
+  }
+
+  restrictToValidRange(event: KeyboardEvent) {
+    if (!/^[0-9]$/.test(event.key)) {
+      return;
+    }
+
+    const input = event.target as HTMLInputElement;
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const projectedValue = input.value.slice(0, start) + event.key + input.value.slice(end);
+
+    if (parseInt(projectedValue, 10) > 20) {
+      event.preventDefault();
+    }
+  }
+
+  getScorePreview(grade: GradeEBR | null): string {
+    if (!grade) return '';
+    return ebrToRange(grade);
+  }
+
+  getGradeColorClass(grade: GradeEBR | null): string {
+    return getEBRColor(grade);
   }
 
   markObservationChanged(student: EnrolledStudent) {
@@ -509,17 +570,6 @@ export class GradeEntryComponent implements OnInit {
         this.errorMessage = 'No se pudo recalcular el resumen academico de la seccion.';
       }
     });
-  }
-
-  getGradeSelectedClass(grade: string): string {
-    const base = 'px-3 py-1.5 rounded-lg text-white text-xs font-bold shadow-sm transition-all active:scale-95 ';
-    switch (grade) {
-      case 'AD': return base + 'bg-green-500';
-      case 'A': return base + 'bg-blue-500';
-      case 'B': return base + 'bg-yellow-400';
-      case 'C': return base + 'bg-red-500';
-      default: return 'px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 text-xs font-bold';
-    }
   }
 
   getFinalStatusLabel(status?: string | null): string {

@@ -351,7 +351,7 @@ export class DataService {
   ]);
 
   // Computed values
-  readonly featuredNews = computed(() => 
+  readonly featuredNews = computed(() =>
     this.news().filter(n => n.featured)
   );
 

@@ -6,17 +6,30 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMessageRequest;
 use App\Http\Requests\UpdateMessageRequest;
 use App\Models\Message;
+use App\Models\MessageRecipient;
 use App\Models\Notification;
+use App\Models\Student;
 use App\Models\Teacher;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class MessageController extends Controller
 {
     public function index(Request $request)
     {
+        $role = $request->user()?->profile?->role;
+
+        // Bandeja propia del estudiante: solo mensajes donde exista un
+        // message_recipients explicito para su propio usuario (no todos los
+        // mensajes de su student_id, que pueden ser conversaciones privadas
+        // docente<->apoderado no dirigidas a el).
+        if ($role === 'student') {
+            return $this->studentInbox($request);
+        }
+
         $allowedStudentIds = $this->resolveAllowedStudentIds($request);
 
         $q = Message::with(['student', 'sender']);
@@ -138,16 +151,168 @@ class MessageController extends Controller
             ], 403);
         }
 
+        $category = $data['category'] ?? 'general';
+
         $data['sender_role'] = $this->resolvePersistedSenderRole((string) ($profile->role ?? 'admin'));
         $data['sender_id'] = $profile->id;
         $data['is_read'] = false;
+        $data['category'] = $category;
         $data['created_at'] = now();
 
         $message = Message::create($data);
         $message->load(['student', 'sender']);
-        $this->dispatchNotificationsForMessage($request, $message);
+
+        if ($category === 'tutoria') {
+            $this->createTutoriaRecipients($message);
+            $this->dispatchTutoriaNotifications($request, $message);
+        } else {
+            $this->dispatchNotificationsForMessage($request, $message);
+        }
 
         return response()->json($message, 201);
+    }
+
+    // GET /api/messages/{message}/recipient-read
+    // Marca como leida la fila de message_recipients del usuario autenticado
+    // para este mensaje (lectura independiente por destinatario, no toca
+    // messages.is_read que sigue siendo el estado compartido del hilo).
+    public function markRecipientRead(Request $request, Message $message)
+    {
+        $recipient = MessageRecipient::query()
+            ->where('message_id', $message->id)
+            ->where('recipient_user_id', (string) $request->user()->id)
+            ->first();
+
+        if (!$recipient) {
+            return response()->json(['message' => 'No eres destinatario de este mensaje.'], 403);
+        }
+
+        if (!$recipient->read_at) {
+            $recipient->update(['read_at' => now()]);
+        }
+
+        return response()->json($recipient);
+    }
+
+    private function studentInbox(Request $request)
+    {
+        $studentId = Student::query()
+            ->where('user_id', (string) $request->user()->id)
+            ->value('id');
+
+        if (!$studentId) {
+            return response()->json([
+                'data' => [],
+                'current_page' => 1,
+                'last_page' => 1,
+                'per_page' => 50,
+                'total' => 0,
+            ]);
+        }
+
+        $recipientUserId = (string) $request->user()->id;
+
+        $q = Message::with(['student', 'sender', 'recipients' => function ($query) use ($recipientUserId) {
+            $query->where('recipient_type', 'student')->where('recipient_user_id', $recipientUserId);
+        }])
+            ->whereExists(function ($sub) use ($recipientUserId) {
+                $sub->selectRaw('1')
+                    ->from('message_recipients as mr')
+                    ->whereColumn('mr.message_id', 'messages.id')
+                    ->where('mr.recipient_type', 'student')
+                    ->where('mr.recipient_user_id', $recipientUserId);
+            });
+
+        if ($request->filled('student_id')) {
+            $q->where('student_id', $request->string('student_id'));
+        }
+
+        return response()->json(
+            $q->orderByDesc('created_at')->paginate(50)
+        );
+    }
+
+    private function createTutoriaRecipients(Message $message): void
+    {
+        $student = Student::query()->find($message->student_id);
+
+        if ($student?->user_id) {
+            MessageRecipient::create([
+                'message_id' => $message->id,
+                'recipient_type' => 'student',
+                'recipient_user_id' => $student->user_id,
+                'created_at' => now(),
+            ]);
+        }
+
+        if ($student) {
+            $student->guardians()
+                ->whereNotNull('guardians.user_id')
+                ->get()
+                ->unique('user_id')
+                ->each(function ($guardian) use ($message) {
+                    MessageRecipient::create([
+                        'message_id' => $message->id,
+                        'recipient_type' => 'guardian',
+                        'recipient_user_id' => $guardian->user_id,
+                        'created_at' => now(),
+                    ]);
+                });
+        }
+    }
+
+    private function dispatchTutoriaNotifications(Request $request, Message $message): void
+    {
+        $senderUserId = (string) $request->user()->id;
+
+        $recipients = MessageRecipient::query()
+            ->where('message_id', $message->id)
+            ->get(['recipient_type', 'recipient_user_id'])
+            ->filter(fn (MessageRecipient $recipient) => (string) $recipient->recipient_user_id !== $senderUserId)
+            ->unique('recipient_user_id');
+
+        $notificationColumns = [
+            'title' => Schema::hasColumn('notifications', 'title'),
+            'message' => Schema::hasColumn('notifications', 'message'),
+            'data' => Schema::hasColumn('notifications', 'data'),
+            'link' => Schema::hasColumn('notifications', 'link'),
+            'created_by' => Schema::hasColumn('notifications', 'created_by'),
+        ];
+
+        $recipients->each(function (MessageRecipient $recipient) use ($request, $message, $notificationColumns) {
+            $link = $recipient->recipient_type === 'student' ? '/app/student/tutoria' : '/app/messages/apoderado';
+
+            $payload = [
+                'user_id' => (string) $recipient->recipient_user_id,
+                'type' => 'tutoria_registrada',
+                'status' => 'no_leida',
+            ];
+
+            if ($notificationColumns['title']) {
+                $payload['title'] = $message->title ?: 'Nuevo mensaje de tutoría académica';
+            }
+
+            if ($notificationColumns['message']) {
+                $payload['message'] = Str::limit($message->content, 140);
+            }
+
+            if ($notificationColumns['data']) {
+                $payload['data'] = [
+                    'message_id' => $message->id,
+                    'student_id' => $message->student_id,
+                ];
+            }
+
+            if ($notificationColumns['link']) {
+                $payload['link'] = $link;
+            }
+
+            if ($notificationColumns['created_by']) {
+                $payload['created_by'] = (string) $request->user()->id;
+            }
+
+            Notification::create($payload);
+        });
     }
 
     public function show(Request $request, Message $message)

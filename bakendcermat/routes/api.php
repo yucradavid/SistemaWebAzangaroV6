@@ -32,6 +32,8 @@ use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\GuardianController;
 use App\Http\Controllers\Api\StudentGuardianController;
+use App\Http\Controllers\Api\DocumentTypeController;
+use App\Http\Controllers\Api\EnrollmentApplicationDocumentController;
 
 // Matrículas
 use App\Http\Controllers\Api\EnrollmentApplicationController;
@@ -55,6 +57,7 @@ use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\EvaluationReopenRequestController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PublicNewsController;
+use App\Http\Controllers\Api\SitePageCoverController;
 
 // Finanzas
 use App\Http\Controllers\Api\FeeConceptController;
@@ -87,10 +90,14 @@ Route::get('/public/enrollment-options', [EnrollmentApplicationController::class
 Route::post('/public/enrollment-applications', [EnrollmentApplicationController::class, 'store']);
 Route::get('/public/guardian-lookup', [EnrollmentApplicationController::class, 'guardianLookup'])->middleware('throttle:10,1');
 Route::get('/public/reniec-lookup', [EnrollmentApplicationController::class, 'reniecLookup'])->middleware('throttle:10,1');
+Route::get('/public/document-types', [DocumentTypeController::class, 'publicIndex']);
 
 // Noticias públicas (sin autenticación)
 Route::get('/public/news', [PublicNewsController::class, 'published']);
 Route::get('/public/news/{publicNews:slug}', [PublicNewsController::class, 'show']);
+
+// Portadas de páginas públicas (sin autenticación)
+Route::get('/public/site-page-covers', [SitePageCoverController::class, 'publicIndex']);
 
 /*
 |--------------------------------------------------------------------------
@@ -179,6 +186,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('bulk-import/{type}', [BulkImportController::class, 'store']);
     });
 
+    Route::middleware('role:admin,director')->group(function () {
+        Route::get('document-types', [DocumentTypeController::class, 'index']);
+        Route::post('document-types', [DocumentTypeController::class, 'store']);
+        Route::put('document-types/{id}', [DocumentTypeController::class, 'update']);
+        Route::patch('document-types/{id}', [DocumentTypeController::class, 'update']);
+        Route::delete('document-types/{id}', [DocumentTypeController::class, 'destroy']);
+    });
+
     Route::get('teachers', [TeacherController::class, 'index'])
         ->middleware('role:admin,director,coordinator,secretary,teacher');
     Route::get('teachers/{id}', [TeacherController::class, 'show'])
@@ -254,6 +269,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('enrollment-applications/{id}/approve', [EnrollmentApplicationController::class, 'approve']);
         Route::post('enrollment-applications/{id}/provision-accounts', [EnrollmentApplicationController::class, 'provisionAccounts']);
         Route::post('enrollment-applications/{id}/reject', [EnrollmentApplicationController::class, 'reject']);
+
+        Route::get('enrollment-applications/{id}/documents', [EnrollmentApplicationDocumentController::class, 'index']);
+        Route::patch('enrollment-applications/{id}/documents/{documentType}', [EnrollmentApplicationDocumentController::class, 'update']);
+        Route::patch('enrollment-applications/{id}/enrollment-observation', [EnrollmentApplicationDocumentController::class, 'updateObservation']);
+        Route::get('enrollment-applications/{id}/documents-status', [EnrollmentApplicationDocumentController::class, 'status']);
 
         Route::post('teacher-course-assignments', [TeacherCourseAssignmentController::class, 'store']);
         Route::post('teacher-course-assignments/check-schedule-conflict', [TeacherCourseAssignmentController::class, 'checkScheduleConflict']);
@@ -400,6 +420,7 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::middleware('role:admin,director,coordinator,secretary,teacher')->group(function () {
         Route::get('evaluations/my-context', [EvaluationController::class, 'myContext']);
+        Route::get('evaluations/period-coverage', [EvaluationController::class, 'periodCoverage']);
         Route::get('evaluations', [EvaluationController::class, 'index']);
         Route::post('evaluations', [EvaluationController::class, 'store']);
         Route::get('evaluations/{evaluation}', [EvaluationController::class, 'show']);
@@ -518,8 +539,9 @@ Route::middleware('auth:sanctum')->group(function () {
     | Mensajería interna entre usuarios autorizados.
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:admin,director,coordinator,secretary,teacher,guardian')->group(function () {
+    Route::middleware('role:admin,director,coordinator,secretary,teacher,guardian,student')->group(function () {
         Route::get('messages/threads', [MessageController::class, 'threads']);
+        Route::put('messages/{message}/recipient-read', [MessageController::class, 'markRecipientRead']);
         Route::apiResource('messages', MessageController::class)
             ->only(['index', 'store', 'show', 'update', 'destroy']);
     });
@@ -553,6 +575,21 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | MÓDULO: PORTADAS DE PÁGINAS PÚBLICAS
+    |--------------------------------------------------------------------------
+    | Gestión de la imagen de portada de cada página pública (landing, admisión,
+    | niveles, etc.) desde el módulo admin "Sitio Web".
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:admin,director')->group(function () {
+        Route::get('/site-page-covers', [SitePageCoverController::class, 'index']);
+        Route::post('/site-page-covers/{pageKey}', [SitePageCoverController::class, 'update']);
+        Route::patch('/site-page-covers/{pageKey}/position', [SitePageCoverController::class, 'updatePosition']);
+        Route::delete('/site-page-covers/{pageKey}', [SitePageCoverController::class, 'destroy']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | MÓDULO: FINANZAS
     |--------------------------------------------------------------------------
     | Conceptos, cobros, pagos y recibos.
@@ -561,6 +598,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,director,coordinator,secretary,finance')->group(function () {
         Route::apiResource('fee-concepts', FeeConceptController::class);
         Route::post('charges/batch', [ChargeController::class, 'batchStore']);
+        Route::post('charges/batch/preview', [ChargeController::class, 'batchPreview']);
         Route::post('charges/{charge}/void', [ChargeController::class, 'void']);
         Route::apiResource('charges', ChargeController::class);
     });
@@ -581,11 +619,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,director,coordinator,secretary,finance')->group(function () {
         Route::apiResource('discounts', DiscountController::class);
         Route::apiResource('student-discounts', StudentDiscountController::class);
+        Route::get('students/{student}/discount-summary', [StudentDiscountController::class, 'summary']);
         Route::apiResource('financial-plans', FinancialPlanController::class);
         Route::apiResource('plan-installments', PlanInstallmentController::class);
     });
 
     Route::middleware('role:admin,director,secretary,finance,cashier')->group(function () {
+        Route::get('cash-closures/opening-balance', [CashClosureController::class, 'openingBalance']);
+        Route::patch('cash-closures/opening-balance', [CashClosureController::class, 'updateOpeningBalance']);
         Route::apiResource('cash-closures', CashClosureController::class);
     });
 
