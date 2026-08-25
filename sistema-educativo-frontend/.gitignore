@@ -37,6 +37,10 @@ yarn-error.log
 testem.log
 /typings
 
+# Videos grandes fuera del repo (colegio-web.mp4 queda versionado a propósito)
+src/assets/videos/*.mp4
+!src/assets/videos/colegio-web.mp4
+
 # System files
 .DS_Store
 Thumbs.db
