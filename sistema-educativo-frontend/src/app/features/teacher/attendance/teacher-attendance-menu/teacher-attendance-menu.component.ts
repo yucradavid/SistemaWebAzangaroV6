@@ -22,4 +22,8 @@ export class TeacherAttendanceMenuComponent {
   goToMyAttendance(): void {
     this.router.navigate(['/app/attendance/teacher/my']);
   }
+
+  goToMarkAttendance(): void {
+    this.router.navigate(['/app/attendance/mark/teacher']);
+  }
 }

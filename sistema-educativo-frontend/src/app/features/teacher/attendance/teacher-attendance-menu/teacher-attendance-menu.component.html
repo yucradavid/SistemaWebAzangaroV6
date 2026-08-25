@@ -21,7 +21,7 @@
   </div>
 
   <!-- ══ GRID DE SUBMODULOS ══════════════════════════════════════ -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl">
 
     <!-- Submodulo 1: Asistencia Estudiantes -->
     <div (click)="goToStudentAttendance()"
@@ -52,6 +52,24 @@
       <p class="text-sm text-slate-500">Consulta tu historial personal de asistencia</p>
       <div class="mt-4 text-emerald-600 text-sm font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
         Ver historial →
+      </div>
+    </div>
+
+    <!-- Submodulo 3: Marcar Asistencia (Ingreso-Salida) -->
+    <div (click)="goToMarkAttendance()"
+         class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 cursor-pointer hover:shadow-md hover:border-purple-300 transition-all duration-200 group">
+      <div class="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
+        <svg class="w-6 h-6 text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/>
+          <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/>
+          <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/>
+          <rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/>
+        </svg>
+      </div>
+      <h2 class="font-black text-slate-900 text-lg mb-1">Marcar Asistencia</h2>
+      <p class="text-sm text-slate-500">Registra tu ingreso o salida escaneando el código QR</p>
+      <div class="mt-4 text-purple-600 text-sm font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
+        Marcar ahora →
       </div>
     </div>
   </div>
