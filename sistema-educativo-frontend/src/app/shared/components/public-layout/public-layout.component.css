@@ -1,3 +1,49 @@
 :host {
   display: block;
 }
+
+/*
+ * ============================================
+ * ESCALA DE CAPAS (z-index) del sitio público
+ * ============================================
+ *   Header fijo .............. z-50
+ *   WhatsApp flotante ........ z-40
+ *   Footer ................... relative z-10  (regla abajo)
+ *   Contenido / pin-spacer ... auto (GSAP ScrollTrigger durante el scrub)
+ *   Overlays PrimeNG ......... >= 1000 (sidebar, modales)
+ *
+ * COMPATIBILIDAD GSAP (HorizontalScrollDirective):
+ * Durante el scroll horizontal pineado, <main> recibe transform y se
+ * convierte en contexto de pintura. El footer NO debe participar de ese
+ * contexto: con position:relative + z-index propio queda siempre pintado
+ * por encima del pin-spacer al des-pinnear, sin depender del orden del DOM.
+ */
+app-footer {
+  position: relative;
+  z-index: 10;
+}
+
+/*
+ * FOOTER ÚNICO: cuando el footer vive como última cara del track del landing,
+ * esta instancia se oculta bajo EXACTAMENTE la misma media query que usa
+ * gsap.matchMedia() en HorizontalScrollDirective (y :host(.as-panel) en el
+ * propio footer). Así solo hay un footer visible en cualquier contexto:
+ * desktop+motion → panel del track · móvil/reduced-motion/otras rutas → este.
+ */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  app-footer.footer-in-track {
+    display: none;
+  }
+}
+
+/*
+ * Sticky footer: el wrapper usa min-h-svh (no min-h-screen) para evitar el
+ * salto causado por la barra de URL en móviles; main.flex-grow empuja el
+ * footer al fondo en páginas cortas (/contacto, /transparencia) sin afectar
+ * la medición de altura que hace ScrollTrigger en el landing.
+ *
+ * FOOTER EN EL LANDING (desktop): se oculta vía [class.lg:hidden] porque
+ * vive como última cara (panel 100vw) del track horizontal pineado; así el
+ * recorrido termina directamente en el footer, sin una pantalla extra.
+ * En móvil y demás rutas este footer del layout es el único visible.
+ */

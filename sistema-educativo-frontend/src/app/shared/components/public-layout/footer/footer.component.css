@@ -1,0 +1,72 @@
+/* ============================================
+   FOOTER — utilidades locales (editorial navy)
+   Contraste AA verificado sobre #102A43:
+   gray-400 (#9ca3af) ≈ 7.4:1 · gray-500 (#6b7280) ≈ 4.6:1
+   ============================================ */
+
+/*
+ * Instancia "panel" del landing horizontal.
+ * Misma condición que gsap.matchMedia() del HorizontalScrollDirective:
+ * si el track no se pinea (móvil o reduced-motion), esta instancia no
+ * existe visualmente y queda la del layout — nunca cero ni dos footers.
+ */
+:host(.as-panel) {
+  display: none;
+}
+
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  :host(.as-panel) {
+    display: block;
+    width: 100vw;
+    min-width: 100vw;
+    flex-shrink: 0;
+  }
+}
+
+.footer-heading {
+  margin-bottom: 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.footer-link {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  transition: color 0.2s ease-in-out;
+}
+
+.footer-link:hover {
+  color: #ffffff;
+}
+
+.footer-social {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  color: #d1d5db;
+  transition:
+    border-color 0.2s ease-in-out,
+    background-color 0.2s ease-in-out,
+    color 0.2s ease-in-out;
+}
+
+.footer-social:hover {
+  border-color: #b8860b; /* editorial-gold */
+  background-color: rgb(184 134 11 / 0.15);
+  color: #ffffff;
+}
+
+/* Foco visible accesible (teclado) en dorado institucional.
+   Aplica a todos los enlaces del footer (encapsulación del componente). */
+.footer-link:focus-visible,
+.footer-social:focus-visible,
+a:focus-visible {
+  outline: 2px solid #d4a843; /* editorial-gold-light */
+  outline-offset: 2px;
+}

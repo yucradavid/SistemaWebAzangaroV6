@@ -1,0 +1,51 @@
+/* ============================================
+   JOURNEY NAV — dots del recorrido horizontal
+   Visible solo en la misma condición del pin:
+   desktop (>=1024px) + movimiento permitido.
+   ============================================ */
+
+.journey-nav {
+  display: none;
+}
+
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  .journey-nav {
+    display: flex;
+  }
+}
+
+/*
+ * mix-blend-difference: el dot invierte el color de fondo que tenga debajo
+ * (cream/white → se ve oscuro, navy → se ve claro) sin duplicar estado.
+ */
+.journey-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  border: 1.5px solid #ffffff;
+  background-color: transparent;
+  mix-blend-mode: difference;
+  opacity: 0.55;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    background-color 0.25s ease;
+  cursor: pointer;
+}
+
+.journey-dot:hover {
+  opacity: 1;
+  transform: scale(1.25);
+}
+
+.journey-dot.is-active {
+  background-color: #ffffff;
+  opacity: 1;
+  transform: scale(1.35);
+}
+
+/* Foco visible accesible (el blend-difference también aplica al outline) */
+.journey-dot:focus-visible {
+  outline: 2px solid #d4a843; /* editorial-gold-light */
+  outline-offset: 3px;
+}

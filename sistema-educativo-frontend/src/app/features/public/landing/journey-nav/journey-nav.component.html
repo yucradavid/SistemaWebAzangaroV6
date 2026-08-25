@@ -1,0 +1,18 @@
+<nav
+  class="journey-nav fixed right-6 top-1/2 z-30 hidden -translate-y-1/2 flex-col items-center gap-3"
+  aria-label="Secciones del recorrido"
+>
+  @for (label of labels; track $index; let i = $index) {
+    @if (i < panelCount()) {
+      <button
+        type="button"
+        class="journey-dot"
+        [class.is-active]="activeIndex() === i"
+        (click)="goTo(i)"
+        [attr.aria-label]="labelFor(i)"
+        [attr.aria-current]="activeIndex() === i ? 'true' : null"
+        [title]="labelFor(i)"
+      ></button>
+    }
+  }
+</nav>

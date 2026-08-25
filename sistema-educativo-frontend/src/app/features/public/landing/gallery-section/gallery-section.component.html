@@ -1,77 +1,88 @@
-﻿<section class="py-24 lg:py-32 bg-editorial-cream overflow-hidden">
+﻿<section class="py-24 lg:py-14 lg:h-full lg:flex lg:flex-col lg:justify-center bg-editorial-cream overflow-hidden">
   <div class="container-editorial-wide">
 
     <!-- Header -->
-    <div class="mb-16" appScrollReveal="fadeUp">
-      <p class="label-editorial mb-4">Vida Escolar</p>
-      <div class="section-divider mb-6"></div>
-      <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
-        Momentos que<br/>
-        <span class="text-editorial-gold">Inspiran</span>
-      </h2>
-      <p class="text-lg text-editorial-muted mt-4 max-w-xl">
+    <header class="flex flex-col md:flex-row md:items-end md:justify-between mb-14"
+            appRevealGroup="fadeUp" [stagger]="0.1">
+      <div>
+        <p class="label-editorial mb-4">Vida Escolar</p>
+        <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
+          Momentos que<br/>
+          <span class="text-editorial-gold">Inspiran</span>
+        </h2>
+      </div>
+      <p class="max-w-sm text-lg text-editorial-muted leading-relaxed md:text-right mt-4 md:mt-0">
         La energía, el aprendizaje y la alegría de nuestras aulas.
       </p>
-    </div>
+    </header>
 
-    <!-- Grid uniforme -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- Mosaico asimétrico -->
+    <div class="grid grid-cols-2 md:grid-cols-4 md:auto-rows-[190px] gap-3"
+         appRevealGroup="clip" [stagger]="0.09" [duration]="1" revealSelector=":scope > div">
+
       <div *ngFor="let img of galleryImages(); let i = index"
-           class="group relative cursor-pointer"
+           [class]="mosaicClass(i)"
+           class="group relative cursor-pointer overflow-hidden aspect-square md:aspect-auto bg-editorial-border"
            role="button" tabindex="0"
            (click)="openLightbox(i)"
            (keydown.enter)="openLightbox(i)"
            (keydown.space)="openLightbox(i); $event.preventDefault()"
-           [attr.aria-label]="'Ver imagen: ' + img.title"
-           appScrollReveal="fadeUp"
-           [delay]="i * 100">
+           [attr.aria-label]="'Ver imagen: ' + img.title">
 
-        <div class="aspect-square overflow-hidden bg-editorial-border">
-          <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
-               class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
+             class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 group-focus-visible:scale-105" />
+
+        <!-- Overlay + caption en hover -->
+        <div class="absolute inset-0 bg-gradient-to-t from-editorial-navy/90 via-editorial-navy/25 to-transparent
+                    opacity-0 translate-y-3 transition-all duration-500
+                    group-hover:opacity-100 group-hover:translate-y-0 group-focus-visible:opacity-100 group-focus-visible:translate-y-0"></div>
+
+        <div class="absolute bottom-0 inset-x-0 p-4 opacity-0 transition-opacity duration-500 delay-75
+                    group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span class="label-editorial !text-editorial-gold-light !text-[10px]">{{ img.category }}</span>
+          <h3 class="text-sm font-semibold text-white mt-0.5 leading-snug">{{ img.title }}</h3>
         </div>
 
-        <!-- Caption siempre visible -->
-        <div class="mt-3">
-          <span class="label-editorial text-editorial-gold text-[10px]">{{ img.category }}</span>
-          <h3 class="text-sm font-semibold text-editorial-navy mt-0.5">{{ img.title }}</h3>
-        </div>
+        <!-- Icono expandir -->
+        <span class="absolute top-3 right-3 w-8 h-8 grid place-items-center bg-white/90 opacity-0 scale-75
+                     transition-all duration-300 group-hover:opacity-100 group-hover:scale-100
+                     group-focus-visible:opacity-100 group-focus-visible:scale-100" aria-hidden="true">
+          <svg class="w-4 h-4 text-editorial-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m6 6V9m0 12h-12" />
+          </svg>
+        </span>
       </div>
     </div>
 
-    <!-- Auto-scroll row de imágenes -->
-    <div class="mt-16" appScrollReveal="fadeIn" [delay]="300">
-      <div class="gallery-scroll-track">
-        <div *ngFor="let img of galleryImages()" class="w-64 flex-shrink-0">
-          <div class="aspect-[4/3] overflow-hidden">
-            <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
-                 class="w-full h-full object-cover" />
-          </div>
-          <div class="mt-2">
-            <span class="text-[10px] font-semibold uppercase tracking-[0.15em] text-editorial-muted">{{ img.category }}</span>
-            <p class="text-xs text-editorial-slate mt-0.5">{{ img.title }}</p>
-          </div>
+    <!-- Cinta marquee de imágenes -->
+    <div class="marquee mt-14" aria-hidden="true">
+      <div class="marquee-track marquee-right" style="--marquee-duration: 55s; --marquee-gap: 1rem;">
+        <div class="marquee-group">
+          <figure *ngFor="let img of galleryImages()" class="w-56 shrink-0">
+            <div class="aspect-[4/3] overflow-hidden">
+              <img [src]="img.url" [alt]="''" loading="lazy" decoding="async"
+                   class="w-full h-full object-cover grayscale-[35%] hover:grayscale-0 hover:scale-105 transition-all duration-500" />
+            </div>
+          </figure>
         </div>
-        <!-- Duplicar para scroll infinito -->
-        <div *ngFor="let img of galleryImages()" class="w-64 flex-shrink-0" aria-hidden="true">
-          <div class="aspect-[4/3] overflow-hidden">
-            <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
-                 class="w-full h-full object-cover" />
-          </div>
-          <div class="mt-2">
-            <span class="text-[10px] font-semibold uppercase tracking-[0.15em] text-editorial-muted">{{ img.category }}</span>
-            <p class="text-xs text-editorial-slate mt-0.5">{{ img.title }}</p>
-          </div>
+        <div class="marquee-group">
+          <figure *ngFor="let img of galleryImages()" class="w-56 shrink-0">
+            <div class="aspect-[4/3] overflow-hidden">
+              <img [src]="img.url" [alt]="''" loading="lazy" decoding="async"
+                   class="w-full h-full object-cover grayscale-[35%] hover:grayscale-0 hover:scale-105 transition-all duration-500" />
+            </div>
+          </figure>
         </div>
       </div>
     </div>
 
     <!-- Link galería completa -->
-    <div class="mt-12" appScrollReveal="fadeUp" [delay]="200">
+    <div class="mt-12" appRevealGroup="fadeIn" [delay]="0.2">
       <a routerLink="/noticias"
          class="inline-flex items-center gap-2 text-sm font-semibold text-editorial-navy uppercase tracking-[0.1em] hover:text-editorial-gold transition-colors">
         Ver galería completa
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <svg class="w-4 h-4 transition-transform duration-300 hover:translate-x-1"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
         </svg>
       </a>

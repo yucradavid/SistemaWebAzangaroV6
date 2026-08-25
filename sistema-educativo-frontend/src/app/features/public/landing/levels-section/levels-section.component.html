@@ -1,88 +1,91 @@
-<section class="py-24 lg:py-32 bg-editorial-cream">
-  <div class="container-editorial">
+<section class="py-20 lg:py-12 lg:h-full bg-editorial-cream flex flex-col justify-center overflow-hidden">
+  <div class="container-editorial-wide w-full">
 
     <!-- Header -->
-    <div class="mb-20 text-center" appScrollReveal="fadeUp">
-      <p class="label-editorial mb-4">Niveles Educativos</p>
-      <div class="section-divider mx-auto mb-6"></div>
-      <h2 class="text-[clamp(2rem,5vw,4rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
-        Acompañamos tu<br/>
-        <span class="text-editorial-gold">Crecimiento</span>
-      </h2>
-      <p class="text-lg text-editorial-muted mt-6 max-w-2xl mx-auto">
-        Desde los primeros pasos hasta la preparación universitaria
+    <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10 lg:mb-12"
+            appRevealGroup="fadeUp" [stagger]="0.12">
+      <div>
+        <p class="label-editorial mb-4">Niveles Educativos</p>
+        <h2 class="text-[clamp(2rem,4.5vw,3.75rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
+          Acompañamos tu<br/>
+          <span class="text-editorial-gold">Crecimiento</span>
+        </h2>
+      </div>
+      <p class="max-w-sm text-lg text-editorial-muted leading-relaxed md:text-right">
+        Desde los primeros pasos hasta la preparación universitaria.
       </p>
-    </div>
+    </header>
 
-    <!-- Grid de niveles -->
-    <div class="grid lg:grid-cols-3 gap-px bg-editorial-border">
-      <div *ngFor="let level of levels(); let i = index"
-           class="bg-white p-10 group"
-           role="article"
-           [attr.aria-label]="'Nivel educativo: ' + level.name"
-           appScrollReveal="fadeUp"
-           [delay]="i * 150">
+    <!-- Acordeón expansivo horizontal -->
+    <div class="levels-accordion"
+         appRevealGroup="fadeUp" [stagger]="0.16" revealSelector=":scope > article">
 
-        <!-- Número grande como identificador -->
-        <div class="text-[clamp(4rem,8vw,7rem)] font-black leading-none text-editorial-border group-hover:text-editorial-gold transition-colors duration-500">
-          {{ i === 0 ? '01' : i === 1 ? '02' : '03' }}
+      <article *ngFor="let level of levels(); let i = index"
+               class="level-panel group"
+               role="article"
+               [attr.aria-label]="'Nivel educativo: ' + level.name + ', ' + level.ages">
+
+        <!-- Fondo fotográfico -->
+        <div class="level-media" aria-hidden="true">
+          <img [src]="level.image" alt="" loading="lazy" decoding="async" />
+        </div>
+        <div class="level-shade" aria-hidden="true"></div>
+
+        <!-- Estado colapsado: número + título vertical -->
+        <div class="level-collapsed" aria-hidden="true">
+          <span class="level-index">{{ i === 0 ? '01' : i === 1 ? '02' : '03' }}</span>
+          <span class="level-vertical-title">{{ level.name }}</span>
+          <span class="w-px h-16 bg-gradient-to-b from-transparent via-editorial-gold to-transparent"></span>
         </div>
 
-        <!-- Título del nivel -->
-        <h3 class="text-3xl font-black text-editorial-navy mt-6 mb-2 tracking-tight">
-          {{ level.name }}
-        </h3>
-        <p class="label-editorial mb-4">{{ level.ages }}</p>
+        <!-- Estado expandido: contenido completo -->
+        <div class="level-expanded">
+          <span class="label-editorial !text-white/70">{{ level.ages }}</span>
 
-        <!-- Descripción -->
-        <p class="text-editorial-slate leading-relaxed mb-8">
-          {{ level.description }}
-        </p>
+          <h3 class="mt-auto pt-8 text-3xl xl:text-4xl font-black text-white tracking-tight">
+            {{ level.name }}
+          </h3>
 
-        <!-- Features como lista limpia -->
-        <div class="space-y-3 mb-10">
-          <div *ngFor="let feature of level.features.slice(0, 4)"
-               class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 bg-editorial-gold mt-2 flex-shrink-0"></div>
-            <span class="text-sm text-editorial-slate">{{ feature }}</span>
-          </div>
+          <p class="mt-3 max-w-md text-sm xl:text-base text-white/80 leading-relaxed">
+            {{ level.description }}
+          </p>
+
+          <ul class="mt-5 space-y-2">
+            <li *ngFor="let feature of level.features.slice(0, 4)"
+                class="flex items-center gap-2.5 text-xs xl:text-sm text-white/85">
+              <span class="w-1.5 h-1.5 bg-editorial-gold-light shrink-0"></span>
+              {{ feature }}
+            </li>
+          </ul>
+
+          <a [routerLink]="'/niveles/' + level.id"
+             class="level-cta mt-6 inline-flex items-center gap-2 text-xs xl:text-sm font-bold uppercase tracking-[0.14em] text-editorial-gold-light">
+            Conocer más
+            <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </a>
         </div>
 
-        <!-- Link -->
-        <a [routerLink]="'/niveles/' + level.id"
-           class="inline-flex items-center gap-2 text-sm font-semibold text-editorial-navy uppercase tracking-[0.1em] group-hover:text-editorial-gold transition-colors">
-          Conocer más
-          <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-        </a>
-      </div>
+      </article>
     </div>
 
-    <!-- Bottom info bar -->
-    <div class="grid md:grid-cols-3 gap-0 divide-x divide-editorial-border border border-editorial-border mt-16">
-
-      <div class="px-8 py-8" appScrollReveal="fadeUp" [delay]="0">
-        <div class="label-editorial mb-3">Programa Bilingüe</div>
-        <p class="text-sm text-editorial-slate leading-relaxed">
-          Educación bilingüe desde nivel inicial con certificaciones internacionales
-        </p>
+    <!-- Franja informativa (solo móvil/tablet) -->
+    <div class="grid sm:grid-cols-3 gap-px bg-editorial-border border border-editorial-border mt-10 lg:hidden"
+         appScrollReveal="fadeUp">
+      <div class="bg-white px-6 py-6">
+        <div class="label-editorial mb-2">Programa Bilingüe</div>
+        <p class="text-sm text-editorial-slate leading-relaxed">Certificaciones internacionales desde inicial</p>
       </div>
-
-      <div class="px-8 py-8" appScrollReveal="fadeUp" [delay]="100">
-        <div class="label-editorial mb-3">Tecnología</div>
-        <p class="text-sm text-editorial-slate leading-relaxed">
-          Robótica, programación y herramientas digitales integradas al currículo
-        </p>
+      <div class="bg-white px-6 py-6">
+        <div class="label-editorial mb-2">Tecnología</div>
+        <p class="text-sm text-editorial-slate leading-relaxed">Robótica y programación en el currículo</p>
       </div>
-
-      <div class="px-8 py-8" appScrollReveal="fadeUp" [delay]="200">
-        <div class="label-editorial mb-3">Formación en Valores</div>
-        <p class="text-sm text-editorial-slate leading-relaxed">
-          Liderazgo y responsabilidad social en todos los niveles educativos
-        </p>
+      <div class="bg-white px-6 py-6">
+        <div class="label-editorial mb-2">Formación en Valores</div>
+        <p class="text-sm text-editorial-slate leading-relaxed">Liderazgo y responsabilidad social</p>
       </div>
-
     </div>
 
   </div>

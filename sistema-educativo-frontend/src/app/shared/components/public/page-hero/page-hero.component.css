@@ -1,0 +1,14 @@
+/* Textura de puntos — misma familia que el landing */
+.hero-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+  background-size: 26px 26px;
+  opacity: 0.35;
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 85%);
+  mask-image: linear-gradient(to bottom, black 0%, transparent 85%);
+}
+
+/* Resplandor dorado tenue en la esquina superior derecha */
+.hero-glow {
+  background: radial-gradient(circle, rgba(184, 134, 11, 0.22) 0%, transparent 65%);
+  pointer-events: none;
+}

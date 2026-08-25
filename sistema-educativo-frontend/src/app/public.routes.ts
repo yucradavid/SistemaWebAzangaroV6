@@ -25,17 +25,20 @@ export const PUBLIC_ROUTES: Routes = [
           },
           {
             path: 'inicial',
-            loadComponent: () => import('./features/public/niveles/inicial/inicial.component').then(m => m.InicialComponent),
+            loadComponent: () => import('./features/public/niveles/level/level.component').then(m => m.LevelComponent),
+            data: { nivel: 'inicial' },
             title: 'Nivel Inicial - CERMAT SCHOOL',
           },
           {
             path: 'primaria',
-            loadComponent: () => import('./features/public/niveles/primaria/primaria.component').then(m => m.PrimariaComponent),
+            loadComponent: () => import('./features/public/niveles/level/level.component').then(m => m.LevelComponent),
+            data: { nivel: 'primaria' },
             title: 'Nivel Primaria - CERMAT SCHOOL',
           },
           {
             path: 'secundaria',
-            loadComponent: () => import('./features/public/niveles/secundaria/secundaria.component').then(m => m.SecundariaComponent),
+            loadComponent: () => import('./features/public/niveles/level/level.component').then(m => m.LevelComponent),
+            data: { nivel: 'secundaria' },
             title: 'Nivel Secundaria - CERMAT SCHOOL',
           }
         ]

@@ -1,27 +1,24 @@
-<section class="relative min-h-screen flex items-center bg-editorial-navy overflow-hidden">
+<section class="relative min-h-screen lg:h-full lg:min-h-0 flex items-center bg-editorial-navy overflow-hidden">
 
-  <!-- Fondo: video con fallback a imagen -->
-  <div class="absolute inset-0">
-    <!-- Video de fondo (autoplay, muted, loop) -->
+  <!-- Fondo: video del colegio sobre base navy -->
+  <div class="absolute inset-0 bg-editorial-navy">
+    <!-- Video de fondo (autoplay, muted, loop): aparece solo cuando ya está reproduciéndose -->
     <video
       #heroVideo
-      autoplay muted loop playsinline
-      (loadeddata)="videoLoaded = true"
+      autoplay loop playsinline preload="auto"
+      [muted]="true"
+      src="/assets/videos/colegio-web.mp4"
+      (loadedmetadata)="onVideoEvent('loadedmetadata')"
+      (canplay)="tryPlay()"
+      (playing)="onVideoEvent('playing')"
+      (timeupdate)="markAsPlaying()"
+      (error)="onVideoError()"
       class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
       [class.opacity-0]="!videoLoaded"
       [class.opacity-100]="videoLoaded"
-      poster="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=1920&h=1080&fit=crop&q=80"
-      aria-hidden="true">
-      <source src="https://videos.pexels.com/video-files/857251/857251-hd_1920_1080_24fps.mp4" type="video/mp4" />
-    </video>
-    <!-- Fallback imagen (se muestra mientras carga el video o si falla) -->
-    <img
-      *ngIf="!videoLoaded"
-      src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=1920&h=1080&fit=crop&q=80"
-      alt="" decoding="async" width="1920" height="1080" aria-hidden="true"
-      class="absolute inset-0 w-full h-full object-cover" />
-    <!-- Overlay editorial -->
-    <div class="absolute inset-0 bg-editorial-navy/80"></div>
+      aria-hidden="true"></video>
+    <!-- Overlay editorial suave -->
+    <div class="absolute inset-0 bg-editorial-navy/45"></div>
   </div>
 
   <!-- Contenido principal -->
@@ -89,13 +86,18 @@
     </div>
   </div>
 
-  <!-- Scroll indicator minimalista -->
-  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-20" appScrollReveal="fadeIn" [delay]="800">
-    <a href="#main-content" aria-label="Desplazarse hacia abajo"
-       class="flex flex-col items-center gap-2 text-editorial-muted hover:text-white transition-colors focus-ring rounded">
-      <span class="text-[10px] font-semibold uppercase tracking-[0.3em]">Descubre</span>
-      <div class="w-px h-8 bg-editorial-muted/40"></div>
-    </a>
+  <!-- Hint del recorrido: se desvanece con el primer movimiento de scroll -->
+  <div
+    class="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 transition-all duration-500"
+    [class.opacity-0]="!showScrollHint()"
+    [class.translate-y-3]="!showScrollHint()"
+    [class.pointer-events-none]="!showScrollHint()"
+    aria-hidden="true"
+  >
+    <span class="text-[10px] font-semibold uppercase tracking-[0.3em] text-editorial-muted">Desliza</span>
+    <svg class="w-4 h-4 animate-bounce text-editorial-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+    </svg>
   </div>
 
 </section>

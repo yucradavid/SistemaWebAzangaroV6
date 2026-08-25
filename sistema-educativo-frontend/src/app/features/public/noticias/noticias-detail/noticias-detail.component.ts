@@ -1,13 +1,13 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { LucideAngularModule, ArrowLeft } from 'lucide-angular';
 import { SeoService } from '@core/services/seo/seo.service';
 import { NewsService, NewsItem } from '@core/services/news.service';
 
 @Component({
   selector: 'app-noticias-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [RouterLink, LucideAngularModule],
   templateUrl: './noticias-detail.component.html',
   styleUrl: './noticias-detail.component.css'
 })
@@ -16,6 +16,8 @@ export class NoticiasDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly seoService = inject(SeoService);
   private readonly newsService = inject(NewsService);
+
+  readonly BackIcon = ArrowLeft;
 
   noticia: NewsItem | null = null;
   otherNews: NewsItem[] = [];
@@ -40,6 +42,9 @@ export class NoticiasDetailComponent implements OnInit {
       next: (res) => {
         this.noticia = res.data;
         this.seoService.updateTitle(`${this.noticia.title} - CERMAT SCHOOL`);
+        if (this.noticia.excerpt) {
+          this.seoService.updateMetaTags({ description: this.noticia.excerpt });
+        }
         this.loading = false;
         this.loadOtherNews(this.noticia.slug);
       },
@@ -67,4 +72,3 @@ export class NoticiasDetailComponent implements OnInit {
   }
 
 }
-

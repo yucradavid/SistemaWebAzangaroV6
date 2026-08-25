@@ -1,1 +1,37 @@
-/* line-clamp-2 ya está incluido en Tailwind v3.3+ como utilidad nativa */
+/* ============================================
+   NOTICIAS — Layout revista editorial
+   ============================================ */
+
+/* Subrayado dorado deslizante en títulos */
+.news-title-link {
+  background-image: linear-gradient(#b8860b, #b8860b);
+  background-size: 0% 2px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.4s ease-in-out;
+}
+
+.group:hover .news-title-link,
+.news-title-link:hover {
+  background-size: 100% 2px;
+}
+
+/* Línea que crece bajo links de cabecera */
+.news-link {
+  position: relative;
+}
+
+.news-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  height: 2px;
+  width: 0;
+  background: #b8860b;
+  transition: width 0.35s ease-in-out;
+}
+
+.news-link:hover::after {
+  width: 100%;
+}

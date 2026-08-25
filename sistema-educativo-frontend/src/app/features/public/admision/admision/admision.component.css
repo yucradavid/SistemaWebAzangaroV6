@@ -1,47 +1,63 @@
 /* src/app/features/public/admision/admision/admision.component.css */
+
 :host {
   display: block;
 }
 
-input.ng-invalid.ng-touched,
-select.ng-invalid.ng-touched,
-textarea.ng-invalid.ng-touched {
-  border-color: #fca5a5 !important;
-  background-color: #fef2f2 !important;
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08);
+/* ============================================
+   Campos del formulario de pre matrícula
+   (CSS plano: no depende del pipeline Tailwind
+   para estilos de componente)
+   ============================================ */
+.field-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #334e68; /* editorial-slate */
 }
 
-input.ng-invalid.ng-touched:focus,
-select.ng-invalid.ng-touched:focus,
-textarea.ng-invalid.ng-touched:focus {
-  border-color: #ef4444 !important;
+.field-input {
+  display: block;
+  width: 100%;
+  border: 1px solid #e2e8f0; /* editorial-border */
+  border-radius: 0.625rem; /* redondeo suave, sin llegar a píldora */
+  background-color: rgba(250, 250, 248, 0.6); /* editorial-cream/60 */
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #102a43; /* editorial-navy */
   outline: none;
+  transition: border-color 0.2s ease-in-out, background-color 0.2s ease-in-out;
 }
 
-input,
-select,
-textarea {
-  transition: all 0.2s ease;
+.field-input::placeholder {
+  color: rgba(98, 125, 152, 0.55); /* editorial-muted/55 */
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: #1E3A8A !important;
-  box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.12);
+.field-input:focus {
+  border-color: #102a43; /* editorial-navy */
+  background-color: #ffffff;
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+/* Estado inválido tocado (refuerza [class.field-invalid]) */
+.field-input.ng-invalid.ng-touched,
+.field-input.field-invalid {
+  border-color: #f87171; /* red-400 */
+  background-color: rgba(254, 242, 242, 0.5);
 }
 
-.animate-shake {
-  animation: shake 0.2s ease-in-out 0s 2;
+.field-input.ng-invalid.ng-touched:focus,
+.field-input.field-invalid:focus {
+  border-color: #ef4444; /* red-500 */
+  background-color: #ffffff;
 }
 
-/* Floating form + result modal entrance */
+/* ============================================
+   Entrada animada de los modales
+   ============================================ */
 @keyframes overlay-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -60,22 +76,9 @@ textarea:focus {
   animation: panel-rise-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* CTA micro-interaction: subtle pulse on hover for motion-safe users */
-@media (prefers-reduced-motion: no-preference) {
-  .cta-pulse::after {
-    content: '';
-    position: absolute;
-    inset: -6px;
-    border-radius: 9999px;
-    background: radial-gradient(circle at center, rgba(30,58,138,0.08), transparent 40%);
-    opacity: 0;
-    transition: opacity 0.25s ease, transform 0.25s ease;
-    transform: scale(0.95);
+@media (prefers-reduced-motion: reduce) {
+  :host ::ng-deep .fixed.inset-0,
+  :host ::ng-deep .fixed.inset-0 > div {
+    animation: none;
   }
-  .group:hover .cta-pulse::after { opacity: 1; transform: scale(1); }
-}
-
-/* Stepper circles */
-button[disabled] {
-  cursor: not-allowed;
 }

@@ -1,0 +1,29 @@
+@if (visible()) {
+  <div class="splash" aria-hidden="true">
+    <svg #maskSvg class="splash-mask" xmlns="http://www.w3.org/2000/svg" focusable="false">
+      <defs>
+        <mask id="cermat-text-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+          <rect x="0" y="0" width="100%" height="100%" fill="white"></rect>
+          <text
+            id="splash-text"
+            class="splash-text"
+            x="50%"
+            y="50%"
+            dy=".35em"
+            text-anchor="middle"
+            fill="black">CERMAT</text>
+        </mask>
+      </defs>
+      <rect
+        class="splash-veil"
+        x="-2%"
+        y="-2%"
+        width="104%"
+        height="104%"
+        fill="#ffffff"
+        mask="url(#cermat-text-mask)"></rect>
+    </svg>
+
+    <p #hint class="splash-hint">Toca o desliza para entrar</p>
+  </div>
+}

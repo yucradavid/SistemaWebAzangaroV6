@@ -1,9 +1,10 @@
 //src/app/features/public/noticias/noticias-list/noticias-list.component.ts
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { LucideAngularModule, ArrowRight, Calendar } from 'lucide-angular';
 import { SeoService } from '@core/services/seo/seo.service';
 import { NewsService, NewsItem as ApiNewsItem } from '@core/services/news.service';
+import { PageHeroComponent } from '@shared/components/public/page-hero/page-hero.component';
 
 interface PublicNewsItem {
   id: string;
@@ -19,13 +20,16 @@ interface PublicNewsItem {
 @Component({
   selector: 'app-noticias-list',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink, LucideAngularModule, PageHeroComponent],
   templateUrl: './noticias-list.component.html',
   styleUrl: './noticias-list.component.css'
 })
 export class NoticiasListComponent implements OnInit {
   private readonly seoService = inject(SeoService);
   private readonly newsService = inject(NewsService);
+
+  readonly ArrowIcon = ArrowRight;
+  readonly CalendarIcon = Calendar;
 
   readonly news = signal<PublicNewsItem[]>([]);
   loading = false;
@@ -70,6 +74,3 @@ export class NoticiasListComponent implements OnInit {
     return new Date(d).toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' });
   }
 }
-
-
-

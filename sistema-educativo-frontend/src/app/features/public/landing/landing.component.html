@@ -1,18 +1,28 @@
+<app-splash-screen />
+
 <a href="#main-content"
    class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-6 focus:py-3 focus:bg-cermat-blue-600 focus:text-white focus:rounded-xl focus:font-bold focus:shadow-2xl">
   Saltar al contenido principal
 </a>
 
 <main id="main-content" class="home-page">
-  <app-hero-section />
-  <app-stats-section />
-  <app-about-section />
-  <app-levels-section />
-  <app-news-section />
-  <app-gallery-section />
-  <app-testimonials-section />
-  <app-map-section />
+  <div appHorizontalScroll class="hs-track">
+    <app-hero-section />
+    <app-levels-section />
+    <app-news-section />
+    <app-gallery-section />
+    <app-testimonials-section />
+    <app-map-section />
+
+    <!-- Última "cara" del recorrido horizontal (solo desktop + motion-safe,
+         resuelto por el propio footer vía la clase as-panel).
+         En móvil/reduced-motion se oculta y queda el footer del layout. -->
+    <app-footer class="as-panel" headingId="footer-title-hs" />
+  </div>
 </main>
+
+<!-- Navegación lateral por caras (solo desktop + motion-safe) -->
+<app-journey-nav />
 
 <p-scrollTop
   [threshold]="400"

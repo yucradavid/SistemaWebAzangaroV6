@@ -1,72 +1,115 @@
-﻿<section class="py-24 lg:py-32 bg-white">
+﻿<section class="py-24 lg:py-14 lg:h-full lg:flex lg:flex-col lg:justify-center bg-white overflow-hidden">
   <div class="container-editorial">
 
     <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-end md:justify-between mb-16" appScrollReveal="fadeUp">
+    <header class="flex flex-col md:flex-row md:items-end md:justify-between mb-12"
+            appRevealGroup="fadeUp" [stagger]="0.1">
       <div>
         <p class="label-editorial mb-4">Actualidad</p>
-        <div class="section-divider mb-6"></div>
         <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
           Noticias y<br/>
           <span class="text-editorial-gold">Eventos</span>
         </h2>
       </div>
       <a routerLink="/noticias"
-         class="hidden md:inline-flex items-center gap-2 text-sm font-semibold text-editorial-navy uppercase tracking-[0.1em] hover:text-editorial-gold transition-colors mt-6 md:mt-0">
+         class="news-link hidden md:inline-flex items-center gap-2 text-sm font-semibold text-editorial-navy uppercase tracking-[0.1em] mt-6 md:mt-0">
         Ver todas
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <svg class="w-4 h-4 transition-transform duration-300 hover:translate-x-1"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
         </svg>
       </a>
+    </header>
+
+    <!-- Franja marquee -->
+    <div class="marquee border-y border-editorial-border py-4 mb-14" aria-hidden="true">
+      <div class="marquee-track marquee-left items-center" style="--marquee-duration: 30s; --marquee-gap: 2.75rem;">
+        <div class="marquee-group items-center">
+          <ng-container *ngFor="let word of marqueeWords">
+            <span class="text-sm font-extrabold uppercase tracking-[0.3em] text-editorial-navy/60 whitespace-nowrap">{{ word }}</span>
+            <span class="w-1.5 h-1.5 rotate-45 bg-editorial-gold shrink-0"></span>
+          </ng-container>
+        </div>
+        <div class="marquee-group items-center" aria-hidden="true">
+          <ng-container *ngFor="let word of marqueeWords">
+            <span class="text-sm font-extrabold uppercase tracking-[0.3em] text-editorial-navy/60 whitespace-nowrap">{{ word }}</span>
+            <span class="w-1.5 h-1.5 rotate-45 bg-editorial-gold shrink-0"></span>
+          </ng-container>
+        </div>
+      </div>
     </div>
 
-    <!-- Grid de noticias -->
-    <div class="grid lg:grid-cols-3 gap-8">
-      <article *ngFor="let item of featuredNews(); let i = index"
-               class="group"
+    <!-- Layout revista: destacado + secundarios -->
+    <div class="grid lg:grid-cols-5 gap-x-10 gap-y-14">
+
+      <!-- Destacado -->
+      <article *ngIf="featuredNews().length > 0; else noFeatured"
+               class="lg:col-span-3 group"
                role="article"
-               appScrollReveal="fadeUp"
-               [delay]="i * 150">
-
-        <!-- Imagen -->
-        <div class="aspect-[4/3] overflow-hidden mb-6">
-          <img [src]="item.image" [alt]="item.title" loading="lazy" decoding="async"
-               class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+               [attr.aria-label]="featuredNews()[0].title"
+               appRevealGroup="clip" [duration]="1.1">
+        <div class="news-media relative aspect-[16/10] overflow-hidden mb-6">
+          <img [src]="featuredNews()[0].image" [alt]="featuredNews()[0].title" loading="lazy" decoding="async"
+               class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" />
+          <span class="absolute top-4 left-4 bg-white px-3 py-1.5 label-editorial !text-editorial-navy shadow-lg">
+            {{ featuredNews()[0].category }}
+          </span>
         </div>
 
-        <!-- Meta -->
-        <div class="flex items-center gap-3 mb-3">
-          <span class="label-editorial text-editorial-gold">{{ item.category }}</span>
-          <span class="text-editorial-border">|</span>
-          <time class="text-xs text-editorial-muted">{{ formatDate(item.date) }}</time>
-        </div>
+        <time class="text-xs font-semibold text-editorial-muted">{{ formatDate(featuredNews()[0].date) }}</time>
 
-        <!-- Título -->
-        <h3 class="text-xl font-bold text-editorial-navy leading-snug mb-3 group-hover:text-editorial-gold transition-colors">
-          {{ item.title }}
+        <h3 class="mt-2 text-2xl xl:text-3xl font-black text-editorial-navy leading-tight tracking-tight max-w-xl">
+          <a [routerLink]="['/noticias', featuredNews()[0].slug]" class="news-title-link">
+            {{ featuredNews()[0].title }}
+          </a>
         </h3>
 
-        <!-- Extracto -->
-        <p class="text-sm text-editorial-muted leading-relaxed mb-4 line-clamp-2">
-          {{ item.excerpt }}
+        <p class="mt-3 text-editorial-muted leading-relaxed line-clamp-2 max-w-xl">
+          {{ featuredNews()[0].excerpt }}
         </p>
 
-        <!-- Link -->
-        <a [routerLink]="['/noticias', item.slug]"
-           class="inline-flex items-center gap-2 text-xs font-semibold text-editorial-navy uppercase tracking-[0.1em] hover:text-editorial-gold transition-colors">
+        <a [routerLink]="['/noticias', featuredNews()[0].slug]"
+           class="news-link mt-5 inline-flex items-center gap-2 text-xs font-bold text-editorial-navy uppercase tracking-[0.14em]">
           Leer más
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5"
+               fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
         </a>
       </article>
+
+      <ng-template #noFeatured></ng-template>
+
+      <!-- Secundarios apilados -->
+      <div class="lg:col-span-2 flex flex-col gap-10 lg:border-l lg:border-editorial-border lg:pl-10"
+           appRevealGroup="fadeUp" [stagger]="0.16" revealSelector=":scope > article">
+
+        <article *ngFor="let item of featuredNews().slice(1)"
+                 class="group grid grid-cols-[7rem_1fr] sm:grid-cols-[9rem_1fr] gap-5 items-start cursor-pointer"
+                 role="article"
+                 [attr.aria-label]="item.title">
+          <div class="aspect-square overflow-hidden">
+            <img [src]="item.image" [alt]="item.title" loading="lazy" decoding="async"
+                 class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" />
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="label-editorial !text-editorial-gold">{{ item.category }}</span>
+            </div>
+            <h4 class="text-base xl:text-lg font-bold text-editorial-navy leading-snug">
+              <a [routerLink]="['/noticias', item.slug]" class="news-title-link">{{ item.title }}</a>
+            </h4>
+            <time class="block mt-2 text-xs text-editorial-muted">{{ formatDate(item.date) }}</time>
+          </div>
+        </article>
+
+      </div>
     </div>
 
     <!-- Mobile link -->
     <div class="text-center md:hidden mt-12">
-      <a routerLink="/noticias" class="btn-outline">
-        Ver todas las noticias
-      </a>
+      <a routerLink="/noticias" class="btn-outline">Ver todas las noticias</a>
     </div>
 
   </div>

@@ -17,7 +17,19 @@
   }
 
   body {
-    @apply font-sans antialiased overflow-x-hidden text-editorial-navy;
+    @apply font-sans antialiased text-editorial-navy;
+    /* overflow-x: clip (NO hidden): hidden fuerza overflow-y:auto en body,
+       lo convierte en scroll-container y rompe la referencia del scroller
+       que usa GSAP ScrollTrigger para pinear el landing (footer desplazado). */
+    overflow-x: hidden;
+    overflow-x: clip;
+  }
+
+  /* El background de body se propaga al canvas del documento: con esta clase
+     (activa solo mientras el landing vive) el overscroll/seams del final del
+     recorrido horizontal pintan navy, nunca blanco. */
+  body.landing-page {
+    background-color: #102a43; /* editorial-navy */
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -35,12 +47,29 @@
   }
 
   /* ============================================
-     BOTONES EDITORIALES — efecto relleno centro
-     ============================================ */
+      BOTONES EDITORIALES — efecto relleno centro
+      Las utilidades del consumidor (px-, bg-, text-)
+      sobreescriben esta base sin conflicto de capas.
+      ============================================ */
   .btn-primary,
   .btn-outline,
   .btn-gold {
-    @apply relative z-10 overflow-hidden;
+    @apply relative z-10 inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl px-7 py-3.5 text-sm font-bold uppercase tracking-[0.12em] transition-colors duration-300;
+  }
+
+  .btn-primary {
+    /* Relleno hover: dorado oscuro → el texto debe pasar a blanco */
+    @apply bg-editorial-navy text-editorial-cream hover:text-editorial-cream;
+  }
+
+  .btn-outline {
+    /* Relleno hover: navy → las letras pasan a blanco para no perderse */
+    @apply border border-editorial-navy/40 bg-transparent text-editorial-navy hover:border-editorial-navy hover:text-editorial-cream;
+  }
+
+  .btn-gold {
+    /* Relleno hover: dorado más profundo → letras blancas */
+    @apply bg-editorial-gold-light text-editorial-navy hover:text-editorial-cream;
   }
 
   .btn-primary::before,
@@ -82,7 +111,7 @@
     top: 0;
     height: 100%;
     width: 0;
-    background: #D4A843;
+    background: #B8860B; /* dorado profundo, visible sobre gold-light */
     transition: width 0.3s ease-in-out;
     z-index: -1;
   }
@@ -174,22 +203,49 @@
 }
 
 /* ============================================
-   AUTO-SCROLL GALLERY — scroll infinito CSS
+   MARQUEE — cinta infinita reutilizable
+   Uso: .marquee > .marquee-track(.marquee-left|.marquee-right)
+        > 2x .marquee-group (segunda copia aria-hidden)
    ============================================ */
-@keyframes scroll-left {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+.marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
 }
 
-.gallery-scroll-track {
+.marquee-track {
   display: flex;
-  gap: 1rem;
   width: max-content;
-  animation: scroll-left 40s linear infinite;
+  will-change: transform;
 }
 
-.gallery-scroll-track:hover {
+.marquee-group {
+  display: flex;
+  gap: var(--marquee-gap, 1.5rem);
+  padding-inline-end: var(--marquee-gap, 1.5rem);
+}
+
+.marquee-track.marquee-left {
+  animation: marquee-left var(--marquee-duration, 40s) linear infinite;
+}
+
+.marquee-track.marquee-right {
+  animation: marquee-right var(--marquee-duration, 40s) linear infinite;
+}
+
+.marquee:hover .marquee-track,
+.marquee-track:hover {
   animation-play-state: paused;
+}
+
+@keyframes marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes marquee-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
 }
 
 /* Skeleton loading */
@@ -211,7 +267,7 @@
     transform: none !important;
   }
 
-  .gallery-scroll-track {
+  .marquee-track {
     animation: none !important;
   }
 }

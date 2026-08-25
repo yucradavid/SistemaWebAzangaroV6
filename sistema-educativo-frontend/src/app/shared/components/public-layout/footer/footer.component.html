@@ -1,120 +1,161 @@
-﻿<footer class="bg-editorial-navy text-white" role="contentinfo">
-  <div class="container-editorial py-20">
-    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
+﻿<footer class="relative h-full flex flex-col bg-editorial-navy text-white" [attr.aria-labelledby]="headingId()">
+  <!-- ==================== Secciones principales ==================== -->
+  <!-- flex-1 + items-center: centra las columnas en el espacio libre sobre el
+       bottom-bar (centrado óptico cuando el footer es panel de 100vh) -->
+  <div class="flex-1 flex items-center">
+    <div class="container-editorial grid gap-12 py-16 w-full md:grid-cols-2 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-12 lg:py-20">
 
-      <!-- Info del colegio -->
-      <div aria-label="Información del colegio">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-10 h-10 bg-editorial-gold flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-            </svg>
-          </div>
-          <div>
-            <span class="font-bold text-sm tracking-wide">CERMAT</span>
-            <span class="block text-[10px] text-gray-400 tracking-[0.2em] uppercase">School</span>
-          </div>
-        </div>
-        <p class="text-sm text-gray-400 leading-relaxed mb-6">
-          Formando líderes con excelencia académica y valores sólidos desde hace más de {{ yearsOfExperience() }} años.
+    <!-- Sección 1 · Branding, lema y acreditación -->
+    <section class="md:col-span-2 lg:col-span-4" [attr.aria-labelledby]="headingId()">
+      <a routerLink="/" class="inline-flex items-center gap-3 transition-opacity hover:opacity-90"
+         [attr.aria-label]="schoolInfo().name + ' — Ir al inicio'">
+        <span class="flex h-11 w-11 items-center justify-center bg-editorial-gold" aria-hidden="true">
+          <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+          </svg>
+        </span>
+        <span>
+          <span [attr.id]="headingId()" class="block font-display text-base font-bold tracking-wide">{{ schoolInfo().name }}</span>
+          <span class="block text-[10px] uppercase tracking-[0.25em] text-editorial-gold-light">{{ schoolInfo().slogan }}</span>
+        </span>
+      </a>
+
+      <p class="mt-6 max-w-sm text-sm leading-relaxed text-gray-400">
+        Institución educativa privada fundada en {{ schoolInfo().founded }} en {{ schoolInfo().location }}.
+        Más de {{ yearsOfExperience() }} años formando estudiantes con excelencia académica,
+        formación bilingüe y valores sólidos.
+      </p>
+
+      <!-- Sellos institucionales -->
+      <ul class="mt-6 flex flex-wrap gap-2" aria-label="Sellos institucionales">
+        <li class="border border-white/10 px-3 py-1 text-[11px] uppercase tracking-widest text-gray-300">
+          Desde {{ schoolInfo().founded }}
+        </li>
+        <li class="border border-white/10 px-3 py-1 text-[11px] uppercase tracking-widest text-gray-300">
+          Educación Básica Regular
+        </li>
+      </ul>
+
+      <!-- Redes sociales -->
+      <nav class="mt-8 flex gap-3" aria-label="Redes sociales">
+        <a [href]="schoolInfo().socialMedia.facebook" target="_blank" rel="noopener noreferrer"
+           class="footer-social" aria-label="Facebook de CERMAT School">
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        </a>
+        <a [href]="schoolInfo().socialMedia.instagram" target="_blank" rel="noopener noreferrer"
+           class="footer-social" aria-label="Instagram de CERMAT School">
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        </a>
+        <a [href]="schoolInfo().socialMedia.youtube" target="_blank" rel="noopener noreferrer"
+           class="footer-social" aria-label="YouTube de CERMAT School">
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+        </a>
+      </nav>
+    </section>
+
+    <!-- Sección 2 · Enlaces rápidos -->
+    <nav class="lg:col-span-2" aria-label="Enlaces rápidos">
+      <h3 class="footer-heading">Enlaces</h3>
+      <ul class="space-y-3">
+        @for (link of quickLinks; track link.route) {
+          <li>
+            <a [routerLink]="link.route" class="footer-link">{{ link.label }}</a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <!-- Niveles educativos (desde la señal `levels()` de DataService) -->
+    <nav class="lg:col-span-2" aria-label="Niveles educativos">
+      <h3 class="footer-heading">Niveles</h3>
+      <ul class="space-y-3">
+        @for (level of levelLinks(); track level.route) {
+          <li>
+            <a [routerLink]="level.route" class="footer-link">
+              {{ level.label }}
+              @if (level.hint) {
+                <span class="block text-xs text-gray-500">{{ level.hint }}</span>
+              }
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <!-- Sección 3 · Contacto y ubicación -->
+    <section class="lg:col-span-2" aria-labelledby="footer-contact-heading">
+      <h3 class="footer-heading" id="footer-contact-heading">Contacto</h3>
+      <address class="space-y-4 not-italic text-sm text-gray-400">
+        <p class="flex items-start gap-2">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-editorial-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+          <span>{{ schoolInfo().address }}</span>
         </p>
-        <div class="flex gap-3">
-          <a [href]="schoolInfo().socialMedia.facebook" target="_blank" rel="noopener noreferrer"
-             class="w-9 h-9 border border-white/10 hover:border-editorial-gold flex items-center justify-center transition-colors"
-             aria-label="Facebook">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-          </a>
-          <a [href]="schoolInfo().socialMedia.instagram" target="_blank" rel="noopener noreferrer"
-             class="w-9 h-9 border border-white/10 hover:border-editorial-gold flex items-center justify-center transition-colors"
-             aria-label="Instagram">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-          </a>
-          <a [href]="schoolInfo().socialMedia.youtube" target="_blank" rel="noopener noreferrer"
-             class="w-9 h-9 border border-white/10 hover:border-editorial-gold flex items-center justify-center transition-colors"
-             aria-label="YouTube">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-          </a>
-        </div>
-      </div>
+        <p class="flex items-start gap-2">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-editorial-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+          </svg>
+          <a [href]="telHref(schoolInfo().phone)" class="footer-link">{{ schoolInfo().phone }}</a>
+        </p>
+        <p class="flex items-start gap-2">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-editorial-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="m22 7-10 5L2 7" />
+          </svg>
+          <a [href]="admissionEmailHref()" class="footer-link break-all">Admisiones: {{ schoolInfo().email }}</a>
+        </p>
+        <p class="flex items-start gap-2">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-editorial-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <span>
+            {{ schoolInfo().schedule.weekdays }}
+            <span class="block">{{ schoolInfo().schedule.saturday }}</span>
+          </span>
+        </p>
+      </address>
+    </section>
 
-      <!-- Enlaces rápidos -->
-      <div aria-label="Enlaces rápidos">
-        <div class="label-editorial text-gray-400 mb-6">Enlaces</div>
-        <ul class="space-y-3">
-          <li *ngFor="let link of quickLinks">
-            <a [routerLink]="link.route"
-               class="text-sm text-gray-400 hover:text-white transition-colors">
-              {{ link.label }}
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Niveles -->
-      <div aria-label="Niveles educativos">
-        <div class="label-editorial text-gray-400 mb-6">Niveles</div>
-        <ul class="space-y-3">
+    <!-- Sección 4 · Legales y accesibilidad -->
+    <nav class="lg:col-span-2" aria-label="Información legal y accesibilidad">
+      <h3 class="footer-heading">Legal</h3>
+      <ul class="space-y-3">
+        @for (link of legalLinks; track link.label) {
           <li>
-            <a routerLink="/niveles/inicial" class="text-sm text-gray-400 hover:text-white transition-colors">
-              Inicial (3-5 años)
-            </a>
+            @if (link.route) {
+              <a [routerLink]="link.route" class="footer-link">{{ link.label }}</a>
+            } @else {
+              <span class="footer-link cursor-not-allowed opacity-60" aria-disabled="true"
+                    title="Disponible próximamente">{{ link.label }}</span>
+            }
           </li>
-          <li>
-            <a routerLink="/niveles/primaria" class="text-sm text-gray-400 hover:text-white transition-colors">
-              Primaria (6-11 años)
-            </a>
-          </li>
-          <li>
-            <a routerLink="/niveles/secundaria" class="text-sm text-gray-400 hover:text-white transition-colors">
-              Secundaria (12-16 años)
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Contacto -->
-      <div aria-label="Información de contacto">
-        <div class="label-editorial text-gray-400 mb-6">Contacto</div>
-        <ul class="space-y-4">
-          <li>
-            <span class="text-sm text-gray-400">{{ schoolInfo().address }}</span>
-          </li>
-          <li>
-            <a [href]="'tel:' + schoolInfo().phone" class="text-sm text-gray-400 hover:text-white transition-colors">
-              {{ schoolInfo().phone }}
-            </a>
-          </li>
-          <li>
-            <a [href]="'mailto:' + schoolInfo().email" class="text-sm text-gray-400 hover:text-white transition-colors break-all">
-              {{ schoolInfo().email }}
-            </a>
-          </li>
-          <li>
-            <div class="text-sm text-gray-400">
-              <p>{{ schoolInfo().schedule.weekdays }}</p>
-              <p>{{ schoolInfo().schedule.saturday }}</p>
-            </div>
-          </li>
-        </ul>
-      </div>
-
+        }
+      </ul>
+      <p class="mt-6 border-l-2 border-editorial-gold/50 pl-3 text-xs leading-relaxed text-gray-500">
+        Comprometidos con la accesibilidad digital (WCAG 2.1 AA).
+        <a [href]="admissionEmailHref()" class="text-editorial-gold-light underline-offset-2 transition-colors hover:text-white hover:underline">
+          Repórtanos cualquier barrera
+        </a>
+      </p>
+    </nav>
     </div>
   </div>
 
-  <!-- Bottom bar -->
-  <div class="border-t border-white/5">
-    <div class="container-editorial py-6 flex flex-col md:flex-row items-center justify-between gap-4">
+  <!-- ==================== Bottom bar ==================== -->
+  <div class="relative border-t border-white/10 bg-editorial-navy">
+    <!-- pb móvil = aire reservado para el FAB de WhatsApp (64px botón + 24px offset + safe-area iOS) ·
+         lg:pr-28 = el FAB también flota en desktop: no debe tapar la atribución -->
+    <div class="container-editorial flex flex-col items-center gap-3 pt-6 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] text-center md:flex-row md:justify-between md:pb-6 md:text-left lg:pr-28">
       <p class="text-xs text-gray-500">
         &copy; {{ currentYear }} {{ schoolInfo().name }}. Todos los derechos reservados.
       </p>
-      <div class="flex items-center gap-6 text-xs">
-        <a routerLink="/transparencia" class="text-gray-500 hover:text-white transition-colors">
-          Transparencia
-        </a>
-        <span class="text-gray-600 cursor-not-allowed">Términos</span>
-        <span class="text-gray-600 cursor-not-allowed">Privacidad</span>
-      </div>
+      <p class="text-xs text-gray-500">
+        Hecho en Azángaro, Puno · Diseñado y desarrollado por el Equipo Web CERMAT
+      </p>
     </div>
   </div>
 </footer>

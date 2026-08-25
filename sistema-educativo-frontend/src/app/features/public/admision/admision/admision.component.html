@@ -1,339 +1,491 @@
-<div class="min-h-screen bg-gray-50">
-  <section class="relative bg-[#1E3A8A] text-white py-28 overflow-hidden">
-    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 20px 20px;"></div>
+<app-page-hero
+  label="Admisión 2026"
+  title="Proceso de Admisión"
+  subtitle="Completa la pre matrícula del estudiante y deja la solicitud lista para revisión del área administrativa."
+  crumb="Admisión" />
 
-    <div class="container-cermat text-center relative z-10 px-4">
-      <span class="inline-block py-1 px-3 rounded-full bg-[#c0d8f0] text-[#1E3A8A] text-sm font-bold mb-6 uppercase tracking-wider shadow-lg">
-        Pre matricula abierta
-      </span>
-      <h1 class="text-4xl md:text-6xl font-bold mb-6">Proceso de Admision 2026</h1>
-      <p class="text-xl md:text-2xl text-[#dbeaf3] max-w-3xl mx-auto font-light">
-        Completa la solicitud del estudiante y deja la pre matricula lista para revision del area administrativa.
-      </p>
-    </div>
-    <div class="absolute bottom-0 w-full h-2 bg-gradient-to-r from-red-600 via-yellow-400 to-[#1E3A8A]"></div>
-  </section>
-
-  <div class="container-cermat px-4 py-10 text-center">
-    <button type="button" (click)="openAdmissionForm()" aria-label="Completar solicitud" class="group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#16326f] px-6 py-3 text-lg font-bold text-white shadow-[0_16px_30px_rgba(30,58,138,0.35)] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_18px_35px_rgba(30,58,138,0.4)]">
-      <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors duration-200 transform group-hover:scale-110">
-        <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6M9 16h6M9 8h6M5 6h14v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z" />
-        </svg>
-      </span>
-      <span class="ml-1">Completar solicitud</span>
-      <span class="ml-2 transform transition-transform duration-200 group-hover:translate-x-1">
-        <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-        </svg>
-      </span>
+<!-- CTA strip -->
+<section class="border-b border-editorial-border bg-white">
+  <div class="container-editorial flex flex-col items-start justify-between gap-6 py-10 sm:flex-row sm:items-center">
+    <p class="max-w-xl text-lg font-medium text-editorial-navy">
+      Pre matrícula web abierta. La solicitud pasa a revisión administrativa y recibirás respuesta por correo o teléfono.
+    </p>
+    <button type="button" (click)="openAdmissionForm()" class="btn-gold shrink-0">
+      Completar solicitud
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+      </svg>
     </button>
   </div>
+</section>
 
-  <section class="py-16">
-    <div class="container-cermat px-4">
-      <div class="text-center mb-16">
-        <h2 class="text-3xl md:text-4xl font-bold text-[#1E3A8A]">Pasos del Proceso</h2>
-        <div class="w-20 h-1 bg-red-600 mx-auto mt-4 rounded-full"></div>
+<!-- Pasos del proceso -->
+<section class="bg-editorial-cream py-20 lg:py-28">
+  <div class="container-editorial">
+    <div class="max-w-2xl">
+      <p class="label-editorial">El proceso</p>
+      <h2 class="mt-4 font-display text-3xl font-bold tracking-tight text-editorial-navy sm:text-4xl">
+        Cuatro pasos hacia la matrícula
+      </h2>
+    </div>
+
+    <ol class="mt-14 grid grid-cols-1 gap-px overflow-hidden border border-editorial-border bg-editorial-border md:grid-cols-2 lg:grid-cols-4">
+      @for (step of admissionSteps; track step.step) {
+        <li class="group bg-editorial-cream p-8 transition-colors duration-300 hover:bg-white">
+          <span class="font-display text-4xl font-bold tracking-tight text-editorial-border transition-colors duration-300 group-hover:text-editorial-gold-light">
+            {{ formatIndex(step.step) }}
+          </span>
+          <h3 class="mt-6 font-display text-lg font-bold text-editorial-navy">{{ step.title }}</h3>
+          <p class="mt-3 text-sm leading-relaxed text-editorial-slate">{{ step.description }}</p>
+        </li>
+      }
+    </ol>
+  </div>
+</section>
+
+<!-- Preguntas frecuentes -->
+<section class="bg-white py-20 lg:py-28">
+  <div class="container-editorial max-w-3xl">
+    <div>
+      <p class="label-editorial">Preguntas frecuentes</p>
+      <h2 class="mt-4 font-display text-3xl font-bold tracking-tight text-editorial-navy sm:text-4xl">
+        Dudas sobre la admisión
+      </h2>
+    </div>
+
+    <div class="mt-12 border-t border-editorial-border">
+      @for (faq of faqs; track $index) {
+        <div class="border-b border-editorial-border">
+          <button
+            type="button"
+            (click)="toggleFaq($index)"
+            [attr.aria-expanded]="openFaqIndex() === $index"
+            class="flex w-full items-center justify-between gap-6 py-6 text-left transition-colors hover:text-editorial-gold">
+            <span class="text-lg font-semibold text-editorial-navy">{{ faq.question }}</span>
+            <lucide-icon
+              [img]="PlusIcon"
+              class="h-5 w-5 shrink-0 text-editorial-gold transition-transform duration-300"
+              [class.rotate-45]="openFaqIndex() === $index"
+              aria-hidden="true" />
+          </button>
+          @if (openFaqIndex() === $index) {
+            <p class="-mt-1 pb-6 pr-12 leading-relaxed text-editorial-slate">{{ faq.answer }}</p>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     MODAL: FORMULARIO DE PRE-MATRÍCULA (wizard 3 pasos)
+     ============================================================ -->
+@if (isAdmissionFormOpen()) {
+  <div
+    class="fixed inset-0 z-50 flex items-end justify-center bg-editorial-navy/80 backdrop-blur-sm sm:items-center sm:p-6"
+    role="presentation"
+    (click)="closeAdmissionForm()">
+    <div
+      class="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden bg-white shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="admission-dialog-title"
+      (click)="$event.stopPropagation()">
+
+      <!-- Cabecera fija -->
+      <div class="flex items-center justify-between gap-4 border-b border-editorial-border px-6 py-4 sm:px-8">
+        <div>
+          <p class="label-editorial">Pre matrícula 2026</p>
+          <h2 id="admission-dialog-title" class="mt-1 font-display text-xl font-bold text-editorial-navy">
+            {{ currentStep() === 1 ? 'Información del estudiante' : currentStep() === 2 ? 'Datos del apoderado' : 'Información complementaria' }}
+          </h2>
+        </div>
+        <span class="hidden text-xs font-bold uppercase tracking-[0.18em] text-editorial-muted sm:inline">
+          Paso {{ currentStep() }} de {{ totalSteps }}
+        </span>
+        <button
+          type="button"
+          (click)="closeAdmissionForm()"
+          aria-label="Cerrar formulario"
+          class="flex h-10 w-10 shrink-0 items-center justify-center border border-editorial-border text-editorial-slate transition-colors hover:border-editorial-navy hover:text-editorial-navy">
+          <lucide-icon [img]="XIcon" class="h-5 w-5" aria-hidden="true" />
+        </button>
       </div>
 
-      <div class="max-w-4xl mx-auto relative">
-        <div class="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200 hidden md:block"></div>
+      <!-- Cuerpo -->
+      <div class="grid min-h-0 flex-1 md:grid-cols-[250px_1fr]">
+        <!-- Stepper lateral -->
+        <aside class="hidden bg-editorial-navy p-8 text-white md:block">
+          <ol class="space-y-1">
+            @for (item of wizardSteps; track item.step) {
+              <li>
+                <button
+                  type="button"
+                  (click)="goToStep(item.step)"
+                  [disabled]="item.step > furthestStepReached()"
+                  class="flex w-full items-center gap-4 py-3 text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-50">
+                  <span
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border text-sm font-bold transition-colors duration-200"
+                    [class]="stepCircleClass(item.step)">
+                    @if (currentStep() > item.step) {
+                      <lucide-icon [img]="CheckIcon" class="h-4 w-4" aria-hidden="true" />
+                    } @else {
+                      {{ item.step }}
+                    }
+                  </span>
+                  <span
+                    class="text-sm font-semibold transition-colors duration-200"
+                    [class]="stepLabelClass(item.step)">
+                    {{ item.label }}
+                  </span>
+                </button>
+              </li>
+            }
+          </ol>
 
-        <div class="space-y-8">
-          <div *ngFor="let step of admissionSteps" class="flex flex-col md:flex-row gap-6 items-start group relative">
-            <div class="flex-shrink-0 z-10 mx-auto md:mx-0">
-              <div class="w-16 h-16 bg-[#1E3A8A] rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg border-4 border-white group-hover:bg-[#bee0f2] group-hover:text-[#1E3A8A] transition-colors duration-300">
-                {{ step.step }}
-              </div>
-            </div>
-
-            <div class="flex-1 w-full bg-white rounded-2xl p-8 shadow-md hover:shadow-xl transition-all duration-300 border-l-4 border-[#1E3A8A] group-hover:border-[#1E3A8A]/70">
-              <h3 class="text-xl font-bold text-gray-900 mb-2">{{ step.title }}</h3>
-              <p class="text-gray-600 leading-relaxed">{{ step.description }}</p>
-            </div>
+          <div class="mt-10 border-t border-white/10 pt-6">
+            <p class="text-xs leading-relaxed text-white/50">
+              Tus datos viajan cifrados y solo se usan para gestionar la solicitud de vacante.
+            </p>
           </div>
+        </aside>
+
+        <!-- Formulario con scroll propio -->
+        <div class="min-h-0 flex-1 overflow-y-auto px-6 py-8 sm:px-8">
+          <!-- Progreso móvil -->
+          <div class="mb-8 flex items-center gap-2 md:hidden">
+            @for (item of wizardSteps; track item.step) {
+              <span
+                class="h-1 flex-1 transition-colors duration-300"
+                [class.bg-editorial-gold]="currentStep() >= item.step"
+                [class.bg-editorial-border]="currentStep() < item.step"></span>
+            }
+          </div>
+
+          <form [formGroup]="admissionForm" (ngSubmit)="onSubmit()">
+            <!-- Resumen de errores del paso -->
+            @if (stepAttempted() === currentStep() && getMissingFieldsForStep(currentStep()).length) {
+              <div class="mb-8 border-l-2 border-red-500 bg-red-50 px-5 py-4">
+                <p class="text-sm font-semibold text-red-700">Completa los campos obligatorios de este paso:</p>
+                <ul class="mt-2 list-disc space-y-0.5 pl-5 text-sm text-red-600">
+                  @for (field of getMissingFieldsForStep(currentStep()); track field) {
+                    <li>{{ field }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (loadError()) {
+              <div class="mb-8 border-l-2 border-red-500 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">
+                {{ loadError() }}
+              </div>
+            }
+
+            <!-- ============ PASO 1: ESTUDIANTE ============ -->
+            @if (currentStep() === 1) {
+              <div class="space-y-6">
+                <div class="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label for="academic_year_id" class="field-label">Año académico *</label>
+                    <select id="academic_year_id" formControlName="academic_year_id" class="field-input" [class.field-invalid]="isFieldInvalid('academic_year_id')">
+                      <option value="" disabled>Selecciona el año académico</option>
+                      @for (year of academicYears; track year.id) {
+                        <option [value]="year.id">{{ year.name || year.label || year.year }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div>
+                    <label for="grade_level_id" class="field-label">Grado al que postula *</label>
+                    <select id="grade_level_id" formControlName="grade_level_id" class="field-input" [class.field-invalid]="isFieldInvalid('grade_level_id')">
+                      <option value="" disabled>Selecciona el grado</option>
+                      @for (grade of gradeLevels; track grade.id) {
+                        <option [value]="grade.id">{{ grade.name || grade.label || grade.level }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label for="student_first_name" class="field-label">Nombres *</label>
+                    <input id="student_first_name" type="text" formControlName="student_first_name" class="field-input" placeholder="Ej. María Fernanda" [class.field-invalid]="isFieldInvalid('student_first_name')" />
+                  </div>
+                  <div>
+                    <label for="student_last_name" class="field-label">Apellidos *</label>
+                    <input id="student_last_name" type="text" formControlName="student_last_name" class="field-input" placeholder="Ej. Quispe Mamani" [class.field-invalid]="isFieldInvalid('student_last_name')" />
+                  </div>
+                </div>
+
+                <div class="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label for="student_document_type" class="field-label">Tipo de documento *</label>
+                    <select id="student_document_type" formControlName="student_document_type" class="field-input">
+                      @for (type of documentTypes; track type.id) {
+                        <option [value]="type.id">{{ type.label }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div>
+                    <label for="student_document_number" class="field-label">Número de documento *</label>
+                    <input
+                      id="student_document_number"
+                      type="text"
+                      formControlName="student_document_number"
+                      (blur)="onStudentDniBlur(admissionForm.get('student_document_number')?.value)"
+                      class="field-input"
+                      inputmode="numeric"
+                      maxlength="8"
+                      placeholder="8 dígitos"
+                      [class.field-invalid]="isFieldInvalid('student_document_number')" />
+                    @if (studentLookupLoading) {
+                      <p class="mt-2 flex items-center gap-2 text-xs font-semibold text-editorial-muted">
+                        <lucide-icon [img]="LoaderIcon" class="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                        Verificando en RENIEC…
+                      </p>
+                    } @else if (studentFound) {
+                      <p class="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                        <lucide-icon [img]="CheckIcon" class="h-3.5 w-3.5" aria-hidden="true" />
+                        Datos completados desde RENIEC
+                      </p>
+                    }
+                  </div>
+                </div>
+
+                <div class="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label for="student_birth_date" class="field-label">Fecha de nacimiento *</label>
+                    <input id="student_birth_date" type="date" formControlName="student_birth_date" class="field-input" [class.field-invalid]="isFieldInvalid('student_birth_date')" />
+                  </div>
+                  <div>
+                    <label for="student_gender" class="field-label">Género *</label>
+                    <select id="student_gender" formControlName="student_gender" class="field-input" [class.field-invalid]="isFieldInvalid('student_gender')">
+                      <option value="" disabled>Selecciona género</option>
+                      @for (gender of genders; track gender.id) {
+                        <option [value]="gender.id">{{ gender.label }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label for="student_address" class="field-label">Dirección del estudiante</label>
+                  <textarea id="student_address" formControlName="student_address" rows="3" class="field-input resize-none"></textarea>
+                </div>
+              </div>
+            }
+
+            <!-- ============ PASO 2: APODERADO ============ -->
+            @if (currentStep() === 2) {
+              <div class="space-y-6">
+                <div class="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label for="guardian_first_name" class="field-label">Nombres *</label>
+                    <input id="guardian_first_name" type="text" formControlName="guardian_first_name" class="field-input" [class.field-invalid]="isFieldInvalid('guardian_first_name')" />
+                  </div>
+                  <div>
+                    <label for="guardian_last_name" class="field-label">Apellidos *</label>
+                    <input id="guardian_last_name" type="text" formControlName="guardian_last_name" class="field-input" [class.field-invalid]="isFieldInvalid('guardian_last_name')" />
+                  </div>
+                </div>
+
+                <div class="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label for="guardian_document_type" class="field-label">Tipo de documento *</label>
+                    <select id="guardian_document_type" formControlName="guardian_document_type" class="field-input">
+                      @for (type of documentTypes; track type.id) {
+                        <option [value]="type.id">{{ type.label }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div>
+                    <label for="guardian_document_number" class="field-label">Número de documento *</label>
+                    <input
+                      id="guardian_document_number"
+                      type="text"
+                      formControlName="guardian_document_number"
+                      (blur)="onGuardianDniBlur(admissionForm.get('guardian_document_number')?.value)"
+                      class="field-input"
+                      inputmode="numeric"
+                      maxlength="8"
+                      placeholder="8 dígitos"
+                      [class.field-invalid]="isFieldInvalid('guardian_document_number')" />
+                    @if (guardianLookupLoading) {
+                      <p class="mt-2 flex items-center gap-2 text-xs font-semibold text-editorial-muted">
+                        <lucide-icon [img]="LoaderIcon" class="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                        Verificando en RENIEC…
+                      </p>
+                    } @else if (guardianFound) {
+                      <p class="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                        <lucide-icon [img]="CheckIcon" class="h-3.5 w-3.5" aria-hidden="true" />
+                        Datos verificados
+                      </p>
+                    }
+                  </div>
+                </div>
+
+                <div class="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label for="guardian_phone" class="field-label">Teléfono *</label>
+                    <input id="guardian_phone" type="tel" formControlName="guardian_phone" class="field-input" inputmode="numeric" maxlength="9" placeholder="9 dígitos" [class.field-invalid]="isFieldInvalid('guardian_phone')" />
+                  </div>
+                  <div>
+                    <label for="guardian_email" class="field-label">Correo electrónico *</label>
+                    <input id="guardian_email" type="email" formControlName="guardian_email" class="field-input" placeholder="correo@ejemplo.com" [class.field-invalid]="isFieldInvalid('guardian_email')" />
+                  </div>
+                </div>
+
+                <div class="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label for="guardian_address" class="field-label">Dirección</label>
+                    <textarea id="guardian_address" formControlName="guardian_address" rows="3" class="field-input resize-none"></textarea>
+                  </div>
+                  <div>
+                    <label for="guardian_relationship" class="field-label">Parentesco *</label>
+                    <select id="guardian_relationship" formControlName="guardian_relationship" class="field-input" [class.field-invalid]="isFieldInvalid('guardian_relationship')">
+                      @for (relation of relationships; track relation.id) {
+                        <option [value]="relation.id">{{ relation.label }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                @if (siblingsDetected.length) {
+                  <div class="border-l-2 border-editorial-gold bg-editorial-warm px-5 py-4">
+                    <p class="flex items-center gap-2 text-sm font-bold text-editorial-navy">
+                      <lucide-icon [img]="UsersIcon" class="h-4 w-4 text-editorial-gold" aria-hidden="true" />
+                      Hermanos detectados en el colegio
+                    </p>
+                    <ul class="mt-2 space-y-1 text-sm text-editorial-slate">
+                      @for (sibling of siblingsDetected; track sibling.code) {
+                        <li>{{ sibling.name }}<span class="text-editorial-muted"> · {{ sibling.code }}</span></li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- ============ PASO 3: COMPLEMENTARIO ============ -->
+            @if (currentStep() === 3) {
+              <div class="space-y-6">
+                <div class="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label for="previous_school" class="field-label">Colegio anterior</label>
+                    <input id="previous_school" type="text" formControlName="previous_school" class="field-input" />
+                  </div>
+                  <label class="flex items-end gap-3 pb-3 text-sm font-semibold text-editorial-slate">
+                    <input type="checkbox" formControlName="has_special_needs" class="h-4 w-4 accent-editorial-gold" />
+                    Tiene necesidades especiales
+                  </label>
+                </div>
+
+                @if (admissionForm.get('has_special_needs')?.value) {
+                  <div>
+                    <label for="special_needs_description" class="field-label">Describe las necesidades especiales *</label>
+                    <textarea
+                      id="special_needs_description"
+                      formControlName="special_needs_description"
+                      rows="3"
+                      class="field-input resize-none"
+                      [class.field-invalid]="!(admissionForm.get('special_needs_description')?.value || '').trim()"></textarea>
+                  </div>
+                }
+
+                <div class="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label for="emergency_contact_name" class="field-label">Contacto de emergencia</label>
+                    <input id="emergency_contact_name" type="text" formControlName="emergency_contact_name" class="field-input" />
+                  </div>
+                  <div>
+                    <label for="emergency_contact_phone" class="field-label">Teléfono de emergencia</label>
+                    <input id="emergency_contact_phone" type="tel" formControlName="emergency_contact_phone" class="field-input" inputmode="numeric" maxlength="9" placeholder="9 dígitos" [class.field-invalid]="isFieldInvalid('emergency_contact_phone')" />
+                  </div>
+                </div>
+
+                <div>
+                  <label for="notes" class="field-label">Notas adicionales</label>
+                  <textarea id="notes" formControlName="notes" rows="4" class="field-input resize-none"></textarea>
+                </div>
+              </div>
+            }
+          </form>
         </div>
+      </div>
+
+      <!-- Pie fijo con navegación -->
+      <div class="flex items-center justify-between gap-4 border-t border-editorial-border bg-white px-6 py-4 sm:px-8">
+        @if (currentStep() > 1) {
+          <button type="button" (click)="previousStep()" class="btn-outline !px-5 !py-2.5">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m0 0l7 7m-7-7l7-7" />
+            </svg>
+            Anterior
+          </button>
+        } @else {
+          <span aria-hidden="true"></span>
+        }
+
+        @if (currentStep() < totalSteps) {
+          <button type="button" (click)="nextStep()" class="btn-primary !px-5 !py-2.5">
+            Siguiente
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </button>
+        } @else {
+          <button type="button" (click)="onSubmit()" [disabled]="isSubmitting()" class="btn-gold !px-5 !py-2.5 disabled:pointer-events-none disabled:opacity-60">
+            @if (isSubmitting()) {
+              <lucide-icon [img]="LoaderIcon" class="h-4 w-4 animate-spin" aria-hidden="true" />
+              Enviando…
+            } @else {
+              Enviar solicitud
+            }
+          </button>
+        }
       </div>
     </div>
-  </section>
+  </div>
+}
 
-  <section class="py-16 md:py-24 bg-gradient-to-br from-slate-50 via-white to-[#e6eff8] pb-8">
-    <div class="container-cermat px-4">
-      <div class="mb-10 rounded-[28px] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] ring-1 ring-slate-200 md:p-8">
-          <div class="grid gap-5 md:grid-cols-4">
-            <div *ngFor="let step of admissionSteps" class="group rounded-[24px] border border-slate-200 bg-slate-50 p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-              <div class="mb-5 flex items-center justify-between">
-                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[#1E3A8A] text-lg font-black text-white">
-                  {{ step.step }}
-                </div>
-                <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </div>
+<!-- ============================================================
+     MODAL: RESULTADO (éxito / validación / error)
+     ============================================================ -->
+@if (showModal()) {
+  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-editorial-navy/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="result-modal-title">
+    <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl sm:p-10">
+      <span
+        class="flex h-14 w-14 items-center justify-center"
+        [class.bg-emerald-50]="modalType() === 'success'"
+        [class.text-emerald-600]="modalType() === 'success'"
+        [class.bg-red-50]="modalType() === 'error'"
+        [class.text-red-600]="modalType() === 'error'"
+        [class.bg-editorial-warm]="modalType() === 'validation'"
+        [class.text-editorial-gold]="modalType() === 'validation'">
+        @if (modalType() === 'error') {
+          <lucide-icon [img]="AlertCircleIcon" class="h-7 w-7" aria-hidden="true" />
+        } @else if (modalType() === 'validation') {
+          <lucide-icon [img]="AlertCircleIcon" class="h-7 w-7" aria-hidden="true" />
+        } @else {
+          <lucide-icon [img]="CheckIcon" class="h-7 w-7" aria-hidden="true" />
+        }
+      </span>
 
-              <h4 class="mb-2 text-lg font-bold text-slate-900">{{ step.title }}</h4>
-              <p class="text-sm leading-6 text-slate-600">{{ step.description }}</p>
-            </div>
-          </div>
-        </div>
+      <h3 id="result-modal-title" class="mt-6 font-display text-2xl font-bold text-editorial-navy">
+        {{ modalHeading() }}
+      </h3>
+      <p class="mt-3 leading-relaxed text-editorial-slate">{{ modalDescription() }}</p>
 
-      
+      @if (modalDetails().length) {
+        <ul class="mt-5 space-y-2 border-l-2 border-editorial-gold pl-4 text-sm text-editorial-slate">
+          @for (detail of modalDetails(); track detail) {
+            <li>{{ detail }}</li>
+          }
+        </ul>
+      }
 
-        <p *ngIf="loadError()" class="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">
-          {{ loadError() }}
-        </p>
-
-        <!-- FORMULARIO FLOTANTE DE PRE-MATRÍCULA -->
-        <div *ngIf="isAdmissionFormOpen()" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm" (click)="closeAdmissionForm()">
-          <div class="relative w-full max-w-5xl overflow-hidden rounded-[30px] bg-[#dff1ee] shadow-[0_30px_80px_rgba(15,23,42,0.28)] ring-1 ring-slate-200" (click)="$event.stopPropagation()">
-            <div class="grid min-h-[720px] md:grid-cols-[280px_1fr]">
-              <aside class="relative overflow-hidden bg-gradient-to-b from-[#e7f7f7] via-[#dff3f1] to-[#d5ecf2] p-7 md:p-8">
-                <div class="mb-8 text-[42px] font-light tracking-[-0.06em] text-[#1E3A8A]">DNB</div>
-                <h2 class="text-3xl font-semibold tracking-[-0.04em] text-slate-800">Pre matrícula</h2>
-                <p class="mt-2 text-sm text-slate-600">Completa la solicitud del estudiante con rapidez.</p>
-
-                <div class="relative mt-10 space-y-7 pl-3">
-                  <div class="absolute left-[18px] top-2 bottom-2 w-px bg-slate-300"></div>
-
-                  <div class="relative flex items-center gap-4" *ngFor="let item of [
-                    { label: 'Estudiante', step: 1 },
-                    { label: 'Apoderado', step: 2 },
-                    { label: 'Complementario', step: 3 }
-                  ]">
-                    <div class="relative z-10 flex h-9 w-9 items-center justify-center rounded-full border text-sm font-bold transition-all"
-                         [class.bg-[#1E3A8A]]="currentStep() === item.step || currentStep() > item.step"
-                         [class.text-white]="currentStep() === item.step || currentStep() > item.step"
-                         [class.border-[#1E3A8A]]="currentStep() === item.step || currentStep() > item.step"
-                         [class.bg-slate-200]="currentStep() < item.step"
-                         [class.border-slate-300]="currentStep() < item.step"
-                         [class.text-slate-500]="currentStep() < item.step">
-                      <span *ngIf="currentStep() > item.step || currentStep() === item.step">✓</span>
-                      <span *ngIf="currentStep() < item.step">{{ item.step }}</span>
-                    </div>
-                    <div class="text-lg font-medium transition-colors"
-                         [class.text-slate-800]="currentStep() === item.step || currentStep() > item.step"
-                         [class.text-slate-400]="currentStep() < item.step">
-                      {{ item.label }}
-                    </div>
-                  </div>
-                </div>
-              </aside>
-
-              <div class="relative bg-white/70 p-6 md:p-8">
-                <button type="button" (click)="closeAdmissionForm()" aria-label="Cerrar formulario"
-                        class="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-lg text-slate-500 shadow-sm transition hover:text-slate-900">
-                  ×
-                </button>
-
-                <form [formGroup]="admissionForm" (ngSubmit)="onSubmit()" class="pt-4 md:pt-6">
-                  <div class="mb-6 flex items-center justify-between gap-3">
-                    <div>
-                      <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Pre matrícula</p>
-                      <h3 class="mt-1 text-xl font-black text-slate-900">
-                        {{ currentStep() === 1 ? 'Información básica' : currentStep() === 2 ? 'Datos del apoderado' : 'Información complementaria' }}
-                      </h3>
-                    </div>
-                  <span class="inline-flex items-center rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#17486e] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-sm">
-                      Paso {{ currentStep() }} / {{ totalSteps }}
-                    </span>
-                  </div>
-
-                  <div *ngIf="currentStep() === 1" class="space-y-6">
-                    <div>
-                      <h3 class="text-xl font-bold text-slate-900">Información básica</h3>
-                      <p class="mt-1 text-sm text-slate-500">Cuéntanos quién postula a una vacante.</p>
-                    </div>
-
-                    <div class="grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Año académico *</label>
-                        <select formControlName="academic_year_id" [class.border-red-500]="isFieldInvalid('academic_year_id')" class="w-full rounded-xl border-2 border-[#1E3A8A]/30 bg-[#edf4fb] px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" required>
-                          <option value="" disabled>Selecciona el año académico</option>
-                          <option *ngFor="let year of academicYears" [value]="year.id">{{ year.name || year.label || year.year }}</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Grado al que postula *</label>
-                        <select formControlName="grade_level_id" [class.border-red-500]="isFieldInvalid('grade_level_id')" class="w-full rounded-xl border-2 border-[#1E3A8A]/30 bg-[#edf4fb] px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" required>
-                          <option value="" disabled>Selecciona el grado</option>
-                          <option *ngFor="let grade of gradeLevels" [value]="grade.id">{{ grade.name || grade.label || grade.level }}</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div class="grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Nombres del estudiante *</label>
-                        <input type="text" formControlName="student_first_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('student_first_name')" />
-                      </div>
-
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Apellidos del estudiante *</label>
-                        <input type="text" formControlName="student_last_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('student_last_name')" />
-                      </div>
-                    </div>
-
-                    <div class="grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Tipo de documento *</label>
-                        <select formControlName="student_document_type" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]">
-                          <option *ngFor="let type of documentTypes" [value]="type.id">{{ type.label }}</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Número de documento *</label>
-                        <input type="text" formControlName="student_document_number" (blur)="onStudentDniBlur(admissionForm.get('student_document_number')?.value)" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('student_document_number')" />
-                      </div>
-                    </div>
-
-                    <div class="grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Fecha de nacimiento *</label>
-                        <input type="date" formControlName="student_birth_date" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('student_birth_date')" />
-                      </div>
-
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Género *</label>
-                        <select formControlName="student_gender" [class.border-red-500]="isFieldInvalid('student_gender')" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" required>
-                          <option value="" disabled>Selecciona género</option>
-                          <option *ngFor="let gender of genders" [value]="gender.id">{{ gender.label }}</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Dirección del estudiante</label>
-                      <textarea formControlName="student_address" rows="3" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]"></textarea>
-                    </div>
-
-                    <div class="flex items-center justify-between gap-3">
-                    <button type="button" (click)="nextStep()" class="inline-flex items-center justify-center rounded-full bg-[#1E3A8A] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#154770]" *ngIf="currentStep() === 1">
-                        Siguiente
-                      </button>
-                    </div>
-                  </div>
-
-                  <div *ngIf="currentStep() === 2" class="space-y-6">
-                    <div>
-                      <h3 class="text-xl font-bold text-slate-900">Datos del apoderado</h3>
-                      <p class="mt-1 text-sm text-slate-500">Información de contacto y parentesco.</p>
-                    </div>
-
-                    <div class="grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Nombres del apoderado *</label>
-                        <input type="text" formControlName="guardian_first_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_first_name')" />
-                      </div>
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Apellidos del apoderado *</label>
-                        <input type="text" formControlName="guardian_last_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_last_name')" />
-                      </div>
-                    </div>
-
-                    <div class="grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Tipo de documento *</label>
-                        <select formControlName="guardian_document_type" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]">
-                          <option *ngFor="let type of documentTypes" [value]="type.id">{{ type.label }}</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Número de documento *</label>
-                        <input type="text" formControlName="guardian_document_number" (blur)="onGuardianDniBlur(admissionForm.get('guardian_document_number')?.value)" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_document_number')" />
-                      </div>
-                    </div>
-
-                    <div class="grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Teléfono *</label>
-                        <input type="tel" formControlName="guardian_phone" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_phone')" />
-                      </div>
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Correo electrónico *</label>
-                        <input type="email" formControlName="guardian_email" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_email')" />
-                      </div>
-                    </div>
-
-                    <div class="grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Dirección</label>
-                        <textarea formControlName="guardian_address" rows="3" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]"></textarea>
-                      </div>
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Parentesco *</label>
-                        <select formControlName="guardian_relationship" [class.border-red-500]="isFieldInvalid('guardian_relationship')" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]">
-                          <option *ngFor="let relation of relationships" [value]="relation.id">{{ relation.label }}</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                      <button type="button" (click)="previousStep()" class="inline-flex items-center justify-center rounded-full border border-[#1E3A8A] px-6 py-3 text-sm font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A]/10">
-                        Anterior
-                      </button>
-                      <button type="button" (click)="nextStep()" class="inline-flex items-center justify-center rounded-full bg-[#1E3A8A] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#154770]">
-                        Siguiente
-                      </button>
-                    </div>
-                  </div>
-
-                  <div *ngIf="currentStep() === 3" class="space-y-6">
-                    <div>
-                      <h3 class="text-xl font-bold text-slate-900">Información complementaria</h3>
-                      <p class="mt-1 text-sm text-slate-500">Danos algunos datos adicionales para completar tu solicitud.</p>
-                    </div>
-
-                    <div class="grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Colegio anterior</label>
-                        <input type="text" formControlName="previous_school" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" />
-                      </div>
-                      <div class="flex items-end gap-3">
-                        <label class="flex items-center gap-2 text-sm font-bold uppercase text-gray-700">
-                          <input type="checkbox" formControlName="has_special_needs" class="h-4 w-4 text-[#1E3A8A] focus:ring-[#1E3A8A]" />
-                          Tiene necesidades especiales
-                        </label>
-                      </div>
-                    </div>
-
-                    <div *ngIf="admissionForm.get('has_special_needs')?.value">
-                      <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Describe las necesidades especiales</label>
-                      <textarea formControlName="special_needs_description" rows="3" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="!admissionForm.get('special_needs_description')?.value && admissionForm.get('has_special_needs')?.value"></textarea>
-                    </div>
-
-                    <div class="grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Contacto de emergencia</label>
-                        <input type="text" formControlName="emergency_contact_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" />
-                      </div>
-                      <div>
-                        <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Teléfono de emergencia</label>
-                        <input type="tel" formControlName="emergency_contact_phone" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('emergency_contact_phone')" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Notas adicionales</label>
-                      <textarea formControlName="notes" rows="4" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]"></textarea>
-                    </div>
-
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                      <button type="button" (click)="previousStep()" class="inline-flex items-center justify-center rounded-full border border-[#1E3A8A] px-6 py-3 text-sm font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A]/10">
-                        Anterior
-                      </button>
-                      <button type="submit" class="inline-flex items-center justify-center rounded-full bg-[#1E3A8A] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#154770]">
-                        Enviar solicitud
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-  
-
+      <button type="button" (click)="closeModal()" class="btn-primary mt-8 w-full">
+        {{ modalPrimaryButtonLabel() }}
+      </button>
+    </div>
+  </div>
+}

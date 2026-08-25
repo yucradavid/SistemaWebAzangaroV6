@@ -1,95 +1,133 @@
-<section class="py-24 lg:py-32 bg-editorial-cream">
-  <div class="container-editorial">
+<section class="py-24 lg:py-14 lg:h-full lg:flex lg:flex-col lg:justify-center bg-editorial-navy overflow-hidden">
+  <div class="container-editorial-wide">
 
     <!-- Header -->
-    <div class="mb-16" appScrollReveal="fadeUp">
-      <p class="label-editorial mb-4">Ubicación</p>
-      <div class="section-divider mb-6"></div>
-      <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
-        Visítanos en<br/>
-        <span class="text-editorial-gold">Azángaro</span>
-      </h2>
-    </div>
+    <header class="flex flex-col md:flex-row md:items-end md:justify-between mb-10 lg:mb-8"
+            appRevealGroup="fadeUp" [stagger]="0.1">
+      <div>
+        <p class="label-editorial !text-editorial-gold-light mb-4">Ubicación</p>
+        <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-black text-white leading-[0.95] tracking-tight">
+          Visítanos en<br/>
+          <span class="text-editorial-gold-light">Azángaro</span>
+        </h2>
+      </div>
+      <p class="max-w-sm text-lg text-white/60 leading-relaxed md:text-right mt-4 md:mt-0">
+        Estamos listos para recibirte y responder tus preguntas.
+      </p>
+    </header>
 
-    <!-- Split layout -->
-    <div class="grid lg:grid-cols-2 gap-px bg-editorial-border">
+    <!-- Tarjeta glass + mapa -->
+    <div class="grid lg:grid-cols-5 gap-8 items-stretch"
+         appRevealGroup="fadeUp" [stagger]="0.18" revealSelector=":scope > *">
 
-      <!-- Info de contacto -->
-      <div class="bg-white p-10 lg:p-14 space-y-10" appScrollReveal="fadeLeft" [delay]="200">
+      <!-- Contacto glass -->
+      <div class="lg:col-span-2 relative bg-white/[0.07] backdrop-blur-md border border-white/15 p-8 xl:p-10 flex flex-col">
+        <!-- Esquinas doradas -->
+        <span class="absolute -top-px -left-px w-6 h-6 border-t-2 border-l-2 border-editorial-gold-light" aria-hidden="true"></span>
+        <span class="absolute -bottom-px -right-px w-6 h-6 border-b-2 border-r-2 border-editorial-gold-light" aria-hidden="true"></span>
 
-        <div>
-          <div class="label-editorial mb-2">Dirección</div>
-          <p class="text-lg font-semibold text-editorial-navy">{{ schoolInfo().address }}</p>
-          <p class="text-sm text-editorial-muted mt-1">{{ schoolInfo().location }}</p>
-        </div>
+        <ul class="space-y-7">
+          <li class="contact-row group flex items-start gap-4">
+            <span class="contact-icon shrink-0 grid place-items-center w-11 h-11 border border-editorial-gold-light/40 text-editorial-gold-light transition-colors duration-300 group-hover:bg-editorial-gold-light group-hover:text-editorial-navy" aria-hidden="true">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </span>
+            <div>
+              <div class="label-editorial !text-white/50 mb-1.5">Dirección</div>
+              <p class="font-bold text-white">{{ schoolInfo().address }}</p>
+              <p class="text-sm text-white/60 mt-0.5">{{ schoolInfo().location }}</p>
+            </div>
+          </li>
 
-        <div class="w-8 h-px bg-editorial-gold"></div>
+          <li class="contact-row group flex items-start gap-4">
+            <span class="contact-icon shrink-0 grid place-items-center w-11 h-11 border border-editorial-gold-light/40 text-editorial-gold-light transition-colors duration-300 group-hover:bg-editorial-gold-light group-hover:text-editorial-navy" aria-hidden="true">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h2l2 5-2 1.5a12 12 0 006.5 6.5L15 14l5 2v2a2 2 0 01-2 2A16 16 0 013 5z"/>
+              </svg>
+            </span>
+            <div>
+              <div class="label-editorial !text-white/50 mb-1.5">Teléfono</div>
+              <a [href]="'tel:' + schoolInfo().phone"
+                 class="inline-flex items-baseline gap-2 text-xl font-black text-white hover:text-editorial-gold-light transition-colors">
+                {{ schoolInfo().phone }}
+                <span class="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 normal-case tracking-normal">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                    <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                  </span>
+                  Disponible
+                </span>
+              </a>
+            </div>
+          </li>
 
-        <div>
-          <div class="label-editorial mb-2">Teléfono</div>
-          <a [href]="'tel:' + schoolInfo().phone"
-             class="text-2xl font-black text-editorial-navy hover:text-editorial-gold transition-colors">
-            {{ schoolInfo().phone }}
-          </a>
-          <div class="flex items-center gap-2 mt-2">
-            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-            <span class="text-xs text-editorial-muted">Disponible ahora</span>
-          </div>
-        </div>
+          <li class="contact-row group flex items-start gap-4">
+            <span class="contact-icon shrink-0 grid place-items-center w-11 h-11 border border-editorial-gold-light/40 text-editorial-gold-light transition-colors duration-300 group-hover:bg-editorial-gold-light group-hover:text-editorial-navy" aria-hidden="true">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <rect x="3" y="5" width="18" height="14" rx="1"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7l9 6 9-6"/>
+              </svg>
+            </span>
+            <div class="min-w-0">
+              <div class="label-editorial !text-white/50 mb-1.5">Correo Electrónico</div>
+              <a [href]="'mailto:' + schoolInfo().email"
+                 class="block truncate text-white/85 hover:text-editorial-gold-light transition-colors break-all">
+                {{ schoolInfo().email }}
+              </a>
+            </div>
+          </li>
 
-        <div class="w-8 h-px bg-editorial-gold"></div>
+          <li class="contact-row group flex items-start gap-4">
+            <span class="contact-icon shrink-0 grid place-items-center w-11 h-11 border border-editorial-gold-light/40 text-editorial-gold-light transition-colors duration-300 group-hover:bg-editorial-gold-light group-hover:text-editorial-navy" aria-hidden="true">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="9"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3.5 2"/>
+              </svg>
+            </span>
+            <div class="w-full">
+              <div class="label-editorial !text-white/50 mb-2">Horario de Atención</div>
+              <dl class="text-sm space-y-1.5">
+                <div class="flex justify-between gap-4 border-b border-white/10 pb-1.5">
+                  <dt class="text-white/55">Lunes &ndash; Viernes</dt>
+                  <dd class="font-semibold text-white">{{ schoolInfo().schedule.weekdays }}</dd>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <dt class="text-white/55">Sábados</dt>
+                  <dd class="font-semibold text-white">{{ schoolInfo().schedule.saturday }}</dd>
+                </div>
+              </dl>
+            </div>
+          </li>
+        </ul>
 
-        <div>
-          <div class="label-editorial mb-2">Correo Electrónico</div>
-          <a [href]="'mailto:' + schoolInfo().email"
-             class="text-editorial-slate hover:text-editorial-gold transition-colors font-medium break-all">
-            {{ schoolInfo().email }}
-          </a>
-        </div>
-
-        <div class="w-8 h-px bg-editorial-gold"></div>
-
-        <div>
-          <div class="label-editorial mb-3">Horario de Atención</div>
-          <div class="flex justify-between items-center py-2 border-b border-editorial-border">
-            <span class="text-sm text-editorial-muted">Lunes - Viernes</span>
-            <span class="text-sm font-semibold text-editorial-navy">{{ schoolInfo().schedule.weekdays }}</span>
-          </div>
-          <div class="flex justify-between items-center py-2">
-            <span class="text-sm text-editorial-muted">Sábados</span>
-            <span class="text-sm font-semibold text-editorial-navy">{{ schoolInfo().schedule.saturday }}</span>
-          </div>
-        </div>
-
+        <a href="https://www.google.com/maps/dir/?api=1&destination=Jr.+Los+Andes+456,+Az%C3%A1ngaro,+Puno"
+           target="_blank" rel="noopener noreferrer"
+           class="btn-gold mt-9 px-6 py-3.5">
+          Cómo llegar
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </a>
       </div>
 
-      <!-- Mapa -->
-      <div class="bg-white min-h-[500px]" appScrollReveal="fadeRight" [delay]="400">
+      <!-- Mapa con marco dorado desplazado (en lg estira junto a la tarjeta glass) -->
+      <div class="lg:col-span-3 relative group/map min-h-[380px] lg:min-h-0">
+        <div class="absolute -top-3 -right-3 w-full h-full border border-editorial-gold-light/35 pointer-events-none" aria-hidden="true"></div>
         <iframe
           [src]="mapUrl"
           width="100%"
           height="100%"
-          style="border:0; min-height: 500px;"
+          style="border:0;"
           allowfullscreen=""
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
           title="Ubicación de CERMAT School en Google Maps, Azángaro, Puno"
-          class="w-full h-full grayscale hover:grayscale-0 transition-all duration-700"
+          class="relative w-full h-full grayscale-[80%] contrast-[1.05] group-hover/map:grayscale-0 transition-all duration-700"
         ></iframe>
       </div>
 
-    </div>
-
-    <!-- CTA link -->
-    <div class="mt-10" appScrollReveal="fadeUp" [delay]="200">
-      <a href="https://www.google.com/maps/dir/?api=1&destination=Jr.+Los+Andes+456,+Az%C3%A1ngaro,+Puno"
-         target="_blank" rel="noopener noreferrer"
-         class="inline-flex items-center gap-2 text-sm font-semibold text-editorial-navy uppercase tracking-[0.1em] hover:text-editorial-gold transition-colors">
-        Cómo llegar
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-        </svg>
-      </a>
     </div>
 
   </div>

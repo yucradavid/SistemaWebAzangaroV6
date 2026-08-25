@@ -1,13 +1,22 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  LucideAngularModule,
+  X,
+  Check,
+  Plus,
+  Loader2,
+  AlertCircle,
+  Users
+} from 'lucide-angular';
 import { SeoService } from '@core/services/seo/seo.service';
 import { EnrollmentService, EnrollmentSibling } from '@core/services/enrollment.service';
+import { PageHeroComponent } from '@shared/components/public/page-hero/page-hero.component';
 
 @Component({
   selector: 'app-admision',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [ReactiveFormsModule, LucideAngularModule, PageHeroComponent],
   templateUrl: './admision.component.html',
   styleUrls: ['./admision.component.css']
 })
@@ -32,6 +41,41 @@ export class AdmisionComponent implements OnInit {
   readonly loadError = signal('');
 
   readonly totalSteps = 3;
+
+  readonly wizardSteps = [
+    { step: 1, label: 'Estudiante' },
+    { step: 2, label: 'Apoderado' },
+    { step: 3, label: 'Complementario' }
+  ];
+
+  // Iconos lucide expuestos a la plantilla
+  readonly XIcon = X;
+  readonly CheckIcon = Check;
+  readonly PlusIcon = Plus;
+  readonly LoaderIcon = Loader2;
+  readonly AlertCircleIcon = AlertCircle;
+  readonly UsersIcon = Users;
+
+  formatIndex(index: number): string {
+    return index < 9 ? `0${index}` : `${index}`;
+  }
+
+  /** Clases del círculo del stepper según el estado del paso */
+  stepCircleClass(step: number): string {
+    const current = this.currentStep();
+    if (current > step) {
+      return 'border-editorial-gold bg-editorial-gold text-editorial-navy';
+    }
+    if (current === step) {
+      return 'border-editorial-gold-light text-editorial-gold-light';
+    }
+    return 'border-white/25 text-white/40';
+  }
+
+  /** Clases de la etiqueta del stepper según el estado del paso */
+  stepLabelClass(step: number): string {
+    return this.currentStep() >= step ? 'text-white' : 'text-white/40';
+  }
 
   guardianLookupLoading = false;
   guardianFound = false;

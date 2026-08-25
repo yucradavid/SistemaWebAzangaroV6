@@ -1,0 +1,99 @@
+<app-page-hero
+  [label]="'Nivel ' + level().name"
+  [title]="'Educación ' + level().name"
+  [subtitle]="level().description"
+  [crumb]="level().name" />
+
+<!-- Propuesta pedagógica -->
+<section class="bg-editorial-cream py-20 lg:py-28">
+  <div class="container-editorial grid gap-14 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+    <div>
+      <p class="label-editorial">Propuesta pedagógica</p>
+      <span class="mt-5 inline-flex items-center border border-editorial-gold/40 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-editorial-gold">
+        {{ level().ages }}
+      </span>
+      <p class="mt-8 border-l-2 border-editorial-gold pl-6 text-xl font-medium leading-relaxed text-editorial-navy md:text-2xl">
+        {{ level().longDescription }}
+      </p>
+    </div>
+
+    <figure class="relative mt-4 lg:mt-0">
+      <div class="absolute -bottom-4 -right-4 hidden h-full w-full border border-editorial-gold sm:block" aria-hidden="true"></div>
+      <img
+        [src]="level().image"
+        [alt]="'Estudiantes de nivel ' + level().name.toLowerCase()"
+        class="relative aspect-[4/3] w-full object-cover" />
+    </figure>
+  </div>
+</section>
+
+<!-- Beneficios -->
+<section class="bg-white py-20 lg:py-28">
+  <div class="container-editorial">
+    <div class="max-w-2xl">
+      <p class="label-editorial">Beneficios</p>
+      <h2 class="mt-4 font-display text-3xl font-bold tracking-tight text-editorial-navy sm:text-4xl">
+        ¿Qué ofrece el nivel {{ level().name }}?
+      </h2>
+    </div>
+
+    <ul class="mt-14 grid grid-cols-1 gap-px overflow-hidden border border-editorial-border bg-editorial-border sm:grid-cols-2 lg:grid-cols-3">
+      @for (feature of level().features; track feature; let i = $index) {
+        <li class="group bg-white p-8 transition-colors duration-300 hover:bg-editorial-warm">
+          <span class="font-display text-sm font-bold tracking-[0.2em] text-editorial-gold">{{ formatIndex(i) }}</span>
+          <div class="mt-5 flex items-start gap-3">
+            <lucide-icon [img]="CheckIcon" class="mt-1 h-4 w-4 shrink-0 text-editorial-gold" aria-hidden="true" />
+            <span class="font-medium leading-relaxed text-editorial-navy">{{ feature }}</span>
+          </div>
+        </li>
+      }
+    </ul>
+  </div>
+</section>
+
+<!-- Talleres y actividades -->
+<section class="bg-editorial-navy py-20 text-white lg:py-28">
+  <div class="container-editorial">
+    <div class="max-w-2xl">
+      <p class="label-editorial !text-editorial-gold-light">Complemento formativo</p>
+      <h2 class="mt-4 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
+        Talleres y actividades
+      </h2>
+    </div>
+
+    <ul class="mt-12 divide-y divide-white/10 border-y border-white/10">
+      @for (workshop of level().workshops; track workshop; let i = $index) {
+        <li class="group flex items-center justify-between gap-6 py-5">
+          <div class="flex items-center gap-5">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center border border-editorial-gold/50 text-editorial-gold-light transition-colors duration-300 group-hover:bg-editorial-gold group-hover:text-editorial-navy">
+              <lucide-icon [img]="workshopIcon(i)" class="h-5 w-5" aria-hidden="true" />
+            </span>
+            <span class="text-lg font-medium">{{ workshop }}</span>
+          </div>
+          <span class="font-display text-sm tracking-widest text-white/30">{{ formatIndex(i) }}</span>
+        </li>
+      }
+    </ul>
+  </div>
+</section>
+
+<!-- CTA final -->
+<section class="bg-editorial-cream py-20 lg:py-24">
+  <div class="container-editorial flex flex-col items-start gap-10 lg:flex-row lg:items-end lg:justify-between">
+    <div class="max-w-2xl">
+      <p class="label-editorial">Admisión 2026</p>
+      <h2 class="mt-4 font-display text-3xl font-bold tracking-tight text-editorial-navy sm:text-4xl">
+        Asegura la vacante de tu hijo
+      </h2>
+      <p class="mt-4 text-lg leading-relaxed text-editorial-slate">
+        Inicia hoy el proceso de pre matrícula; el equipo administrativo te acompañará en cada paso.
+      </p>
+    </div>
+    <a routerLink="/admision" class="btn-gold shrink-0">
+      Iniciar proceso
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+      </svg>
+    </a>
+  </div>
+</section>
