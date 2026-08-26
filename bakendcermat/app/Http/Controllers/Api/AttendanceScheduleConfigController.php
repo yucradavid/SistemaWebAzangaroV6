@@ -21,6 +21,12 @@ class AttendanceScheduleConfigController extends Controller
 
     public function update(Request $request, string $shift, string $checkpointType): JsonResponse
     {
+        $input = $request->all();
+        if (empty($input['late_after']) || $input['late_after'] === '') {
+            $input['late_after'] = null;
+        }
+        $request->merge($input);
+
         $validated = $request->validate([
             'window_start' => 'required|date_format:H:i',
             'late_after' => 'nullable|date_format:H:i',

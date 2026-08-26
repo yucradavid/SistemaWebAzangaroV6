@@ -98,12 +98,15 @@ export class ScheduleConfigComponent implements OnInit {
       for (const cp of this.checkpoints) {
         const cfg = this.getConfig(shift, cp);
         pending++;
-        this.attendanceService.updateScheduleConfig(shift, cp, {
+        const payload: any = {
           window_start: cfg.window_start,
-          late_after: cfg.late_after || null,
           window_end: cfg.window_end,
           is_active: cfg.is_active,
-        }).subscribe({
+        };
+        if (cfg.late_after && cfg.late_after.trim() !== '') {
+          payload.late_after = cfg.late_after;
+        }
+        this.attendanceService.updateScheduleConfig(shift, cp, payload).subscribe({
           next: () => {
             pending--;
             if (pending === 0) {

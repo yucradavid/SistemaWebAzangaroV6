@@ -1,0 +1,163 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="relative z-10 flex items-center gap-4">
+      <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100 shadow-sm shrink-0">
+        <i data-lucide="qr-code" class="w-7 h-7 text-indigo-600"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Sesión QR Aula</h1>
+        <p class="text-slate-500 mt-1 font-medium text-sm sm:text-base">Genera códigos QR dinámicos proyectables para entrada y salida</p>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex items-center gap-3">
+    <i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i>
+    <p class="font-bold">{{ error }}</p>
+  </div>
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 sm:p-6">
+    <!-- Selector de modo QR -->
+    <div class="mb-5">
+      <label class="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Modo de Sesion QR</label>
+      <div class="flex gap-2">
+        <button (click)="qrMode = 'section'"
+          [ngClass]="qrMode === 'section' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+          class="flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Por Aula / Seccion
+        </button>
+        <button (click)="qrMode = 'general'"
+          [ngClass]="qrMode === 'general' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+          class="flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
+          QR General Docentes
+        </button>
+      </div>
+      <p *ngIf="qrMode === 'general'" class="text-xs text-emerald-600 mt-2 font-medium">
+        Modo institucional: el QR proyectado sirve como referencia. Ingresa los codigos en "Marcar Asistencia Estudiantes".
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" [class.sm:grid-cols-3]="qrMode === 'section'" [class.sm:grid-cols-2]="qrMode === 'general'">
+      <div class="sm:col-span-2" *ngIf="qrMode === 'section'">
+        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide">Asignación de Aula</label>
+        <div class="relative">
+          <select [ngModel]="selectedAssignment?.id" (change)="onAssignmentChange($event)"
+            class="w-full appearance-none rounded-xl border-slate-200 border-2 p-3 font-medium text-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300 text-sm">
+            <option value="">Seleccionar asignación</option>
+            <option *ngFor="let a of assignments" [value]="a.id">
+              {{ assignmentLabel(a) }}
+            </option>
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide">Fecha</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+            <i data-lucide="calendar" class="w-4 h-4"></i>
+          </div>
+          <input type="date" [(ngModel)]="selectedDate" (change)="onDateChange()"
+            class="w-full pl-10 rounded-xl border-2 border-slate-200 p-3 font-medium text-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all outline-none bg-slate-50 focus:bg-white hover:border-slate-300 text-sm" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección info -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 text-center" *ngIf="selectedAssignment && qrMode === 'section'">
+    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Sección seleccionada</p>
+    <p class="text-xl sm:text-2xl font-black text-slate-900">{{ sectionLabel(selectedAssignment!.section) }}</p>
+  </div>
+
+  <!-- Info modo general -->
+  <div class="bg-emerald-50 rounded-2xl shadow-sm border border-emerald-200/60 p-5 text-center" *ngIf="qrMode === 'general'">
+    <p class="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">Modo General / Institucional</p>
+    <p class="text-sm text-emerald-700 font-medium">El QR generado no esta atado a una seccion. Usa "Marcar Asistencia Estudiantes" para registrar cada codigo.</p>
+  </div>
+
+  <!-- Botones QR Entrada / Salida -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6" *ngIf="qrMode === 'general' || selectedAssignment">
+
+    <!-- QR Entrada -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 sm:p-8 relative overflow-hidden">
+      <div class="absolute -right-8 -top-8 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="relative z-10 text-center space-y-5">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-blue-50 rounded-3xl flex items-center justify-center border border-blue-100 mx-auto">
+          <i data-lucide="log-in" class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600"></i>
+        </div>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">Entrada QR</h2>
+          <p class="text-xs sm:text-sm text-slate-500 mt-2 max-w-xs mx-auto">
+            {{ qrMode === 'general' ? 'QR general para registrar entrada de cualquier estudiante/docente.' : 'Genera un código QR dinámico proyectable para que los alumnos registren su entrada.' }}
+          </p>
+        </div>
+
+        <div *ngIf="qrMode === 'section' && hasActiveEntranceSession" class="bg-emerald-50 rounded-xl border border-emerald-200 p-4 animate-pulse">
+          <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Sesión activa</p>
+          <p class="text-base sm:text-lg font-black text-emerald-700 font-mono">{{ entranceSessionCode }}</p>
+        </div>
+
+        <button type="button" (click)="handleOpenQr('entrada')"
+          class="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl transition-all duration-300 shadow-lg shadow-blue-200 font-bold text-base sm:text-lg active:scale-95">
+          <i data-lucide="qr-code" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+          {{ qrMode === 'general' ? 'QR General Entrada' : (hasActiveEntranceSession ? 'Ver QR Activo' : 'Abrir Entrada QR') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- QR Salida -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 sm:p-8 relative overflow-hidden">
+      <div class="absolute -right-8 -top-8 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="relative z-10 text-center space-y-5">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-50 rounded-3xl flex items-center justify-center border border-indigo-100 mx-auto">
+          <i data-lucide="log-out" class="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600"></i>
+        </div>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">Salida QR</h2>
+          <p class="text-xs sm:text-sm text-slate-500 mt-2 max-w-xs mx-auto">
+            {{ qrMode === 'general' ? 'QR general para registrar salida de cualquier estudiante/docente.' : 'Genera un código QR dinámico proyectable para que los alumnos registren su salida.' }}
+          </p>
+        </div>
+
+        <div *ngIf="qrMode === 'section' && hasActiveExitSession" class="bg-emerald-50 rounded-xl border border-emerald-200 p-4 animate-pulse">
+          <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Sesión activa</p>
+          <p class="text-base sm:text-lg font-black text-emerald-700 font-mono">{{ exitSessionCode }}</p>
+        </div>
+
+        <button type="button" (click)="handleOpenQr('salida')"
+          class="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all duration-300 shadow-lg shadow-indigo-200 font-bold text-base sm:text-lg active:scale-95">
+          <i data-lucide="qr-code" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+          {{ qrMode === 'general' ? 'QR General Salida' : (hasActiveExitSession ? 'Ver QR Activo' : 'Abrir Salida QR') }}
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Nota informativa -->
+  <div class="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5">
+    <div class="flex items-start gap-4">
+      <div class="w-10 h-10 bg-slate-200 rounded-2xl flex items-center justify-center shrink-0">
+        <i data-lucide="info" class="w-5 h-5 text-slate-600"></i>
+      </div>
+      <div>
+        <p class="text-sm font-bold text-slate-700">¿Cómo funciona?</p>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          <strong>Modo Por Aula:</strong> Genera un código QR dinámico por sección que expira en 20 minutos. Proyecta el código en el aula para que los alumnos escaneen con su dispositivo.<br/>
+          <strong>Modo QR General:</strong> Genera un QR de referencia proyectable. Los estudiantes dicen su código al docente, quien lo ingresa en "Marcar Asistencia Estudiantes".
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>

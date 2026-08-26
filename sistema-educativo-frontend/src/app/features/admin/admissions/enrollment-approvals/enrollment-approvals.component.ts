@@ -110,7 +110,7 @@ export class EnrollmentApprovalsComponent implements OnInit {
 
     this.enrollmentService.getApplications({ status: this.selectedStatus, per_page: 100 }).subscribe({
       next: (res) => {
-        this.applications = Array.isArray(res?.data) ? res.data : [];
+        this.applications = this.extractCollection<EnrollmentApplication>(res);
         this.loadDocumentsStatusForApplications();
       },
       error: (err) => {
@@ -161,7 +161,7 @@ export class EnrollmentApprovalsComponent implements OnInit {
   loadSections(): void {
     this.academicService.getSections({ per_page: 500 }).subscribe({
       next: (res) => {
-        this.allSections = Array.isArray(res?.data) ? res.data : [];
+        this.allSections = this.extractCollection<Section>(res);
         this.syncFilteredSections();
       },
       error: (err) => console.error(err)
@@ -171,7 +171,7 @@ export class EnrollmentApprovalsComponent implements OnInit {
   loadGradeLevels(): void {
     this.academicService.getGradeLevels({ per_page: 200 }).subscribe({
       next: (res) => {
-        this.gradeLevels = Array.isArray(res?.data) ? res.data : [];
+        this.gradeLevels = this.extractCollection<GradeLevel>(res);
       },
       error: (err) => console.error(err)
     });
@@ -316,7 +316,7 @@ export class EnrollmentApprovalsComponent implements OnInit {
 
     this.documentService.getApplicationDocuments(applicationId).subscribe({
       next: (response) => {
-        this.documents = Array.isArray(response?.data) ? response.data : [];
+        this.documents = this.extractCollection<ApplicationDocumentChecklistItem>(response);
         this.observation = response?.observation || '';
         this.loadingDocuments = false;
         this.recomputeStatusFromDocuments(applicationId);
@@ -526,9 +526,16 @@ export class EnrollmentApprovalsComponent implements OnInit {
     }
 
     this.filteredSections = this.allSections.filter((section) => {
-      return section.academic_year_id === this.selectedApp?.academic_year_id
-        && section.grade_level_id === this.selectedApp?.grade_level_id;
+      const matchYear = !this.selectedApp?.academic_year_id
+        || section.academic_year_id === this.selectedApp.academic_year_id;
+      const matchGrade = !this.selectedApp?.grade_level_id
+        || section.grade_level_id === this.selectedApp.grade_level_id;
+      return matchYear && matchGrade;
     });
+
+    if (this.filteredSections.length === 0 && this.allSections.length === 0) {
+      this.loadSections();
+    }
   }
 
   private normalizeText(value: unknown): string {

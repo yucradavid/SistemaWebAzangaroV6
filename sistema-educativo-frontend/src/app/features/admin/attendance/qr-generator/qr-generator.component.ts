@@ -2,12 +2,14 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AttendanceService } from '@core/services/attendance.service';
+import { AcademicService } from '@core/services/academic.service';
+import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-qr-generator',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SettingFilterDropdownComponent],
   template: `
     <div class="max-w-6xl mx-auto px-4 py-6">
       <h2 class="text-xl font-bold text-slate-800 mb-1">Generar QR de Estudiantes</h2>
@@ -15,27 +17,44 @@ import Swal from 'sweetalert2';
 
       <!-- Filtros -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Grado / Seccion</label>
-            <select class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-              [(ngModel)]="filter.sectionId" (ngModelChange)="loadStudents()">
-              <option value="">Todas las secciones</option>
-              <option *ngFor="let s of sections" [value]="s.id">{{ s.grade_level?.name }} - {{ s.section_letter }}</option>
-            </select>
+            <label class="block text-xs text-slate-500 mb-1">Nivel</label>
+            <app-setting-filter-dropdown
+              [options]="levelOptions"
+              [selectedId]="filter.level"
+              placeholder="Todos los niveles"
+              (selectionChange)="onLevelChange($event)">
+            </app-setting-filter-dropdown>
           </div>
-          <div class="flex items-end gap-2">
-            <button (click)="generateQr()" [disabled]="generating"
-              class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 disabled:opacity-50">
-              {{ generating ? 'Generando...' : 'Generar QR Pendientes' }}
-            </button>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Grado</label>
+            <app-setting-filter-dropdown
+              [options]="gradeOptions"
+              [selectedId]="filter.gradeLevelId"
+              placeholder="Todos los grados"
+              (selectionChange)="onGradeChange($event)">
+            </app-setting-filter-dropdown>
           </div>
-          <div class="flex items-end justify-end gap-2">
-            <button (click)="exportAllCarnets()" [disabled]="!selectedStudents.length"
-              class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50">
-              Exportar Carnets ({{ selectedStudents.length }})
-            </button>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Seccion</label>
+            <app-setting-filter-dropdown
+              [options]="sectionOptions"
+              [selectedId]="filter.sectionId"
+              placeholder="{{ loadingSections ? 'Cargando secciones...' : 'Todas las secciones' }}"
+              (selectionChange)="onSectionChange($event)">
+            </app-setting-filter-dropdown>
           </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button (click)="generateQr()" [disabled]="generating"
+            class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 disabled:opacity-50">
+            {{ generating ? 'Generando...' : selectedStudents.length ? 'Generar QR (' + selectedStudents.length + ' seleccionados)' : 'Generar QR Pendientes' }}
+          </button>
+          <button (click)="exportAllCarnets()" [disabled]="!selectedStudents.length"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50">
+            Exportar Carnets ({{ selectedStudents.length }})
+          </button>
         </div>
       </div>
 
@@ -107,36 +126,103 @@ import Swal from 'sweetalert2';
 })
 export class QrGeneratorComponent implements OnInit {
   private attendanceService = inject(AttendanceService);
+  private academicService = inject(AcademicService);
 
   loading = true;
   generating = false;
   regenerating = false;
+  loadingSections = false;
   students: any[] = [];
+  gradeLevels: any[] = [];
   sections: any[] = [];
   selectedStudents: any[] = [];
-  filter = { sectionId: '' };
+  filter = { level: '', gradeLevelId: '', sectionId: '' };
   regenerateReason = '';
   showCarnetModal = false;
   carnetHtml = '';
+
+  levelOptions: Array<{ id: string; name: string }> = [
+    { id: 'inicial', name: 'Inicial' },
+    { id: 'primaria', name: 'Primaria' },
+    { id: 'secundaria', name: 'Secundaria' }
+  ];
+  gradeOptions: Array<{ id: string; name: string }> = [];
+  sectionOptions: Array<{ id: string; name: string }> = [];
 
   get allSelected(): boolean {
     return this.students.length > 0 && this.selectedStudents.length === this.students.length;
   }
 
   ngOnInit(): void {
+    this.academicService.getGradeLevels({ per_page: 100 }).subscribe({
+      next: (res: any) => {
+        this.gradeLevels = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+        this.updateGradeOptions();
+      }
+    });
     this.loadStudents();
+  }
+
+  onLevelChange(level: string): void {
+    this.filter.level = level;
+    this.filter.gradeLevelId = '';
+    this.filter.sectionId = '';
+    this.updateGradeOptions();
+    this.clearSections();
+    this.loadStudents();
+  }
+
+  onGradeChange(gradeLevelId: string): void {
+    this.filter.gradeLevelId = gradeLevelId;
+    this.filter.sectionId = '';
+    this.loadSections(gradeLevelId);
+    this.loadStudents();
+  }
+
+  onSectionChange(sectionId: string): void {
+    this.filter.sectionId = sectionId;
+    this.loadStudents();
+  }
+
+  private updateGradeOptions(): void {
+    const filtered = this.filter.level
+      ? this.gradeLevels.filter((g: any) => g.level === this.filter.level)
+      : this.gradeLevels;
+    this.gradeOptions = filtered.map((g: any) => ({ id: g.id, name: g.name }));
+  }
+
+  private loadSections(gradeLevelId: string): void {
+    if (!gradeLevelId) {
+      this.clearSections();
+      return;
+    }
+    this.loadingSections = true;
+    this.academicService.getSections({ grade_level_id: gradeLevelId }).subscribe({
+      next: (res: any) => {
+        this.sections = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+        this.sectionOptions = this.sections.map((s: any) => ({ id: s.id, name: s.section_letter || 'Seccion' }));
+        this.loadingSections = false;
+      },
+      error: () => { this.loadingSections = false; this.clearSections(); }
+    });
+  }
+
+  private clearSections(): void {
+    this.sections = [];
+    this.sectionOptions = [];
+    this.loadingSections = false;
   }
 
   loadStudents(): void {
     this.loading = true;
-    const params: any = { per_page: 500 };
+    const params: any = { status: 'active', per_page: 500 };
     if (this.filter.sectionId) params.section_id = this.filter.sectionId;
+    else if (this.filter.gradeLevelId) params.grade_level_id = this.filter.gradeLevelId;
+    else if (this.filter.level) params.level = this.filter.level;
 
-    this.attendanceService.getStudentsForSectionAttendance(
-      this.filter.sectionId || '', ''
-    ).subscribe({
+    this.academicService.getStudents(params).subscribe({
       next: (res: any) => {
-        this.students = (res.data || []).map((e: any) => e.student || e).filter(Boolean);
+        this.students = res.data || [];
         this.loading = false;
         this.selectedStudents = [];
       },
@@ -167,7 +253,10 @@ export class QrGeneratorComponent implements OnInit {
   generateQr(): void {
     this.generating = true;
     const data: any = {};
-    if (this.filter.sectionId) data.section_id = this.filter.sectionId;
+    if (this.selectedStudents.length) data.student_ids = this.selectedStudents.map(s => s.id);
+    else if (this.filter.sectionId) data.section_id = this.filter.sectionId;
+    else if (this.filter.gradeLevelId) data.grade_level_id = this.filter.gradeLevelId;
+    else if (this.filter.level) data.level = this.filter.level;
     else data.all = true;
 
     this.attendanceService.generateStudentQr(data).subscribe({

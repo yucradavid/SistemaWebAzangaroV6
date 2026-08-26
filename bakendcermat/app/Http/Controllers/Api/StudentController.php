@@ -38,6 +38,10 @@ class StudentController extends Controller
 
         if ($request->has('section_id'))
             $query->where('section_id', $request->section_id);
+        if ($request->filled('grade_level_id'))
+            $query->whereHas('section', fn ($q) => $q->where('grade_level_id', $request->grade_level_id));
+        if ($request->filled('level'))
+            $query->whereHas('section.gradeLevel', fn ($q) => $q->where('level', $request->level));
         if ($request->has('status'))
             $query->where('status', $request->status);
         if ($request->has('dni'))

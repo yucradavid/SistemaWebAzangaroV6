@@ -18,6 +18,8 @@ class StudentQrController extends Controller
             'student_ids' => 'nullable|array',
             'student_ids.*' => 'required|uuid|exists:students,id',
             'section_id' => 'nullable|uuid|exists:sections,id',
+            'grade_level_id' => 'nullable|uuid|exists:grade_levels,id',
+            'level' => 'nullable|string',
             'all' => 'nullable|boolean',
         ]);
 
@@ -27,9 +29,13 @@ class StudentQrController extends Controller
             $query->whereIn('id', $validated['student_ids']);
         } elseif (!empty($validated['section_id'])) {
             $query->where('section_id', $validated['section_id']);
+        } elseif (!empty($validated['grade_level_id'])) {
+            $query->whereHas('section', fn ($q) => $q->where('grade_level_id', $validated['grade_level_id']));
+        } elseif (!empty($validated['level'])) {
+            $query->whereHas('section.gradeLevel', fn ($q) => $q->where('level', $validated['level']));
         } elseif (!($validated['all'] ?? false)) {
             throw ValidationException::withMessages([
-                'scope' => 'Debes indicar student_ids, section_id o all=true.',
+                'scope' => 'Debes indicar student_ids, section_id, grade_level_id, level o all=true.',
             ]);
         }
 

@@ -1,22 +1,74 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ZXingScannerModule } from '@zxing/ngx-scanner';
+import { BarcodeFormat } from '@zxing/library';
 import { AttendanceService } from '@core/services/attendance.service';
-import { interval, Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-student-checkpoint',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ZXingScannerModule],
   template: `
     <div class="max-w-4xl mx-auto px-4 py-6">
       <h2 class="text-xl font-bold text-slate-800 mb-1">Marcar Asistencia Estudiantes</h2>
       <p class="text-sm text-slate-500 mb-6">Escanea el QR del carnet o ingresa el codigo manualmente.</p>
 
-      <!-- Formulario de marcacion -->
+      <!-- Botón cámara -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <h3 class="font-bold text-slate-700 text-sm">Modo de Registro</h3>
+            <p class="text-xs text-slate-500 mt-1">Selecciona cómo deseas registrar la asistencia</p>
+          </div>
+          <div class="flex gap-2">
+            <button (click)="scannerActive = false"
+              [ngClass]="!scannerActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+              class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2">
+              <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" x2="17" y1="12" y2="12"/></svg>
+              Manual
+            </button>
+            <button (click)="toggleScanner()"
+              [ngClass]="scannerActive ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+              class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2">
+              <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" x2="17" y1="12" y2="12"/></svg>
+              {{ scannerActive ? 'Cerrar Cámara' : 'Abrir Cámara / Escanear QR' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Scanner de cámara -->
+        <div *ngIf="scannerActive" class="mb-4">
+          <div class="rounded-xl overflow-hidden border-2 border-slate-200 bg-black relative" style="max-width: 400px; margin: 0 auto;">
+            <zxing-scanner
+              [formats]="qrFormats"
+              [device]="device"
+              (camerasFound)="onCamerasFound($event)"
+              (camerasNotFound)="onCamerasNotFound()"
+              (permissionResponse)="onPermissionResponse($event)"
+              (scanSuccess)="handleQrScan($event)">
+            </zxing-scanner>
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div class="w-56 h-56 border-2 border-emerald-400 rounded-2xl shadow-lg shadow-emerald-500/20 relative">
+                <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg"></div>
+                <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg"></div>
+                <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg"></div>
+                <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-lg"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="w-full h-0.5 bg-emerald-400/60 animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 text-center">
+              <p class="text-white text-xs font-medium">Apunta la cámara al código QR del estudiante</p>
+            </div>
+          </div>
+          <p *ngIf="scannerError" class="text-xs text-rose-500 mt-2 text-center">{{ scannerError }}</p>
+        </div>
+
+        <!-- Formulario manual -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end" [hidden]="scannerActive">
           <div>
             <label class="block text-xs text-slate-500 mb-1">Codigo QR / Codigo estudiante</label>
             <input type="text" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-mono"
@@ -105,7 +157,7 @@ import Swal from 'sweetalert2';
     </div>
   `
 })
-export class StudentCheckpointComponent implements OnInit, OnDestroy {
+export class StudentCheckpointComponent implements OnInit {
   private attendanceService = inject(AttendanceService);
 
   qrCode = '';
@@ -115,6 +167,12 @@ export class StudentCheckpointComponent implements OnInit, OnDestroy {
   todayRecords: any[] = [];
   today = new Date().toISOString().split('T')[0];
 
+  scannerActive = false;
+  scannerError = '';
+  device: MediaDeviceInfo | undefined;
+  qrFormats = [BarcodeFormat.QR_CODE];
+  availableDevices: MediaDeviceInfo[] = [];
+
   get lateRecords(): any[] {
     return this.todayRecords.filter(r => r.status === 'tarde');
   }
@@ -123,7 +181,35 @@ export class StudentCheckpointComponent implements OnInit, OnDestroy {
     this.loadTodayRecords();
   }
 
-  ngOnDestroy(): void {}
+  toggleScanner(): void {
+    this.scannerActive = !this.scannerActive;
+    this.scannerError = '';
+  }
+
+  onCamerasFound(devices: MediaDeviceInfo[]): void {
+    if (!devices || devices.length === 0) return;
+    this.availableDevices = devices;
+    const backKeywords = ['back', 'trasera', 'rear', 'environment', 'facing back', 'camera2 0'];
+    const back = devices.find(d => backKeywords.some(kw => d.label.toLowerCase().includes(kw)));
+    this.device = back || devices[devices.length - 1] || devices[0];
+  }
+
+  onCamerasNotFound(): void {
+    this.scannerError = 'No se encontraron cámaras disponibles.';
+  }
+
+  onPermissionResponse(granted: boolean): void {
+    if (!granted) {
+      this.scannerError = 'No se pudo acceder a la cámara. Verifica los permisos del navegador.';
+    }
+  }
+
+  handleQrScan(result: string): void {
+    if (!result) return;
+    this.qrCode = result;
+    this.scannerActive = false;
+    this.markCheckpoint();
+  }
 
   markCheckpoint(): void {
     if (!this.qrCode) return;
