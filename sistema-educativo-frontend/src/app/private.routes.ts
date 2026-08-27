@@ -326,7 +326,7 @@ export const PRIVATE_ROUTES: Routes = [
           tabs: [
             { path: 'manual', label: 'Llamar Lista', icon: ICONS.checkCircle2 },
             { path: 'qr-asistencia', label: 'Asistencia QR', icon: ICONS.qrCode },
-            { path: 'horarios', label: 'Horarios', icon: ICONS.clock },
+            { path: 'horarios', label: 'Turno Mañana/Tarde', icon: ICONS.clock },
             { path: 'turnos', label: 'Asignar Turnos', icon: ICONS.shuffle },
             { path: 'qr', label: 'Generar Carnets QR', icon: ICONS.qrCode },
           ],

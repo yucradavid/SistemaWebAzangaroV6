@@ -156,6 +156,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
         Route::apiResource('academic-years', AcademicYearController::class);
+        Route::get('grade-levels/standard/{level}/missing', [GradeLevelController::class, 'missingStandardGrades']);
+        Route::post('grade-levels/standard/{level}/generate', [GradeLevelController::class, 'generateStandardGrades']);
         Route::apiResource('grade-levels', GradeLevelController::class);
         Route::apiResource('sections', SectionController::class);
         Route::post('periods', [PeriodController::class, 'store']);
@@ -398,6 +400,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('attendance/my-context', [AttendanceController::class, 'myContext']);
         Route::post('attendance/batch', [AttendanceController::class, 'batchStore']);
         Route::get('attendance/daily', [DailyAttendanceController::class, 'index']);
+        Route::get('attendance/daily/export', [DailyAttendanceController::class, 'exportCsv'])
+            ->middleware('role:admin,director,coordinator,secretary,administrative');
         Route::post('attendance/daily/batch', [DailyAttendanceController::class, 'batchStore']);
         Route::get('attendance/daily/qr-sessions', [DailyAttendanceController::class, 'listQrSessions']);
         Route::post('attendance/daily/qr-sessions', [DailyAttendanceController::class, 'createQrSession']);

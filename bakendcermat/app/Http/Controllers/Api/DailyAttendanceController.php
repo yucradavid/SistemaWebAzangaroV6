@@ -8,8 +8,10 @@ use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\TeacherCourseAssignment;
 use App\Services\DailyAttendanceService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class DailyAttendanceController extends Controller
@@ -36,6 +38,93 @@ class DailyAttendanceController extends Controller
                 $validated['date']
             )
         );
+    }
+
+    /**
+     * GET /api/attendance/daily/export?date_from=...&date_to=...&section_id=...&grade_level_id=...&student_id=...
+     * Exporta a CSV la asistencia diaria (checkpoint de entrada) del rango indicado.
+     * Si no se envian fechas exporta el historico completo; con student_id se
+     * genera el reporte individual de un estudiante.
+     */
+    public function exportCsv(Request $request)
+    {
+        $validated = $request->validate([
+            'date_from' => 'nullable|date_format:Y-m-d',
+            'date_to' => 'nullable|date_format:Y-m-d|after_or_equal:date_from',
+            'section_id' => 'nullable|uuid|exists:sections,id',
+            'grade_level_id' => 'nullable|uuid|exists:grade_levels,id',
+            'academic_year_id' => 'nullable|uuid|exists:academic_years,id',
+            'student_id' => 'nullable|uuid|exists:students,id',
+        ]);
+
+        $academicYearId = $validated['academic_year_id']
+            ?? DB::table('academic_years')->where('is_active', true)->value('id');
+
+        $rows = DB::table('attendance_daily_records as adr')
+            ->join('students as s', 's.id', '=', 'adr.student_id')
+            ->join('sections as sec', 'sec.id', '=', 'adr.section_id')
+            ->leftJoin('grade_levels as gl', 'gl.id', '=', 'sec.grade_level_id')
+            ->when(
+                !empty($validated['date_from']) && !empty($validated['date_to']),
+                fn ($q) => $q->whereBetween('adr.date', [$validated['date_from'], $validated['date_to']])
+            )
+            ->when($academicYearId, fn ($q) => $q->where('adr.academic_year_id', $academicYearId))
+            ->when(!empty($validated['section_id']), fn ($q) => $q->where('adr.section_id', $validated['section_id']))
+            ->when(!empty($validated['grade_level_id']), fn ($q) => $q->where('sec.grade_level_id', $validated['grade_level_id']))
+            ->when(!empty($validated['student_id']), fn ($q) => $q->where('adr.student_id', $validated['student_id']))
+            ->orderBy('adr.date')
+            ->orderBy('s.last_name')
+            ->orderBy('s.first_name')
+            ->select([
+                'adr.date',
+                's.last_name',
+                's.first_name',
+                'gl.name as grade_name',
+                'sec.section_letter',
+                'adr.entry_status',
+                'adr.entry_marked_at',
+                'adr.exit_status',
+                'adr.exit_marked_at',
+                'adr.entry_note',
+                'adr.exit_note',
+            ])
+            ->get();
+
+        $statusMap = ['presente' => 'P', 'tarde' => 'T', 'falta' => 'F', 'justificado' => 'J'];
+        $rangeLabel = !empty($validated['date_from']) && !empty($validated['date_to'])
+            ? sprintf('%s_a_%s', $validated['date_from'], $validated['date_to'])
+            : 'historico';
+        $filename = sprintf('asistencia_%s%s.csv', $rangeLabel, !empty($validated['student_id']) ? '_individual' : '');
+
+        return response()->streamDownload(function () use ($rows, $statusMap) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['Fecha', 'Alumno', 'Seccion', 'Estado', 'Hora de registro', 'Observacion']);
+
+            foreach ($rows as $row) {
+                // El estado "oficial" del dia es el de entrada; si no fue marcado
+                // pero si hay salida registrada, se usa ese como respaldo.
+                $status = $row->entry_status ?: $row->exit_status;
+                if (empty($status)) {
+                    continue;
+                }
+                $markedAt = $row->entry_status ? $row->entry_marked_at : $row->exit_marked_at;
+                $note = $row->entry_status ? $row->entry_note : $row->exit_note;
+
+                fputcsv($handle, [
+                    $row->date,
+                    trim($row->last_name . ', ' . $row->first_name),
+                    trim(($row->grade_name ?? '') . ' ' . ($row->section_letter ?? '')),
+                    $statusMap[$status] ?? $status,
+                    $markedAt ? Carbon::parse($markedAt)->format('H:i') : '',
+                    (string) ($note ?? ''),
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function batchStore(Request $request): JsonResponse

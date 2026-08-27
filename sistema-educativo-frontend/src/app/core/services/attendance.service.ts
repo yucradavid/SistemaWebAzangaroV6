@@ -443,6 +443,20 @@ export class AttendanceService {
     return this.http.post<AttendanceJustification>(`${this.apiUrl}/attendance-justifications/${id}/reject`, payload);
   }
 
+  exportDailyAttendanceCsv(params: {
+    date_from?: string;
+    date_to?: string;
+    section_id?: string;
+    grade_level_id?: string;
+    academic_year_id?: string;
+    student_id?: string;
+  }): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/attendance/daily/export`, {
+      params: this.buildParams(params),
+      responseType: 'blob',
+    });
+  }
+
   // ── Schedule Config ──────────────────────────────────────
   getScheduleConfig(): Observable<any> {
     return this.http.get(`${this.apiUrl}/attendance/schedule-config`);
@@ -457,7 +471,7 @@ export class AttendanceService {
     return this.http.get(`${this.apiUrl}/shift-assignments/sections`);
   }
 
-  updateSectionShifts(data: { assignments: Array<{ section_id: string; shift: string }> }): Observable<any> {
+  updateSectionShifts(data: { assignments: Array<{ section_id: string; shift: string | null }> }): Observable<any> {
     return this.http.put(`${this.apiUrl}/shift-assignments/sections`, data);
   }
 

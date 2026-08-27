@@ -4,6 +4,8 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { AcademicService, Course, GradeLevel, Section } from '@core/services/academic.service';
 import { ScheduleService } from '@core/services/schedule.service';
+import { AttendanceService } from '@core/services/attendance.service';
+import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -24,13 +26,21 @@ import Swal from 'sweetalert2';
           </div>
           <div class="flex flex-wrap items-center gap-4">
             <div class="flex items-center gap-3 bg-white/80 backdrop-blur border border-slate-200 rounded-2xl p-2 px-4 shadow-sm">
-              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inicio:</span>
-              <select [(ngModel)]="gridStartHour" (change)="onViewPreferenceChange()" class="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none cursor-pointer">
-                <option *ngFor="let h of [5,6,7,8,9,10,11,12,13,14,15]" [ngValue]="h">{{ h }}:00</option>
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Turno:</span>
+              <span class="text-sm font-semibold" [ngClass]="sectionShift ? 'text-blue-700' : 'text-slate-400'">
+                {{ shiftLoading ? 'Consultando...' : shiftLabel }}
+              </span>
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 border-l pl-3">Inicio:</span>
+              <select [ngModel]="gridStartHour" disabled
+                title="Hora definida automáticamente según el turno asignado a la sección"
+                class="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none cursor-not-allowed opacity-70">
+                <option *ngFor="let h of gridHourOptions" [ngValue]="h">{{ h }}:00</option>
               </select>
               <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 border-l pl-3">Fin:</span>
-              <select [(ngModel)]="gridEndHour" (change)="onViewPreferenceChange()" class="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none cursor-pointer">
-                <option *ngFor="let h of [12,13,14,15,16,17,18,19,20,21,22]" [ngValue]="h">{{ h }}:00</option>
+              <select [ngModel]="gridEndHour" disabled
+                title="Hora definida automáticamente según el turno asignado a la sección"
+                class="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none cursor-not-allowed opacity-70">
+                <option *ngFor="let h of gridHourOptions" [ngValue]="h">{{ h }}:00</option>
               </select>
             </div>
 
@@ -70,8 +80,19 @@ import Swal from 'sweetalert2';
           <div class="h-12 w-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-600/20 text-xl">📅</div>
           <div>
             <p class="text-base font-semibold text-blue-900 tracking-tight">{{ getSelectedGradeName() || 'Esperando selección...' }}</p>
-            <p class="text-xs text-blue-700 font-medium tracking-wide">Sección {{ getSelectedSectionLetter() || '...' }} • {{ schedules.length }} bloques programados</p>
+            <p class="text-xs text-blue-700 font-medium tracking-wide">Sección {{ getSelectedSectionLetter() || '...' }} • {{ schedules.length }} bloques programados<span *ngIf="sectionShift"> • Turno {{ shiftLabel }}</span></p>
           </div>
+        </div>
+      </div>
+
+      <div *ngIf="hasShiftWarning && selectedSectionId && !loading" class="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-[2rem] px-6 py-4 shadow-sm">
+        <div class="w-10 h-10 rounded-2xl bg-amber-400 flex items-center justify-center text-white shrink-0 text-lg shadow-lg shadow-amber-400/30">⚠️</div>
+        <div>
+          <p class="text-sm font-semibold text-amber-900">Sección sin turno asignado</p>
+          <p class="text-xs text-amber-700 font-medium mt-0.5 leading-relaxed">
+            Se está usando el rango horario por defecto ({{ gridStartHour }}:00 – {{ gridEndHour }}:00).
+            Para que el inicio y fin se definan automáticamente, asigna un turno a esta sección en Asistencia → Turno Mañana/Tarde → Asignar Turnos.
+          </p>
         </div>
       </div>
 
@@ -507,6 +528,7 @@ export class AdminScheduleComponent implements OnInit {
   private fb = inject(FormBuilder);
   private academicService = inject(AcademicService);
   private scheduleService = inject(ScheduleService);
+  private attendanceService = inject(AttendanceService);
 
   gridStartHour = 7;
   gridEndHour = 16;
@@ -535,6 +557,11 @@ export class AdminScheduleComponent implements OnInit {
   selectedGradeId = '';
   selectedSectionId = '';
   activeAcademicYearId = '';
+
+  sectionShift = '';
+  shiftConfigs: any[] = [];
+  shiftLoading = false;
+  hasShiftWarning = false;
 
   loading = false;
   showModal = false;
@@ -887,14 +914,110 @@ export class AdminScheduleComponent implements OnInit {
   }
 
   onGradeChange() {
-    this.sections = []; this.selectedSectionId = ''; if (!this.selectedGradeId) return;
+    this.sections = []; this.selectedSectionId = '';
+    this.sectionShift = ''; this.hasShiftWarning = false;
+    if (!this.selectedGradeId) return;
     this.academicService.getSections({ academic_year_id: this.activeAcademicYearId, grade_level_id: this.selectedGradeId, per_page: 200 }).subscribe({
       next: (response) => this.sections = this.extractItems<Section>(response)
     });
   }
 
-  onSectionChange() { if (!this.selectedSectionId) return; this.loadCoursesForSection(); this.loadSchedules(); }
+  onSectionChange() {
+    if (!this.selectedSectionId) return;
+    this.loadCoursesForSection();
+    this.loadSchedules();
+    this.loadSectionShiftAndConfig();
+  }
+
   private loadCoursesForSection() { this.academicService.getCourses({ section_id: this.selectedSectionId, academic_year_id: this.activeAcademicYearId, per_page: 200 }).subscribe({ next: (response) => this.courses = this.extractItems<Course>(response) }); }
+
+  get shiftLabel(): string {
+    switch (this.sectionShift) {
+      case 'manana': return 'Mañana';
+      case 'tarde': return 'Tarde';
+      case 'ambos': return 'Mañana y Tarde';
+      default: return 'Sin turno asignado';
+    }
+  }
+
+  get gridHourOptions(): number[] {
+    const opts: number[] = [];
+    for (let h = 0; h <= 24; h++) opts.push(h);
+    return opts;
+  }
+
+  private loadSectionShiftAndConfig(): void {
+    this.shiftLoading = true;
+
+    forkJoin({
+      shifts: this.attendanceService.getSectionShifts(),
+      configs: this.attendanceService.getScheduleConfig(),
+    }).subscribe({
+      next: ({ shifts, configs }) => {
+        this.shiftLoading = false;
+
+        const shiftList: any[] = Array.isArray(shifts?.data) ? shifts.data : (Array.isArray(shifts) ? shifts : []);
+        const assignment = shiftList.find((s: any) => s.id === this.selectedSectionId || s.section_id === this.selectedSectionId);
+        this.sectionShift = String(assignment?.shift || '').toLowerCase();
+
+        const cfgList: any[] = Array.isArray(configs?.data) ? configs.data : (Array.isArray(configs) ? configs : []);
+        this.shiftConfigs = cfgList;
+
+        this.applyShiftToGrid();
+      },
+      error: () => {
+        this.shiftLoading = false;
+        this.sectionShift = '';
+        this.hasShiftWarning = true;
+        this.updateSuggestions();
+      },
+    });
+  }
+
+  private applyShiftToGrid(): void {
+    if (!this.sectionShift) {
+      this.hasShiftWarning = true;
+      this.updateSuggestions();
+      return;
+    }
+
+    this.hasShiftWarning = false;
+
+    const cfg = (shift: string, checkpointType: string) =>
+      this.shiftConfigs.find((c: any) => c.shift === shift && c.checkpoint_type === checkpointType);
+
+    let startTime: string | undefined;
+    let endTime: string | undefined;
+
+    if (this.sectionShift === 'manana') {
+      startTime = cfg('manana', 'entrada')?.window_start;
+      endTime = cfg('manana', 'salida')?.window_end;
+    } else if (this.sectionShift === 'tarde') {
+      startTime = cfg('tarde', 'entrada')?.window_start;
+      endTime = cfg('tarde', 'salida')?.window_end;
+    } else if (this.sectionShift === 'ambos') {
+      startTime = cfg('manana', 'entrada')?.window_start;
+      endTime = cfg('tarde', 'salida')?.window_end;
+    }
+
+    const startHour = this.parseHourToGrid(startTime, false);
+    const endHour = this.parseHourToGrid(endTime, true);
+
+    if (startHour !== null) this.gridStartHour = startHour;
+    if (endHour !== null) this.gridEndHour = endHour;
+    if (this.gridEndHour <= this.gridStartHour) this.gridEndHour = this.gridStartHour + 1;
+
+    this.updateSuggestions();
+  }
+
+  private parseHourToGrid(value: string | null | undefined, roundUp: boolean): number | null {
+    if (!value) return null;
+    const parts = value.split(':');
+    const h = Number(parts[0]);
+    const m = Number(parts[1] || 0);
+    if (isNaN(h)) return null;
+    return roundUp && m > 0 ? h + 1 : h;
+  }
   getPendingChangesCount(): number {
     return Object.keys(this.pendingChanges).length;
   }

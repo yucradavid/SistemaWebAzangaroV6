@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ZXingScannerModule } from '@zxing/ngx-scanner';
 import { BarcodeFormat } from '@zxing/library';
 import { AttendanceService } from '@core/services/attendance.service';
-import Swal from 'sweetalert2';
+import { fireIosSwal } from '@shared/utils/ios-swal';
+import { SweetAlertIcon } from 'sweetalert2';
 
 @Component({
   selector: 'app-student-checkpoint',
@@ -230,9 +231,9 @@ export class StudentCheckpointComponent implements OnInit {
         });
         this.qrCode = '';
 
-        const icon = res.status === 'presente' ? 'success' : res.status === 'tarde' ? 'warning' : 'info';
-        Swal.fire({
-          icon: icon as any,
+        const icon: SweetAlertIcon = res.status === 'presente' ? 'success' : res.status === 'tarde' ? 'warning' : 'info';
+        void fireIosSwal({
+          icon,
           title: res.status === 'presente' ? 'Presente' : res.status === 'tarde' ? 'Tardanza' : res.status,
           text: `${res.student?.full_name} - ${res.checkpoint}`,
           timer: 1500,
@@ -241,7 +242,12 @@ export class StudentCheckpointComponent implements OnInit {
       },
       error: (err) => {
         this.marking = false;
-        Swal.fire('Error', err.error?.message || err.error?.errors?.qr_code?.[0] || 'No se pudo registrar.', 'error');
+        void fireIosSwal({
+          icon: 'error',
+          title: 'Error',
+          text: err.error?.message || err.error?.errors?.qr_code?.[0] || 'No se pudo registrar.',
+          confirmButtonText: 'Entendido',
+        });
       }
     });
   }
@@ -249,7 +255,12 @@ export class StudentCheckpointComponent implements OnInit {
   openWhatsApp(record: any): void {
     const guardian = record.student?.guardians?.[0];
     if (!guardian?.phone) {
-      Swal.fire('Sin telefono', 'El apoderado no tiene numero de telefono registrado.', 'info');
+      void fireIosSwal({
+        icon: 'info',
+        title: 'Sin telefono',
+        text: 'El apoderado no tiene numero de telefono registrado.',
+        confirmButtonText: 'Entendido',
+      });
       return;
     }
 
@@ -264,12 +275,13 @@ export class StudentCheckpointComponent implements OnInit {
     const lateRecords = this.lateRecords;
     if (!lateRecords.length) return;
 
-    Swal.fire({
+    void fireIosSwal({
       title: `Notificar ${lateRecords.length} tardanzas`,
       html: 'Se abrira WhatsApp para cada apoderado. <strong>Debes enviar cada mensaje manualmente.</strong>',
       icon: 'info',
       showCancelButton: true,
       confirmButtonText: 'Abrir colas',
+      cancelButtonText: 'Cancelar',
     }).then((result) => {
       if (result.isConfirmed) {
         let delay = 0;

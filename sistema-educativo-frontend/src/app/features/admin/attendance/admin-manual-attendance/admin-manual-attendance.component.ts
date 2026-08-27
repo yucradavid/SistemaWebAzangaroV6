@@ -5,38 +5,52 @@ import { createIcons, icons } from 'lucide';
 import Swal from 'sweetalert2';
 import { interval, Subscription } from 'rxjs';
 import {
-  AttendanceAssignment,
   AttendanceRecord,
   AttendanceService,
   AttendanceStatus,
   DailyAttendanceCheckpoint,
   DailyAttendanceSectionResponse,
 } from '@core/services/attendance.service';
+import { AcademicService, GradeLevel, Section } from '@core/services/academic.service';
+import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
+import { fireIosSwal } from '@shared/utils/ios-swal';
+
+type ExportRange = 'day' | 'week' | 'month' | 'all';
+type ExportRangePreset = ExportRange | 'custom';
 
 interface AttendanceState {
   status: AttendanceStatus;
   justification: string;
   updatedAt?: string | null;
-  history: AttendanceRecord[];
-  historyOpen: boolean;
-  historyLoading: boolean;
+  noteOpen: boolean;
+}
+
+interface SectionLike {
+  section_letter?: string;
+  grade_level?: { name?: string } | null;
 }
 
 @Component({
   selector: 'app-admin-manual-attendance',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SettingFilterDropdownComponent],
   templateUrl: './admin-manual-attendance.component.html',
+  styles: [`
+    .note-expand { animation: noteExpand 0.25s ease-out; transform-origin: top; }
+    @keyframes noteExpand {
+      from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  `],
 })
 export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, OnDestroy {
   private attendanceService = inject(AttendanceService);
+  private academicService = inject(AcademicService);
   private refreshSubscription?: Subscription;
 
   loading = false;
   saving = false;
-  selectedCourseId = '';
-  selectedSectionId = '';
-  selectedAcademicYearId = '';
+  exportingCsv = false;
   selectedDate = new Date().toISOString().split('T')[0];
   selectedCheckpoint: DailyAttendanceCheckpoint = 'entrada';
   error = '';
@@ -44,19 +58,36 @@ export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, On
   searchTerm = '';
   statusFilter: 'todos' | AttendanceStatus = 'todos';
 
-  dateRange: 'day' | 'week' | 'month' = 'day';
-  dateFrom = new Date().toISOString().split('T')[0];
-  dateTo = new Date().toISOString().split('T')[0];
+  // Cascada Nivel / Grado / Seccion
+  levelOptions: Array<{ id: string; name: string }> = [
+    { id: 'inicial', name: 'Inicial' },
+    { id: 'primaria', name: 'Primaria' },
+    { id: 'secundaria', name: 'Secundaria' },
+  ];
+  gradeLevels: GradeLevel[] = [];
+  gradeOptions: Array<{ id: string; name: string }> = [];
+  sections: Section[] = [];
+  sectionOptions: Array<{ id: string; name: string }> = [];
+  loadingSections = false;
+  filter = { level: '', gradeLevelId: '', sectionId: '' };
+  private activeAcademicYearId = '';
 
-  assignments: AttendanceAssignment[] = [];
+  selectedSection: Section | null = null;
+  selectedSectionId = '';
+  selectedAcademicYearId = '';
+
+  // Rango de fechas exclusivo para la Exportacion General CSV
+  exportRangePreset: ExportRangePreset = 'day';
+  exportDateFrom = new Date().toISOString().split('T')[0];
+  exportDateTo = new Date().toISOString().split('T')[0];
+
   students: any[] = [];
   attendanceRecords: Record<string, AttendanceState> = {};
-  selectedAssignment: AttendanceAssignment | null = null;
   dailyAttendance: DailyAttendanceSectionResponse | null = null;
   isAutoRefreshEnabled = false;
 
   ngOnInit(): void {
-    this.loadContext();
+    this.loadFilterOptions();
   }
 
   ngAfterViewInit(): void {
@@ -104,9 +135,7 @@ export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, On
       status: 'presente',
       justification: '',
       updatedAt: null,
-      history: [],
-      historyOpen: false,
-      historyLoading: false,
+      noteOpen: false,
     };
   }
 
@@ -114,78 +143,52 @@ export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, On
     return ['falta', 'justificado'].includes(this.recordFor(studentId).status);
   }
 
-  setDateRange(range: 'day' | 'week' | 'month'): void {
-    this.dateRange = range;
-    const today = new Date();
-
-    if (range === 'day') {
-      this.dateFrom = this.formatDate(today);
-      this.dateTo = this.formatDate(today);
-    } else if (range === 'week') {
-      const first = new Date(today);
-      first.setDate(today.getDate() - today.getDay() + 1);
-      const last = new Date(first);
-      last.setDate(first.getDate() + 6);
-      this.dateFrom = this.formatDate(first);
-      this.dateTo = this.formatDate(last);
-    } else {
-      const first = new Date(today.getFullYear(), today.getMonth(), 1);
-      const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      this.dateFrom = this.formatDate(first);
-      this.dateTo = this.formatDate(last);
-    }
-
-    this.selectedDate = this.dateFrom;
-    this.onDateRangeChange();
-  }
-
-  onDateRangeChange(): void {
-    this.selectedDate = this.dateFrom;
-    if (this.selectedAssignment) {
-      this.loadDailyAttendance();
-    }
-  }
-
-  loadContext(): void {
-    this.loading = true;
-    this.error = '';
-
-    this.attendanceService.getTeacherAttendanceContext().subscribe({
-      next: (response) => {
-        this.assignments = response.assignments || [];
-
-        if (this.assignments.length === 0) {
-          this.error = 'No hay asignaciones activas para gestionar asistencia.';
-          this.loading = false;
-          return;
-        }
-
-        this.selectedAssignment = this.assignments[0];
-        this.applyAssignment(this.selectedAssignment);
-        this.loadStudents();
+  private loadFilterOptions(): void {
+    this.academicService.getAcademicYears({ per_page: 100, simple: true }).subscribe({
+      next: (res: any) => {
+        const years = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+        this.activeAcademicYearId = years.find((y: any) => y.is_active)?.id || '';
       },
-      error: (err) => {
-        this.error = err.error?.message || 'Error al cargar el contexto de asistencia.';
-        this.loading = false;
-      }
+    });
+
+    this.academicService.getGradeLevels({ per_page: 100 }).subscribe({
+      next: (res: any) => {
+        this.gradeLevels = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+        this.updateGradeOptions();
+      },
     });
   }
 
-  onAssignmentChange(event: Event): void {
-    const id = (event.target as HTMLSelectElement).value;
-    this.selectedAssignment = this.assignments.find((a) => a.id === id) || null;
+  onLevelChange(level: string): void {
+    this.filter.level = level;
+    this.filter.gradeLevelId = '';
+    this.filter.sectionId = '';
+    this.updateGradeOptions();
+    this.clearSections();
+    this.clearSelectedSection();
+  }
 
-    if (!this.selectedAssignment) {
-      this.selectedCourseId = '';
-      this.selectedSectionId = '';
-      this.selectedAcademicYearId = '';
+  onGradeChange(gradeLevelId: string): void {
+    this.filter.gradeLevelId = gradeLevelId;
+    this.filter.sectionId = '';
+    this.clearSelectedSection();
+    this.loadSections(gradeLevelId);
+  }
+
+  onSectionChange(sectionId: string): void {
+    this.filter.sectionId = sectionId;
+    const section = this.sections.find((s) => s.id === sectionId) || null;
+    this.selectedSection = section;
+    this.selectedSectionId = section?.id || '';
+    this.selectedAcademicYearId = section?.academic_year_id || '';
+
+    if (!section) {
       this.students = [];
       this.attendanceRecords = {};
       this.dailyAttendance = null;
       return;
     }
 
-    this.applyAssignment(this.selectedAssignment);
     this.loadStudents();
   }
 
@@ -209,9 +212,11 @@ export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, On
           }
         });
 
-        this.students = Array.from(uniqueStudents.values()).sort((a, b) =>
-          `${a.last_name ?? ''} ${a.first_name ?? ''}`.localeCompare(`${b.last_name ?? ''} ${b.first_name ?? ''}`)
-        );
+        this.students = Array.from(uniqueStudents.values()).sort((a, b) => {
+          const byLastName = `${a.last_name ?? ''}`.localeCompare(`${b.last_name ?? ''}`, 'es', { sensitivity: 'base' });
+          if (byLastName !== 0) return byLastName;
+          return `${a.first_name ?? ''}`.localeCompare(`${b.first_name ?? ''}`, 'es', { sensitivity: 'base' });
+        });
 
         this.initRecords();
         this.loadDailyAttendance();
@@ -238,40 +243,120 @@ export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, On
     });
   }
 
-  toggleHistory(studentId: string): void {
+  toggleNote(studentId: string): void {
     const record = this.attendanceRecords[studentId];
     if (!record) return;
+    this.attendanceRecords[studentId] = { ...record, noteOpen: !record.noteOpen };
+  }
 
-    record.historyOpen = !record.historyOpen;
-    if (!record.historyOpen || record.history.length > 0) {
-      this.refreshIcons();
+  setExportRange(range: ExportRange): void {
+    this.exportRangePreset = range;
+    const today = new Date();
+
+    if (range === 'day') {
+      this.exportDateFrom = this.formatDate(today);
+      this.exportDateTo = this.formatDate(today);
+    } else if (range === 'week') {
+      const first = new Date(today);
+      first.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      const last = new Date(first);
+      last.setDate(first.getDate() + 6);
+      this.exportDateFrom = this.formatDate(first);
+      this.exportDateTo = this.formatDate(last);
+    } else if (range === 'month') {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      this.exportDateFrom = this.formatDate(first);
+      this.exportDateTo = this.formatDate(last);
+    } else {
+      this.exportDateFrom = '';
+      this.exportDateTo = '';
+    }
+  }
+
+  onExportDateInputChange(): void {
+    this.exportRangePreset = 'custom';
+  }
+
+  exportGeneralCsv(): void {
+    if (!this.selectedSectionId) {
+      void fireIosSwal({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'Selecciona nivel, grado y sección antes de exportar.',
+        confirmButtonText: 'Entendido',
+      });
       return;
     }
 
-    record.historyLoading = true;
-    this.attendanceService.getAttendanceHistory({
-      student_id: studentId,
+    this.exportingCsv = true;
+    this.attendanceService.exportDailyAttendanceCsv({
+      date_from: this.exportDateFrom || undefined,
+      date_to: this.exportDateTo || undefined,
       section_id: this.selectedSectionId,
-      course_id: this.selectedCourseId || undefined,
-      date_from: this.dateFrom,
-      date_to: this.dateTo,
-      per_page: 10,
+      academic_year_id: this.selectedAcademicYearId || undefined,
+    }).subscribe({
+      next: (blob) => {
+        this.exportingCsv = false;
+        this.downloadBlob(blob, `reporte_general_${this.sectionSlug()}_${this.rangeSlug(this.exportRangePreset)}.csv`);
+        void fireIosSwal({
+          icon: 'success',
+          title: 'Reporte generado',
+          text: 'El archivo CSV se descargó correctamente.',
+          confirmButtonText: 'Listo',
+        });
+      },
+      error: async (err) => {
+        this.exportingCsv = false;
+        void fireIosSwal({
+          icon: 'error',
+          title: 'No se pudo exportar',
+          text: await this.extractErrorMessage(err),
+          confirmButtonText: 'Entendido',
+        });
+      }
+    });
+  }
+
+  openStudentHistory(student: any): void {
+    const fullName = `${student.last_name ?? ''}, ${student.first_name ?? ''}`.replace(/^,\s*/, '').trim();
+
+    void fireIosSwal({
+      title: fullName || 'Estudiante',
+      html: '<div class="py-8 text-sm text-slate-400">Cargando historial...</div>',
+      showConfirmButton: false,
+      showCloseButton: true,
+      width: 520,
+    });
+
+    this.attendanceService.getAttendanceHistory({
+      student_id: student.id,
+      section_id: this.selectedSectionId || undefined,
+      per_page: 30,
     }).subscribe({
       next: (res) => {
-        record.history = (res.data || []).filter((item: AttendanceRecord) => item.student_id === studentId);
-        record.historyLoading = false;
-        this.refreshIcons();
+        if (!Swal.isVisible()) return;
+        const records = (res.data || []).filter((item: AttendanceRecord) => item.student_id === student.id);
+        Swal.update({ html: this.buildHistoryHtml(records) });
+        this.bindHistoryExportButtons(student);
       },
       error: () => {
-        record.historyLoading = false;
-        record.history = [];
+        if (!Swal.isVisible()) return;
+        Swal.update({
+          html: '<div class="py-6 text-sm text-rose-500 font-semibold">No se pudo cargar el historial.</div>',
+        });
       }
     });
   }
 
   handleSaveAttendance(): void {
     if (!this.selectedSectionId || !this.selectedAcademicYearId || !this.selectedDate) {
-      void Swal.fire('Atención', 'Selecciona aula, fecha y checkpoint.', 'warning');
+      void fireIosSwal({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'Selecciona nivel, grado, sección y checkpoint.',
+        confirmButtonText: 'Entendido',
+      });
       return;
     }
 
@@ -281,11 +366,12 @@ export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, On
     });
 
     if (invalidStudent) {
-      void Swal.fire(
-        'Comentario requerido',
-        `Debes registrar un comentario para ${invalidStudent.last_name}, ${invalidStudent.first_name}.`,
-        'warning'
-      );
+      void fireIosSwal({
+        icon: 'warning',
+        title: 'Comentario requerido',
+        text: `Debes registrar un comentario para ${invalidStudent.last_name}, ${invalidStudent.first_name}.`,
+        confirmButtonText: 'Entendido',
+      });
       return;
     }
 
@@ -305,12 +391,22 @@ export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, On
       next: (res) => {
         this.saving = false;
         this.success = res.message || 'Asistencia diaria guardada correctamente.';
-        void Swal.fire('Guardado', res.message || 'Asistencia diaria guardada correctamente.', 'success');
+        void fireIosSwal({
+          icon: 'success',
+          title: 'Guardado',
+          text: res.message || 'Asistencia diaria guardada correctamente.',
+          confirmButtonText: 'Listo',
+        });
         this.loadDailyAttendance();
       },
       error: (err) => {
         this.saving = false;
-        void Swal.fire('Error', err.error?.message || 'Error al guardar asistencia.', 'error');
+        void fireIosSwal({
+          icon: 'error',
+          title: 'Error',
+          text: err.error?.message || 'Error al guardar asistencia.',
+          confirmButtonText: 'Entendido',
+        });
       }
     });
   }
@@ -342,22 +438,212 @@ export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, On
     return new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
   }
 
-  sectionLabel(section: AttendanceAssignment['section'] | null | undefined): string {
+  sectionLabel(section: SectionLike | null | undefined): string {
     if (!section) return 'Sin sección';
     const grade = section.grade_level?.name || '';
     const letter = section.section_letter || '';
     return `${grade} ${letter}`.trim();
   }
 
+  private buildHistoryHtml(records: AttendanceRecord[]): string {
+    const rows = records.length > 0
+      ? records.map((r) => `
+        <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
+          <div class="min-w-0 text-left">
+            <p class="text-xs font-bold text-slate-700">${this.escapeHtml(r.date)}</p>
+            <p class="text-[10px] text-slate-500 truncate">${this.escapeHtml(r.justification || 'Sin comentario.')}</p>
+          </div>
+          <span class="shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${this.getStatusBadgeClass(r.status)}">
+            ${this.getStatusLabel(r.status)}
+          </span>
+        </div>`).join('')
+      : '<p class="py-6 text-sm text-slate-400">Sin registros de asistencia.</p>';
+
+    return `
+      <div class="space-y-3">
+        <div class="max-h-56 overflow-y-auto space-y-2 pr-1">${rows}</div>
+        <div class="border-t border-slate-200 pt-3 mt-3">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 text-left">
+            Exportar reporte individual (CSV)
+          </p>
+          <div class="grid grid-cols-2 gap-2">
+            ${this.studentExportButton('day', 'Día')}
+            ${this.studentExportButton('week', 'Semana')}
+            ${this.studentExportButton('month', 'Mes')}
+            ${this.studentExportButton('all', 'Desde el primer día de clases')}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  private bindHistoryExportButtons(student: any): void {
+    Swal.getHtmlContainer()?.querySelectorAll<HTMLElement>('[data-export-student-range]').forEach((btn) => {
+      btn.onclick = () => {
+        const range = btn.getAttribute('data-export-student-range') as ExportRange;
+        void Swal.close();
+        this.exportStudentCsv(student, range);
+      };
+    });
+  }
+
+  private exportStudentCsv(student: any, range: ExportRange): void {
+    const rangeDates = this.computeExportRange(range);
+
+    this.attendanceService.exportDailyAttendanceCsv({
+      ...rangeDates,
+      student_id: student.id,
+      section_id: this.selectedSectionId || undefined,
+      academic_year_id: this.selectedAcademicYearId || undefined,
+    }).subscribe({
+      next: (blob) => {
+        const studentSlug = `${student.last_name ?? ''}_${student.first_name ?? ''}`
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-zA-Z0-9_]/g, '');
+        this.downloadBlob(blob, `asistencia_${studentSlug}_${this.rangeSlug(range)}.csv`);
+        void fireIosSwal({
+          icon: 'success',
+          title: 'Reporte generado',
+          text: 'El reporte individual se descargó correctamente.',
+          confirmButtonText: 'Listo',
+        });
+      },
+      error: async (err) => {
+        void fireIosSwal({
+          icon: 'error',
+          title: 'No se pudo exportar',
+          text: await this.extractErrorMessage(err),
+          confirmButtonText: 'Entendido',
+        });
+      }
+    });
+  }
+
+  private studentExportButton(range: ExportRange, label: string): string {
+    return `
+      <button type="button" data-export-student-range="${range}"
+        class="px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50 text-xs font-bold text-slate-600 hover:text-blue-700 transition-all">
+        ${label}
+      </button>`;
+  }
+
+  private computeExportRange(range: ExportRange): { date_from?: string; date_to?: string } {
+    const today = new Date();
+
+    if (range === 'day') {
+      const day = this.formatDate(today);
+      return { date_from: day, date_to: day };
+    }
+
+    if (range === 'week') {
+      const first = new Date(today);
+      first.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      const last = new Date(first);
+      last.setDate(first.getDate() + 6);
+      return { date_from: this.formatDate(first), date_to: this.formatDate(last) };
+    }
+
+    if (range === 'month') {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      return { date_from: this.formatDate(first), date_to: this.formatDate(last) };
+    }
+
+    return {};
+  }
+
+  private rangeSlug(range: ExportRangePreset): string {
+    return { day: 'dia', week: 'semana', month: 'mes', all: 'historico', custom: 'personalizado' }[range];
+  }
+
+  private sectionSlug(): string {
+    return this.sectionLabel(this.selectedSection)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .toLowerCase() || 'seccion';
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private async extractErrorMessage(err: any): Promise<string> {
+    const fallback = 'Ocurrió un error inesperado. Intenta nuevamente.';
+
+    if (err?.error instanceof Blob) {
+      try {
+        const text = await err.error.text();
+        return JSON.parse(text)?.message || fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    return err?.error?.message || fallback;
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, (char) => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] as string
+    ));
+  }
+
   private formatDate(date: Date): string {
     return date.toISOString().split('T')[0];
   }
 
-  private applyAssignment(assignment: AttendanceAssignment): void {
-    this.selectedAssignment = assignment;
-    this.selectedCourseId = assignment.course_id;
-    this.selectedSectionId = assignment.section_id;
-    this.selectedAcademicYearId = assignment.academic_year_id || '';
+  private updateGradeOptions(): void {
+    const filtered = this.filter.level
+      ? this.gradeLevels.filter((g: any) => g.level === this.filter.level)
+      : this.gradeLevels;
+    this.gradeOptions = filtered.map((g: any) => ({ id: g.id, name: g.name }));
+  }
+
+  private loadSections(gradeLevelId: string): void {
+    if (!gradeLevelId) {
+      this.clearSections();
+      return;
+    }
+
+    this.loadingSections = true;
+    const params: any = { grade_level_id: gradeLevelId, per_page: 100 };
+    if (this.activeAcademicYearId) {
+      params.academic_year_id = this.activeAcademicYearId;
+    }
+
+    this.academicService.getSections(params).subscribe({
+      next: (res: any) => {
+        this.sections = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+        this.sectionOptions = this.sections.map((s: any) => ({ id: s.id, name: s.section_letter || 'Sección' }));
+        this.loadingSections = false;
+      },
+      error: () => {
+        this.loadingSections = false;
+        this.clearSections();
+      }
+    });
+  }
+
+  private clearSections(): void {
+    this.sections = [];
+    this.sectionOptions = [];
+    this.loadingSections = false;
+  }
+
+  private clearSelectedSection(): void {
+    this.selectedSection = null;
+    this.selectedSectionId = '';
+    this.selectedAcademicYearId = '';
+    this.students = [];
+    this.attendanceRecords = {};
+    this.dailyAttendance = null;
   }
 
   private initIcons(): void {
@@ -375,9 +661,7 @@ export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, On
         status: 'falta',
         justification: '',
         updatedAt: null,
-        history: [],
-        historyOpen: false,
-        historyLoading: false,
+        noteOpen: false,
       };
     });
   }
@@ -421,13 +705,10 @@ export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, On
         : row?.exit_marked_at ?? null;
 
       this.attendanceRecords[student.id] = {
-        ...this.attendanceRecords[student.id],
         status,
         justification: note,
         updatedAt,
-        history: this.attendanceRecords[student.id]?.history || [],
-        historyOpen: false,
-        historyLoading: false,
+        noteOpen: this.attendanceRecords[student.id]?.noteOpen ?? false,
       };
     });
   }
@@ -435,7 +716,7 @@ export class AdminManualAttendanceComponent implements OnInit, AfterViewInit, On
   private startAutoRefresh(): void {
     this.stopAutoRefresh();
     this.refreshSubscription = interval(10000).subscribe(() => {
-      if (this.selectedAssignment && !this.saving) {
+      if (this.selectedSectionId && !this.saving) {
         this.loadDailyAttendance();
       }
     });

@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import Swal from 'sweetalert2';
+import { fireIosSwal } from '@shared/utils/ios-swal';
 import * as QRCode from 'qrcode';
 import { interval, Subscription } from 'rxjs';
 import {
@@ -100,7 +100,12 @@ export class AdminQrSessionComponent implements OnInit, AfterViewInit, OnDestroy
     }).subscribe({
       next: ({ data }) => this.openQrModal(data, checkpoint),
       error: (err) => {
-        void Swal.fire('Error', err.error?.message || 'No se pudo abrir la sesión QR.', 'error');
+        void fireIosSwal({
+          icon: 'error',
+          title: 'Error',
+          text: err.error?.message || 'No se pudo abrir la sesión QR.',
+          confirmButtonText: 'Entendido',
+        });
       }
     });
   }
@@ -121,8 +126,8 @@ export class AdminQrSessionComponent implements OnInit, AfterViewInit, OnDestroy
 
       const checkpointLabel = checkpoint === 'entrada' ? 'Entrada QR' : 'Salida QR';
 
-      void Swal.fire({
-        title: `<span class="text-2xl font-black text-slate-800">${checkpointLabel}</span>`,
+      void fireIosSwal({
+        title: checkpointLabel,
         html: `
           <div class="flex flex-col items-center p-4">
             <div class="relative bg-white p-4 rounded-3xl shadow-xl border border-slate-100 mb-4">
@@ -142,7 +147,6 @@ export class AdminQrSessionComponent implements OnInit, AfterViewInit, OnDestroy
         `,
         showConfirmButton: true,
         confirmButtonText: 'Cerrar',
-        confirmButtonColor: '#4f46e5',
         width: '650px',
         didOpen: () => {
           const timerDisplay = document.getElementById('qr-timer-display');
@@ -159,7 +163,12 @@ export class AdminQrSessionComponent implements OnInit, AfterViewInit, OnDestroy
         }
       });
     } catch {
-      void Swal.fire('Error', 'No se pudo generar el código QR visual.', 'error');
+      void fireIosSwal({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo generar el código QR visual.',
+        confirmButtonText: 'Entendido',
+      });
     }
   }
 

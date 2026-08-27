@@ -31,7 +31,7 @@ class ShiftAssignmentController extends Controller
         $validated = $request->validate([
             'assignments' => 'required|array|min:1',
             'assignments.*.section_id' => 'required|uuid|exists:sections,id',
-            'assignments.*.shift' => 'required|string|in:manana,tarde',
+            'assignments.*.shift' => 'nullable|string|in:manana,tarde,ambos',
         ]);
 
         $updated = 0;
@@ -39,7 +39,7 @@ class ShiftAssignmentController extends Controller
         DB::transaction(function () use ($validated, &$updated) {
             foreach ($validated['assignments'] as $assignment) {
                 Section::where('id', $assignment['section_id'])
-                    ->update(['shift' => $assignment['shift']]);
+                    ->update(['shift' => $assignment['shift'] ?? null]);
                 $updated++;
             }
         });

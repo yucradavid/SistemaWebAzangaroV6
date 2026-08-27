@@ -25,6 +25,17 @@ class AttendanceScheduleConfigController extends Controller
         if (empty($input['late_after']) || $input['late_after'] === '') {
             $input['late_after'] = null;
         }
+
+        // Los horarios guardados en BD vienen como HH:mm:ss (columna `time` de
+        // Postgres); si el campo no fue tocado en el picker, el frontend reenvia
+        // ese mismo formato. Normalizamos a HH:mm antes de validar para aceptar
+        // ambos formatos sin rechazar el valor sin cambios.
+        foreach (['window_start', 'late_after', 'window_end'] as $field) {
+            if (!empty($input[$field]) && preg_match('/^(\d{2}:\d{2}):\d{2}$/', $input[$field], $m)) {
+                $input[$field] = $m[1];
+            }
+        }
+
         $request->merge($input);
 
         $validated = $request->validate([

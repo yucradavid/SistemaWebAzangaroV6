@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\StandardGradeCatalog;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -30,6 +31,13 @@ class StoreGradeLevelRequest extends FormRequest
                 'integer',
                 'min:1',
                 'max:12',
+                function ($attribute, $value, $fail) {
+                    $level = $this->input('level');
+                    if ($level && !StandardGradeCatalog::isValidGrade($level, (int) $value)) {
+                        $max = StandardGradeCatalog::maxGrade($level);
+                        $fail("El orden numerico {$value} esta fuera del rango estandar para el nivel {$level} (maximo {$max}).");
+                    }
+                },
                 Rule::unique('grade_levels', 'grade')->where(
                     fn ($query) => $query->where('level', $this->input('level'))
                 ),
@@ -49,7 +57,7 @@ class StoreGradeLevelRequest extends FormRequest
     {
         return [
             'level.required' => 'El nivel educativo es obligatorio.',
-            'level.in' => 'El nivel educativo seleccionado no es valido.',
+            'level.in' => 'El sistema solo permite 3 niveles: Inicial, Primaria, Secundaria.',
             'grade.required' => 'El orden numerico es obligatorio.',
             'grade.integer' => 'El orden numerico debe ser un numero entero.',
             'grade.min' => 'El orden numerico debe ser mayor a 0.',

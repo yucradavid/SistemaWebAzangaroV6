@@ -20,6 +20,7 @@ class Section extends Model
         'grade_level_id',
         'section_letter',
         'capacity',
+        'shift',
         'created_at',
     ];
 

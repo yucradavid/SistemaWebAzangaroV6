@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AttendanceService } from '@core/services/attendance.service';
 import { AcademicService } from '@core/services/academic.service';
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
-import Swal from 'sweetalert2';
+import { fireIosSwal } from '@shared/utils/ios-swal';
 
 @Component({
   selector: 'app-qr-generator',
@@ -262,7 +262,12 @@ export class QrGeneratorComponent implements OnInit {
     this.attendanceService.generateStudentQr(data).subscribe({
       next: (res: any) => {
         this.generating = false;
-        Swal.fire('QR Generado', res.message || 'QR generado correctamente.', 'success');
+        void fireIosSwal({
+          icon: 'success',
+          title: 'QR Generado',
+          text: res.message || 'QR generado correctamente.',
+          confirmButtonText: 'Listo',
+        });
         this.loadStudents();
       },
       error: () => { this.generating = false; }
@@ -311,17 +316,22 @@ export class QrGeneratorComponent implements OnInit {
 
   regenerateQr(): void {
     if (!this.regenerateReason || this.regenerateReason.length < 5) {
-      Swal.fire('Error', 'El motivo debe tener al menos 5 caracteres.', 'error');
+      void fireIosSwal({
+        icon: 'error',
+        title: 'Error',
+        text: 'El motivo debe tener al menos 5 caracteres.',
+        confirmButtonText: 'Entendido',
+      });
       return;
     }
 
-    Swal.fire({
+    void fireIosSwal({
       title: 'Regenerar QR',
       html: `Se regenerara el QR de <strong>${this.selectedStudents.length}</strong> estudiantes.<br><br>El codigo anterior dejara de funcionar.`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#d97706',
       confirmButtonText: 'Si, regenerar',
+      cancelButtonText: 'Cancelar',
     }).then((result) => {
       if (result.isConfirmed) {
         this.regenerating = true;
@@ -333,7 +343,12 @@ export class QrGeneratorComponent implements OnInit {
             this.regenerating = false;
             this.regenerateReason = '';
             this.selectedStudents = [];
-            Swal.fire('Regenerado', res.message || 'QR regenerados correctamente.', 'success');
+            void fireIosSwal({
+              icon: 'success',
+              title: 'Regenerado',
+              text: res.message || 'QR regenerados correctamente.',
+              confirmButtonText: 'Listo',
+            });
             this.loadStudents();
           },
           error: () => { this.regenerating = false; }
