@@ -1,15 +1,15 @@
-﻿<section class="py-16 lg:py-20 bg-editorial-cream overflow-hidden">
+﻿<section class="py-16 lg:py-20 bg-cermat-blue-700 overflow-hidden">
   <div class="max-w-7xl mx-auto px-6">
 
     <!-- Header -->
     <div class="mb-12" appScrollReveal="fadeUp">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-gold mb-4">Vida Escolar</p>
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-white mb-4">Vida Escolar</p>
       <div class="h-1 w-16 bg-editorial-gold mb-6"></div>
-      <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
+      <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-black text-white leading-[0.95] tracking-tight">
         Momentos que<br/>
-        <span class="text-editorial-gold">Inspiran</span>
+        <span class="text-cermat-yellow-300">Inspiran</span>
       </h2>
-      <p class="text-lg text-editorial-muted mt-4 max-w-xl">
+      <p class="text-lg text-cermat-blue-100 mt-4 max-w-xl">
         La energía, el aprendizaje y la alegría de nuestras aulas.
       </p>
     </div>
@@ -26,15 +26,15 @@
            appScrollReveal="fadeUp"
            [delay]="i * 100">
 
-        <div class="aspect-square overflow-hidden bg-editorial-border">
+        <div class="aspect-square overflow-hidden rounded-3xl shadow-xl ring-1 ring-black/5 bg-editorial-border">
           <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
         </div>
 
         <!-- Caption siempre visible -->
         <div class="mt-3">
-          <span class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-gold text-[10px]">{{ img.category }}</span>
-          <h3 class="text-sm font-semibold text-editorial-navy mt-0.5">{{ img.title }}</h3>
+          <span class="text-xs font-semibold uppercase tracking-[0.2em] text-cermat-yellow-300 text-[10px]">{{ img.category }}</span>
+          <h3 class="text-sm font-semibold text-white mt-0.5">{{ img.title }}</h3>
         </div>
       </div>
     </div>
@@ -42,7 +42,7 @@
     <!-- Link galería completa -->
     <div class="mt-12" appScrollReveal="fadeUp" [delay]="200">
       <a routerLink="/noticias"
-         class="inline-flex items-center gap-2 text-sm font-semibold text-editorial-navy uppercase tracking-[0.1em] hover:text-editorial-gold transition-colors">
+         class="inline-flex items-center gap-2 text-sm font-semibold text-white uppercase tracking-[0.1em] hover:text-cermat-yellow-300 transition-colors">
         Ver galería completa
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -75,7 +75,7 @@
 
     <ng-template pTemplate="thumbnail" let-img>
       <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
-           class="w-16 h-16 md:w-20 md:h-20 object-cover border-2 border-transparent hover:border-editorial-gold transition-colors"/>
+           class="w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg border-2 border-transparent hover:border-editorial-gold transition-colors"/>
     </ng-template>
 
     <ng-template pTemplate="captions" let-img>

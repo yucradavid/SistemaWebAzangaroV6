@@ -2,7 +2,7 @@
   <div class="max-w-7xl mx-auto px-6">
 
     <!-- Header editorial -->
-    <div class="mb-12 text-center" appScrollReveal="fadeUp">
+    <div class="mb-16 lg:mb-20 text-center" appScrollReveal="fadeUp">
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-gold mb-4">Sobre Nosotros</p>
       <div class="h-1 w-16 bg-editorial-gold mx-auto mb-6"></div>
       <h2 class="text-[clamp(2rem,5vw,4rem)] font-black text-editorial-navy leading-[0.95] tracking-tight max-w-3xl mx-auto">
@@ -42,11 +42,11 @@
       </div>
 
       <!-- Imagen: 7 columnas, offset dramático -->
-      <div class="lg:col-span-7 lg:-mt-12" appScrollReveal="fadeRight" [delay]="400">
+      <div class="lg:col-span-7 lg:mt-0" appScrollReveal="fadeRight" [delay]="400">
         <div class="grid grid-cols-12 gap-4">
           <!-- Imagen grande -->
           <div class="col-span-8">
-            <div class="aspect-[4/5] overflow-hidden">
+            <div class="aspect-[4/5] overflow-hidden rounded-3xl shadow-xl ring-1 ring-black/5 transition-all duration-300 hover:shadow-2xl">
               <img
                 src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=800&h=1000&fit=crop&q=80"
                 alt="Estudiantes de primaria en CERMAT School" loading="eager" decoding="async" width="800" height="1000" fetchpriority="high"
@@ -55,7 +55,7 @@
           </div>
           <!-- Columna lateral con datos -->
           <div class="col-span-4 flex flex-col gap-4 pt-12">
-            <div class="aspect-square overflow-hidden">
+            <div class="aspect-square overflow-hidden rounded-3xl shadow-xl ring-1 ring-black/5">
               <img
                 src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=400&fit=crop&q=80"
                 alt="Estudiantes de educación inicial" loading="lazy" decoding="async" width="400" height="400"

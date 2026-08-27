@@ -1,7 +1,6 @@
 ﻿import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { ScrollTopModule } from 'primeng/scrolltop';
 import { SeoService } from '@core/services/seo/seo.service';
 import { DataService } from '@core/services/data_general/data.service';
 import { HeroSectionComponent } from './hero-section/hero-section.component';
@@ -23,7 +22,6 @@ import { MapSectionComponent } from './map-section/map-section.component';
   imports: [
     CommonModule,
     RouterLink,
-    ScrollTopModule,
     HeroSectionComponent,
     AboutSectionComponent,
     LevelsSectionComponent,
