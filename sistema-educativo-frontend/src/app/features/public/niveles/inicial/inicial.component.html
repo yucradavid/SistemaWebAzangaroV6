@@ -7,6 +7,25 @@
     </div>
 
     <div class="container-cermat relative z-10 px-4">
+      <div class="flex flex-wrap gap-3 justify-center mb-12">
+        <a routerLink="/niveles/inicial"
+           routerLinkActive="!bg-cermat-blue-700 !text-white shadow-lg border-transparent"
+           [routerLinkActiveOptions]="{exact:true}"
+           class="px-6 py-3 rounded-xl font-semibold transition-all duration-300 bg-gray-100 hover:bg-gray-200 border border-slate-200 text-gray-700">
+          Inicial
+        </a>
+        <a routerLink="/niveles/primaria"
+           routerLinkActive="!bg-cermat-blue-700 !text-white shadow-lg border-transparent"
+           class="px-6 py-3 rounded-xl font-semibold transition-all duration-300 bg-gray-100 hover:bg-gray-200 border border-slate-200 text-gray-700">
+          Primaria
+        </a>
+        <a routerLink="/niveles/secundaria"
+           routerLinkActive="!bg-cermat-blue-700 !text-white shadow-lg border-transparent"
+           class="px-6 py-3 rounded-xl font-semibold transition-all duration-300 bg-gray-100 hover:bg-gray-200 border border-slate-200 text-gray-700">
+          Secundaria
+        </a>
+      </div>
+
       <div class="max-w-4xl mx-auto text-center flex flex-col items-center">
         <div class="text-7xl mb-8 transform hover:scale-110 transition-transform duration-300 cursor-default">
           🎨

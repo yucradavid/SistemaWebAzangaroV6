@@ -379,13 +379,13 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#111;background:
   align-items:flex-start;
   gap:12px;
   padding-bottom:8px;
-  border-bottom:2px solid #1e3a8a;
+  border-bottom:2px solid #193375;
   margin-bottom:8px;
 }
 .inst-name{
   font-size:13pt;
   font-weight:900;
-  color:#1e3a8a;
+  color:#193375;
   letter-spacing:-.3px;
   line-height:1.15;
   text-transform:uppercase;
@@ -411,7 +411,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#111;background:
   flex-shrink:0;
 }
 .badge-num{
-  background:#1e3a8a;
+  background:#193375;
   color:#fff;
   padding:5px 12px 6px;
   border-radius:6px;
@@ -462,9 +462,9 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#111;background:
   font-weight:800;
   letter-spacing:.2em;
   text-transform:uppercase;
-  color:#1e3a8a;
+  color:#193375;
   background:#eff6ff;
-  border-left:3px solid #1e3a8a;
+  border-left:3px solid #193375;
   padding:2px 6px;
   margin-bottom:5px;
 }

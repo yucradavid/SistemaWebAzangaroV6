@@ -1,11 +1,11 @@
-﻿<section class="py-24 lg:py-32 bg-white">
-  <div class="container-editorial">
+﻿<section class="py-16 lg:py-20 bg-white">
+  <div class="max-w-7xl mx-auto px-6">
 
     <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-end md:justify-between mb-16" appScrollReveal="fadeUp">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between mb-12" appScrollReveal="fadeUp">
       <div>
-        <p class="label-editorial mb-4">Actualidad</p>
-        <div class="section-divider mb-6"></div>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-gold mb-4">Actualidad</p>
+        <div class="h-1 w-16 bg-editorial-gold mb-6"></div>
         <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
           Noticias y<br/>
           <span class="text-editorial-gold">Eventos</span>
@@ -36,7 +36,7 @@
 
         <!-- Meta -->
         <div class="flex items-center gap-3 mb-3">
-          <span class="label-editorial text-editorial-gold">{{ item.category }}</span>
+          <span class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-gold">{{ item.category }}</span>
           <span class="text-editorial-border">|</span>
           <time class="text-xs text-editorial-muted">{{ formatDate(item.date) }}</time>
         </div>
@@ -64,7 +64,7 @@
 
     <!-- Mobile link -->
     <div class="text-center md:hidden mt-12">
-      <a routerLink="/noticias" class="btn-outline">
+      <a routerLink="/noticias" class="inline-flex items-center justify-center px-6 py-3 bg-cermat-blue-600 text-white font-semibold rounded-xl hover:bg-cermat-blue-700 transition-colors">
         Ver todas las noticias
       </a>
     </div>

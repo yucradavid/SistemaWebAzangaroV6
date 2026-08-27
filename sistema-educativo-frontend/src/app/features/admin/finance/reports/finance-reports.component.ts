@@ -1058,7 +1058,7 @@ export class FinanceReportsComponent implements OnInit {
       return;
     }
 
-    const headerBg = '#1e3a8a';
+    const headerBg = '#193375';
     const colCount = config.headers.length;
     const generatedAt = new Date().toLocaleString('es-PE');
 
@@ -1075,7 +1075,7 @@ export class FinanceReportsComponent implements OnInit {
     };
 
     const headerRow = config.headers
-      .map((header, index) => `<th style="border:1px solid #1e3a8a;background:${headerBg};color:#ffffff;font-weight:bold;padding:8px 10px;text-align:${config.currencyColumns.includes(index) ? 'right' : 'left'};">${this.escapeHtml(header)}</th>`)
+      .map((header, index) => `<th style="border:1px solid #193375;background:${headerBg};color:#ffffff;font-weight:bold;padding:8px 10px;text-align:${config.currencyColumns.includes(index) ? 'right' : 'left'};">${this.escapeHtml(header)}</th>`)
       .join('');
 
     const dataRows = config.rows
@@ -1113,7 +1113,7 @@ export class FinanceReportsComponent implements OnInit {
       <body>
         <table style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;">
           ${colgroup}
-          <tr><td colspan="${colCount}" style="font-size:20px;font-weight:bold;color:#1e3a8a;padding:6px 4px;">COLEGIO CERMAT</td></tr>
+          <tr><td colspan="${colCount}" style="font-size:20px;font-weight:bold;color:#193375;padding:6px 4px;">COLEGIO CERMAT</td></tr>
           <tr><td colspan="${colCount}" style="font-size:14px;font-weight:bold;color:#0f172a;padding:2px 4px;">${this.escapeHtml(config.reportTitle)}</td></tr>
           <tr><td colspan="${colCount}" style="font-size:11px;color:#475569;padding:2px 4px;">Periodo: ${this.escapeHtml(config.periodLabel)}</td></tr>
           <tr><td colspan="${colCount}" style="font-size:11px;color:#475569;padding:2px 4px;">Generado el: ${this.escapeHtml(generatedAt)}</td></tr>

@@ -1,10 +1,10 @@
-<section class="py-24 lg:py-32 bg-editorial-cream">
-  <div class="container-editorial">
+<section class="py-16 lg:py-20 bg-editorial-cream">
+  <div class="max-w-7xl mx-auto px-6">
 
     <!-- Header -->
-    <div class="mb-16" appScrollReveal="fadeUp">
-      <p class="label-editorial mb-4">Ubicación</p>
-      <div class="section-divider mb-6"></div>
+    <div class="mb-12" appScrollReveal="fadeUp">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-gold mb-4">Ubicación</p>
+      <div class="h-1 w-16 bg-editorial-gold mb-6"></div>
       <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
         Visítanos en<br/>
         <span class="text-editorial-gold">Azángaro</span>
@@ -18,7 +18,7 @@
       <div class="bg-white p-10 lg:p-14 space-y-10" appScrollReveal="fadeLeft" [delay]="200">
 
         <div>
-          <div class="label-editorial mb-2">Dirección</div>
+          <div class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-muted mb-2">Dirección</div>
           <p class="text-lg font-semibold text-editorial-navy">{{ schoolInfo().address }}</p>
           <p class="text-sm text-editorial-muted mt-1">{{ schoolInfo().location }}</p>
         </div>
@@ -26,7 +26,7 @@
         <div class="w-8 h-px bg-editorial-gold"></div>
 
         <div>
-          <div class="label-editorial mb-2">Teléfono</div>
+          <div class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-muted mb-2">Teléfono</div>
           <a [href]="'tel:' + schoolInfo().phone"
              class="text-2xl font-black text-editorial-navy hover:text-editorial-gold transition-colors">
             {{ schoolInfo().phone }}
@@ -40,7 +40,7 @@
         <div class="w-8 h-px bg-editorial-gold"></div>
 
         <div>
-          <div class="label-editorial mb-2">Correo Electrónico</div>
+          <div class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-muted mb-2">Correo Electrónico</div>
           <a [href]="'mailto:' + schoolInfo().email"
              class="text-editorial-slate hover:text-editorial-gold transition-colors font-medium break-all">
             {{ schoolInfo().email }}
@@ -50,7 +50,7 @@
         <div class="w-8 h-px bg-editorial-gold"></div>
 
         <div>
-          <div class="label-editorial mb-3">Horario de Atención</div>
+          <div class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-muted mb-3">Horario de Atención</div>
           <div class="flex justify-between items-center py-2 border-b border-editorial-border">
             <span class="text-sm text-editorial-muted">Lunes - Viernes</span>
             <span class="text-sm font-semibold text-editorial-navy">{{ schoolInfo().schedule.weekdays }}</span>

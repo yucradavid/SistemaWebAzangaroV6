@@ -1,10 +1,10 @@
-<section class="py-24 lg:py-32 bg-editorial-cream">
-  <div class="container-editorial">
+<section class="py-16 lg:py-20 bg-editorial-cream">
+  <div class="max-w-7xl mx-auto px-6">
 
     <!-- Header -->
-    <div class="mb-20 text-center" appScrollReveal="fadeUp">
-      <p class="label-editorial mb-4">Niveles Educativos</p>
-      <div class="section-divider mx-auto mb-6"></div>
+    <div class="mb-12 text-center" appScrollReveal="fadeUp">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-gold mb-4">Niveles Educativos</p>
+      <div class="h-1 w-16 bg-editorial-gold mx-auto mb-6"></div>
       <h2 class="text-[clamp(2rem,5vw,4rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
         Acompañamos tu<br/>
         <span class="text-editorial-gold">Crecimiento</span>
@@ -14,75 +14,50 @@
       </p>
     </div>
 
-    <!-- Grid de niveles -->
-    <div class="grid lg:grid-cols-3 gap-px bg-editorial-border">
-      <div *ngFor="let level of levels(); let i = index"
-           class="bg-white p-10 group"
-           role="article"
-           [attr.aria-label]="'Nivel educativo: ' + level.name"
-           appScrollReveal="fadeUp"
-           [delay]="i * 150">
+    <!-- Grid de niveles (tarjetas resumidas) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <a *ngFor="let level of levels(); let i = index"
+         [routerLink]="'/niveles/' + level.id"
+         class="group bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-editorial-gold"
+         [attr.aria-label]="'Nivel educativo: ' + level.name"
+         appScrollReveal="fadeUp"
+         [delay]="i * 150">
 
-        <!-- Número grande como identificador -->
-        <div class="text-[clamp(4rem,8vw,7rem)] font-black leading-none text-editorial-border group-hover:text-editorial-gold transition-colors duration-500">
-          {{ i === 0 ? '01' : i === 1 ? '02' : '03' }}
+        <div class="aspect-[16/9] overflow-hidden">
+          <img
+            [src]="level.image"
+            [alt]="'Nivel ' + level.name"
+            loading="lazy" decoding="async" width="600" height="338"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         </div>
 
-        <!-- Título del nivel -->
-        <h3 class="text-3xl font-black text-editorial-navy mt-6 mb-2 tracking-tight">
-          {{ level.name }}
-        </h3>
-        <p class="label-editorial mb-4">{{ level.ages }}</p>
-
-        <!-- Descripción -->
-        <p class="text-editorial-slate leading-relaxed mb-8">
-          {{ level.description }}
-        </p>
-
-        <!-- Features como lista limpia -->
-        <div class="space-y-3 mb-10">
-          <div *ngFor="let feature of level.features.slice(0, 4)"
-               class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 bg-editorial-gold mt-2 flex-shrink-0"></div>
-            <span class="text-sm text-editorial-slate">{{ feature }}</span>
-          </div>
+        <div class="p-6">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-gold mb-2">{{ level.ages }}</p>
+          <h3 class="text-2xl font-black text-editorial-navy tracking-tight group-hover:text-editorial-gold transition-colors">
+            {{ level.name }}
+          </h3>
+          <p class="mt-2 text-editorial-slate leading-relaxed line-clamp-2">
+            {{ level.description }}
+          </p>
+          <span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-editorial-navy uppercase tracking-[0.1em] group-hover:text-editorial-gold transition-colors">
+            Conocer más
+            <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </span>
         </div>
-
-        <!-- Link -->
-        <a [routerLink]="'/niveles/' + level.id"
-           class="inline-flex items-center gap-2 text-sm font-semibold text-editorial-navy uppercase tracking-[0.1em] group-hover:text-editorial-gold transition-colors">
-          Conocer más
-          <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-        </a>
-      </div>
+      </a>
     </div>
 
-    <!-- Bottom info bar -->
-    <div class="grid md:grid-cols-3 gap-0 divide-x divide-editorial-border border border-editorial-border mt-16">
-
-      <div class="px-8 py-8" appScrollReveal="fadeUp" [delay]="0">
-        <div class="label-editorial mb-3">Programa Bilingüe</div>
-        <p class="text-sm text-editorial-slate leading-relaxed">
-          Educación bilingüe desde nivel inicial con certificaciones internacionales
-        </p>
-      </div>
-
-      <div class="px-8 py-8" appScrollReveal="fadeUp" [delay]="100">
-        <div class="label-editorial mb-3">Tecnología</div>
-        <p class="text-sm text-editorial-slate leading-relaxed">
-          Robótica, programación y herramientas digitales integradas al currículo
-        </p>
-      </div>
-
-      <div class="px-8 py-8" appScrollReveal="fadeUp" [delay]="200">
-        <div class="label-editorial mb-3">Formación en Valores</div>
-        <p class="text-sm text-editorial-slate leading-relaxed">
-          Liderazgo y responsabilidad social en todos los niveles educativos
-        </p>
-      </div>
-
+    <!-- CTA final -->
+    <div class="mt-12 text-center" appScrollReveal="fadeUp" [delay]="450">
+      <a routerLink="/niveles"
+         class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-cermat-red-600 text-white font-bold tracking-wide rounded-xl shadow-lg shadow-cermat-red-600/25 hover:bg-cermat-red-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cermat-red-600 focus-visible:ring-offset-2">
+        Ver todos los niveles
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </a>
     </div>
 
   </div>

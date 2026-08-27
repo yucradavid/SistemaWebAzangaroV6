@@ -1,48 +1,34 @@
 <section class="relative min-h-screen flex items-center bg-editorial-navy overflow-hidden">
 
-  <!-- Fondo: video con fallback a imagen -->
+  <!-- Fondo: imagen de portada del prototipo original (estudiantes en clase) -->
   <div class="absolute inset-0">
-    <!-- Video de fondo (autoplay, muted, loop) -->
-    <video
-      #heroVideo
-      autoplay muted loop playsinline
-      (loadeddata)="videoLoaded = true"
-      class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
-      [class.opacity-0]="!videoLoaded"
-      [class.opacity-100]="videoLoaded"
-      poster="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=1920&h=1080&fit=crop&q=80"
-      aria-hidden="true">
-      <source src="https://videos.pexels.com/video-files/857251/857251-hd_1920_1080_24fps.mp4" type="video/mp4" />
-    </video>
-    <!-- Fallback imagen (se muestra mientras carga el video o si falla) -->
     <img
-      *ngIf="!videoLoaded"
-      src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=1920&h=1080&fit=crop&q=80"
-      alt="" decoding="async" width="1920" height="1080" aria-hidden="true"
+      src="/assets/images/fondo-home.jpg"
+      alt="" decoding="async" aria-hidden="true"
       class="absolute inset-0 w-full h-full object-cover" />
-    <!-- Overlay editorial -->
-    <div class="absolute inset-0 bg-editorial-navy/80"></div>
+    <!-- Overlay institucional tricolor (azul oscuro → azul claro → rojo) -->
+    <div class="absolute inset-0 bg-gradient-to-br from-cermat-blue-900/95 via-cermat-blue-500/80 to-cermat-red-600/75"></div>
   </div>
 
   <!-- Contenido principal -->
-  <div class="container-editorial relative z-10 py-24 lg:py-32">
+  <div class="max-w-7xl mx-auto px-6 sm:px-8 relative z-10 py-24 lg:py-32">
     <div class="grid lg:grid-cols-12 gap-12 items-center">
 
       <!-- Columna izquierda: tipografía masiva -->
-      <div class="lg:col-span-7 space-y-10">
+      <div class="lg:col-span-7 space-y-6">
 
-        <div class="space-y-1" appScrollReveal="fadeUp">
-          <p class="label-editorial text-editorial-gold">CERMAT School &mdash; Azángaro, Puno</p>
+        <div appScrollReveal="fadeUp">
+          <p class="inline-flex items-center gap-3 border border-editorial-gold-light/30 bg-white/5 backdrop-blur-sm px-5 py-2 rounded-full text-sm font-semibold uppercase tracking-[0.15em] text-editorial-gold-light">CERMAT School &mdash; Azángaro, Puno</p>
         </div>
 
-        <div class="space-y-2" appScrollReveal="fadeUp" [delay]="150">
-          <h1 class="text-[clamp(3rem,8vw,7rem)] font-black leading-[0.9] tracking-[-0.04em] text-white">
+        <div class="space-y-3" appScrollReveal="fadeUp" [delay]="150">
+          <h1 class="text-[clamp(3rem,8vw,7rem)] font-black leading-[1.05] tracking-[-0.04em] text-white">
             Formamos
           </h1>
-          <h1 class="text-[clamp(3rem,8vw,7rem)] font-black leading-[0.9] tracking-[-0.04em] text-editorial-gold">
+          <h1 class="text-[clamp(3rem,8vw,7rem)] font-black leading-[1.05] tracking-[-0.04em] text-editorial-gold-light">
             Líderes
           </h1>
-          <h1 class="text-[clamp(3rem,8vw,7rem)] font-black leading-[0.9] tracking-[-0.04em] text-white">
+          <h1 class="text-[clamp(3rem,8vw,7rem)] font-black leading-[1.05] tracking-[-0.04em] text-white">
             del Mañana
           </h1>
         </div>
@@ -54,7 +40,7 @@
         <div class="flex flex-col sm:flex-row gap-4" appScrollReveal="fadeUp" [delay]="450">
           <a routerLink="/admision"
              aria-label="Iniciar proceso de admisión 2026"
-             class="btn-gold">
+             class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-cermat-red-600 text-white font-bold tracking-wide shadow-lg shadow-black/30 hover:bg-cermat-red-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-cermat-blue-900">
             Iniciar Admisión 2026
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -62,7 +48,7 @@
           </a>
           <a routerLink="/niveles"
              aria-label="Explorar niveles educativos"
-             class="btn-outline border-white/30 text-white hover:bg-white hover:text-editorial-navy">
+             class="inline-flex items-center justify-center gap-2 px-8 py-4 border-2 border-white/40 text-white font-bold tracking-wide hover:bg-white hover:text-editorial-navy hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-cermat-blue-900">
             Explorar Niveles
           </a>
         </div>
@@ -72,14 +58,14 @@
       <!-- Columna derecha: imagen integrada como bloque editorial -->
       <div class="lg:col-span-5" appScrollReveal="fadeRight" [delay]="600">
         <div class="relative">
-          <div class="aspect-[3/4] overflow-hidden">
+          <div class="aspect-[3/4] overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/20">
             <img
-              src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=800&h=1067&fit=crop&q=80"
+              src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&h=1067&fit=crop&q=80"
               alt="Estudiantes de CERMAT School en el aula" loading="eager" decoding="async" width="800" height="1067"
               class="w-full h-full object-cover" />
           </div>
           <!-- Bloque de acento superpuesto -->
-          <div class="absolute -bottom-6 -left-6 bg-editorial-gold px-8 py-5">
+          <div class="absolute -bottom-6 -left-6 bg-cermat-red-600 px-8 py-5 rounded-xl shadow-xl">
             <div class="text-3xl font-black text-white leading-none">{{ schoolInfo().students }}+</div>
             <div class="text-sm text-white/80 font-medium mt-1">Estudiantes Activos</div>
           </div>
@@ -92,7 +78,7 @@
   <!-- Scroll indicator minimalista -->
   <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-20" appScrollReveal="fadeIn" [delay]="800">
     <a href="#main-content" aria-label="Desplazarse hacia abajo"
-       class="flex flex-col items-center gap-2 text-editorial-muted hover:text-white transition-colors focus-ring rounded">
+       class="flex flex-col items-center gap-2 text-editorial-muted hover:text-white transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
       <span class="text-[10px] font-semibold uppercase tracking-[0.3em]">Descubre</span>
       <div class="w-px h-8 bg-editorial-muted/40"></div>
     </a>
