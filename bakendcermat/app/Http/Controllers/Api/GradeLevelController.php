@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreGradeLevelRequest;
 use App\Http\Requests\UpdateGradeLevelRequest;
 use App\Models\GradeLevel;
+use App\Support\StandardGradeCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class GradeLevelController extends Controller
 {
@@ -106,5 +108,74 @@ class GradeLevelController extends Controller
         $row->delete();
 
         return response()->json(['message' => 'Nivel/grado eliminado correctamente.']);
+    }
+
+    /**
+     * GET /api/grade-levels/standard/{level}/missing
+     * Compara los ordenes numericos existentes de un nivel contra el rango
+     * estandar completo y devuelve cuales grados faltan.
+     */
+    public function missingStandardGrades(string $level): JsonResponse
+    {
+        $level = strtolower(trim($level));
+
+        if (!in_array($level, StandardGradeCatalog::levels(), true)) {
+            return response()->json(['message' => 'Nivel educativo invalido.'], 422);
+        }
+
+        $standard = StandardGradeCatalog::forLevel($level);
+        $existingGrades = GradeLevel::query()->where('level', $level)->pluck('grade')->all();
+
+        $missing = collect($standard)
+            ->reject(fn ($name, $grade) => in_array($grade, $existingGrades, true))
+            ->map(fn ($name, $grade) => ['grade' => $grade, 'name' => $name])
+            ->values();
+
+        return response()->json([
+            'level' => $level,
+            'standard_total' => count($standard),
+            'existing_count' => count($existingGrades),
+            'missing' => $missing,
+        ]);
+    }
+
+    /**
+     * POST /api/grade-levels/standard/{level}/generate
+     * Crea todos los grados del rango estandar de un nivel que aun no
+     * existan. Idempotente: si ya estan todos, no crea ni duplica nada.
+     */
+    public function generateStandardGrades(string $level): JsonResponse
+    {
+        $level = strtolower(trim($level));
+
+        if (!in_array($level, StandardGradeCatalog::levels(), true)) {
+            return response()->json(['message' => 'Nivel educativo invalido.'], 422);
+        }
+
+        $standard = StandardGradeCatalog::forLevel($level);
+        $existingGrades = GradeLevel::query()->where('level', $level)->pluck('grade')->all();
+
+        $created = [];
+
+        DB::transaction(function () use ($standard, $existingGrades, $level, &$created) {
+            foreach ($standard as $grade => $name) {
+                if (in_array($grade, $existingGrades, true)) {
+                    continue;
+                }
+
+                $created[] = GradeLevel::create([
+                    'level' => $level,
+                    'grade' => $grade,
+                    'name' => $name,
+                ]);
+            }
+        });
+
+        return response()->json([
+            'message' => count($created) > 0
+                ? sprintf('Se crearon %d grado(s) estandar para el nivel %s.', count($created), $level)
+                : 'No habia grados estandar faltantes para este nivel.',
+            'created' => $created,
+        ], count($created) > 0 ? 201 : 200);
     }
 }

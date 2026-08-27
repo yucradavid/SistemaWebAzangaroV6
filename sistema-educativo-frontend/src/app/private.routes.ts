@@ -320,9 +320,53 @@ export const PRIVATE_ROUTES: Routes = [
       {
         path: 'attendance/approvals',
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'director', 'coordinator', 'secretary', 'administrative'] },
-        loadComponent: () => import('./features/admin/attendance/attendance-approvals/attendance-approvals.component').then(m => m.AttendanceApprovalsComponent),
-        title: 'CERMAT - Aprobación de Justificaciones'
+        data: {
+          roles: ['admin', 'director', 'coordinator', 'secretary', 'administrative'],
+          moduleTitle: 'Gestion de Asistencia',
+          tabs: [
+            { path: 'manual', label: 'Llamar Lista', icon: ICONS.checkCircle2 },
+            { path: 'qr-asistencia', label: 'Asistencia QR', icon: ICONS.qrCode },
+            { path: 'horarios', label: 'Turno Mañana/Tarde', icon: ICONS.clock },
+            { path: 'turnos', label: 'Asignar Turnos', icon: ICONS.shuffle },
+            { path: 'qr', label: 'Generar Carnets QR', icon: ICONS.qrCode },
+          ],
+        },
+        loadComponent: () => import('./shared/components/module-tabs-shell/module-tabs-shell.component').then(m => m.ModuleTabsShellComponent),
+        children: [
+          { path: '', redirectTo: 'manual', pathMatch: 'full' },
+          {
+            path: 'manual',
+            loadComponent: () => import('./features/admin/attendance/admin-manual-attendance/admin-manual-attendance.component').then(m => m.AdminManualAttendanceComponent),
+          },
+          {
+            path: 'qr-asistencia',
+            loadComponent: () => import('./features/admin/attendance/asistencia-qr/asistencia-qr.component').then(m => m.AsistenciaQrComponent),
+          },
+          {
+            path: 'horarios',
+            loadComponent: () => import('./features/admin/attendance/schedule-config/schedule-config.component').then(m => m.ScheduleConfigComponent),
+          },
+          {
+            path: 'turnos',
+            loadComponent: () => import('./features/admin/attendance/shift-assignment/shift-assignment.component').then(m => m.ShiftAssignmentComponent),
+          },
+          {
+            path: 'qr',
+            loadComponent: () => import('./features/admin/attendance/qr-generator/qr-generator.component').then(m => m.QrGeneratorComponent),
+          },
+        ],
+        title: 'CERMAT - Gestion de Asistencia'
+      },
+      // Rutas antiguas: redirigen a la pestana unificada, preservando el sub-modo via query param
+      {
+        path: 'attendance/approvals/qr-session',
+        redirectTo: () => '/app/attendance/approvals/qr-asistencia?tab=aula',
+        pathMatch: 'full'
+      },
+      {
+        path: 'attendance/approvals/marcar',
+        redirectTo: () => '/app/attendance/approvals/qr-asistencia?tab=registro',
+        pathMatch: 'full'
       },
 
       // ── Reportes ─────────────────────────────────────────

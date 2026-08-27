@@ -9,12 +9,36 @@
         Niveles, grados y secciones organizados en una sola vista. Las secciones dependen del año académico seleccionado.
       </p>
     </div>
-    <button
-      (click)="openGradeModal()"
-      class="px-6 py-3 bg-gradient-to-r from-cermat-blue-900 to-cermat-blue-700 hover:opacity-90 text-white text-sm font-bold rounded-2xl transition-all duration-200 shadow-lg active:scale-95 flex items-center justify-center gap-2">
-      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Nuevo grado
-    </button>
+    <div class="flex items-center gap-2">
+      <button
+        *ngIf="!allLevelsCreated"
+        (click)="openLevelModal()"
+        class="px-6 py-3 bg-white border-2 border-cermat-blue-700 hover:bg-cermat-blue-50 text-cermat-blue-800 text-sm font-bold rounded-2xl transition-all duration-200 active:scale-95 flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo nivel
+      </button>
+      <button
+        *ngIf="allLevelsCreated"
+        disabled
+        title="Se han configurado todos los niveles educativos permitidos por la institución."
+        class="px-6 py-3 bg-slate-100 border-2 border-slate-200 text-slate-400 text-sm font-bold rounded-2xl transition-all duration-200 cursor-not-allowed flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo nivel
+      </button>
+      <div
+        *ngIf="allLevelsCreated"
+        class="relative group">
+        <button
+          type="button"
+          class="w-7 h-7 rounded-full bg-slate-200/70 text-slate-500 hover:bg-slate-300 hover:text-slate-700 flex items-center justify-center transition-colors text-xs font-bold">
+          i
+        </button>
+        <div class="absolute right-0 top-full mt-2 w-64 p-3 bg-slate-800 text-white text-xs font-medium rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+          Se han configurado todos los niveles educativos permitidos por la institución.
+          <div class="absolute -top-1 right-4 w-2 h-2 bg-slate-800 transform rotate-45"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Selector de año académico -->
@@ -44,17 +68,19 @@
     <svg class="w-16 h-16 mx-auto mb-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
       <path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
     </svg>
-    <p class="text-lg font-semibold text-slate-700">Aún no hay grados registrados.</p>
-    <p class="mt-2 text-sm text-slate-500">Crea el primer grado para comenzar a armar la estructura académica.</p>
+    <p class="text-lg font-semibold text-slate-700">Aún no hay niveles ni grados registrados.</p>
+    <p class="mt-2 text-sm text-slate-500">Los niveles y grados son estándar (Inicial, Primaria, Secundaria) — genéralos con un clic.</p>
     <button
-      (click)="openGradeModal()"
-      class="mt-6 px-6 py-3 bg-cermat-blue-700 hover:bg-cermat-blue-800 text-white text-sm font-bold rounded-xl transition-all duration-200 active:scale-95">
-      + Crear primer grado
+      (click)="generateAllStandardLevels()"
+      [disabled]="generatingAllLevels"
+      class="mt-6 px-6 py-3 bg-cermat-blue-700 hover:bg-cermat-blue-800 text-white text-sm font-bold rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-50 inline-flex items-center gap-2">
+      <span *ngIf="generatingAllLevels" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+      {{ generatingAllLevels ? 'Generando...' : 'Generar niveles y grados estándar' }}
     </button>
   </div>
 
   <!-- Acordeón por nivel -->
-  <div *ngIf="!loading" class="space-y-6">
+  <div *ngIf="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
     <section
       *ngFor="let group of levelGroups"
       class="bg-white rounded-2xl border border-slate-200 shadow-sm transition-all duration-200 overflow-hidden">
@@ -65,65 +91,86 @@
         tabindex="0"
         (click)="toggleLevel(group)"
         (keydown.enter)="toggleLevel(group)"
-        class="w-full px-6 sm:px-8 py-5 flex items-center justify-between gap-4 text-left cursor-pointer hover:bg-slate-50/70 transition-colors duration-200 border-l-4"
+        class="w-full px-6 sm:px-8 py-5 text-left cursor-pointer hover:bg-slate-50/70 transition-colors duration-200 border-l-4"
         [ngClass]="levelAccent(group.levelName)">
-        <div class="flex items-center gap-4 min-w-0">
-          <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center text-white shadow-sm" [ngClass]="levelBadge(group.levelName)">
-            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14v7"/><path d="M5 11.5V16c0 1.7 3.1 3 7 3s7-1.3 7-3v-4.5"/>
-            </svg>
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-4 min-w-0">
+            <div class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center text-white shadow-sm" [ngClass]="levelBadge(group.levelName)">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14v7"/><path d="M5 11.5V16c0 1.7 3.1 3 7 3s7-1.3 7-3v-4.5"/>
+              </svg>
+            </div>
+            <h2 class="text-xl font-bold text-[#0F172A] tracking-tight uppercase truncate">{{ levelLabel(group.levelName) }}</h2>
           </div>
-          <div class="min-w-0">
-            <h2 class="text-xl font-bold text-[#0F172A] tracking-tight uppercase">{{ levelLabel(group.levelName) }}</h2>
-            <p class="text-xs text-slate-500 font-medium">
-              {{ group.grades.length }} grado(s) · {{ levelSectionsCount(group) }} sección(es) en {{ selectedYearLabel }}
-            </p>
+          <svg class="w-5 h-5 text-slate-400 transition-transform duration-200 shrink-0" [ngClass]="group.expanded ? 'rotate-180' : ''"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </div>
+
+        <p class="text-xs text-slate-500 font-medium mt-3">
+          {{ group.grades.length }} grado(s) · {{ levelSectionsCount(group) }} sección(es) en {{ selectedYearLabel }}
+        </p>
+
+        <div class="flex items-center gap-2 mt-3">
+          <button
+            type="button"
+            (click)="openCreateGradeOptions(group); $event.stopPropagation()"
+            [disabled]="generatingMissingGrades[group.levelName] || isLevelAtMaxGrades(group.levelName)"
+            [title]="isLevelAtMaxGrades(group.levelName) ? 'Se ha alcanzado el límite máximo de grados para este nivel.' : 'Agregar un grado a este nivel'"
+            class="inline-flex items-center gap-2 text-sm font-semibold text-white px-4 py-2.5 rounded-2xl bg-gradient-to-b from-cermat-blue-500 to-cermat-blue-700 shadow-lg shadow-cermat-blue-500/30 hover:shadow-xl hover:shadow-cermat-blue-500/40 active:scale-95 transition-all duration-200 border border-cermat-blue-400/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-500 disabled:shadow-none disabled:hover:shadow-none">
+            <span *ngIf="generatingMissingGrades[group.levelName]" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            <svg *ngIf="!generatingMissingGrades[group.levelName]" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Crear Grado
+          </button>
+          <div
+            *ngIf="isLevelAtMaxGrades(group.levelName)"
+            class="relative group">
+            <button
+              type="button"
+              class="w-6 h-6 rounded-full bg-slate-200/70 text-slate-500 hover:bg-slate-300 hover:text-slate-700 flex items-center justify-center transition-colors text-[10px] font-bold">
+              i
+            </button>
+            <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 p-3 bg-slate-800 text-white text-xs font-medium rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              Límite alcanzado: {{ getLevelGradesCount(group.levelName) }}/{{ getMaxGradesForLevel(group.levelName) }} grados permitidos.
+              <div class="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 transform rotate-45 -mt-1"></div>
+            </div>
           </div>
         </div>
-        <svg class="w-5 h-5 text-slate-400 transition-transform duration-200 shrink-0" [ngClass]="group.expanded ? 'rotate-180' : ''"
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M6 9l6 6 6-6"/>
-        </svg>
       </div>
 
       <!-- Cuerpo expandible: grados del nivel -->
-      <div *ngIf="group.expanded" class="px-6 sm:px-8 pb-7 pt-5 border-t border-slate-100 animate-fade-in">
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <article
+      <div *ngIf="group.expanded" class="px-6 sm:px-8 pb-7 pt-2 border-t border-slate-100 animate-fade-in">
+        <div class="divide-y divide-slate-100">
+          <div
             *ngFor="let item of group.grades"
-            class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col gap-4 transition-all duration-200 hover:shadow-md">
+            class="flex flex-col gap-3 py-4 first:pt-4 last:pb-0">
 
-            <!-- Cabecera del grado -->
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-11 h-11 shrink-0 rounded-2xl flex items-center justify-center text-white shadow-sm" [ngClass]="levelBadge(group.levelName)">
-                  <span class="text-lg font-bold leading-none">{{ item.grade.grade }}</span>
-                </div>
-                <div class="min-w-0">
-                  <h3 class="text-sm font-bold text-[#0F172A] truncate">{{ item.grade.name }}</h3>
-                  <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                    {{ item.sections.length }} sección(es) · {{ item.grade.courses_count ?? 0 }} curso(s)
-                  </p>
-                </div>
-              </div>
-
-              <div class="flex gap-1 border border-slate-100 rounded-xl p-1 bg-slate-50/70 shrink-0">
+            <!-- Nombre del grado + accion -->
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-sm font-semibold text-slate-700 truncate" [title]="item.grade.name">
+                {{ item.grade.name }}
+              </span>
+              <div class="flex items-center gap-1 shrink-0">
                 <button
                   (click)="openGradeModal(item.grade)"
-                  class="p-2 text-slate-400 hover:text-cermat-blue-700 transition-colors rounded-lg hover:bg-white shadow-sm"
+                  class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-cermat-blue-700 hover:bg-slate-100 transition-colors"
                   title="Editar grado">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
                 <button
                   (click)="deleteGrade(item.grade)"
                   [disabled]="!canDeleteGrade(item.grade)"
                   [attr.title]="gradeDeleteTooltip(item.grade)"
-                  class="p-2 transition-colors rounded-lg shadow-sm disabled:cursor-not-allowed disabled:bg-transparent disabled:text-slate-300"
-                  [ngClass]="canDeleteGrade(item.grade) ? 'text-slate-400 hover:text-red-600 hover:bg-white' : 'text-slate-300'">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                  class="w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:cursor-not-allowed disabled:text-slate-300"
+                  [ngClass]="canDeleteGrade(item.grade) ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-300'">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                 </button>
               </div>
             </div>
+            <span class="text-xs text-slate-400 -mt-2">
+              {{ item.sections.length }} sección(es) · {{ item.grade.courses_count ?? 0 }} curso(s)
+            </span>
 
             <!-- Chips de secciones -->
             <div *ngIf="item.sections.length" class="flex flex-wrap gap-2">
@@ -133,10 +180,10 @@
                 tabindex="0"
                 (click)="openSectionModal(item.grade, section)"
                 (keydown.enter)="openSectionModal(item.grade, section)"
-                class="group/chip inline-flex items-center gap-2.5 rounded-xl border px-3 py-2 cursor-pointer transition-all duration-200 hover:shadow-sm"
+                class="group/chip inline-flex items-center gap-2 rounded-xl border px-2.5 py-1.5 cursor-pointer transition-all duration-200 hover:shadow-sm"
                 [ngClass]="levelChip(group.levelName)"
                 title="Editar sección">
-                <span class="text-lg font-bold leading-none">{{ sectionDisplayName(section) }}</span>
+                <span class="text-sm font-bold leading-none">{{ sectionDisplayName(section) }}</span>
                 <span class="text-[10px] font-semibold leading-tight text-left">
                   {{ occupiedSeats(section) }}/{{ section.capacity }}<br>
                   <span class="opacity-70">{{ availableSeats(section) }} vac.</span>
@@ -152,21 +199,74 @@
             </div>
 
             <!-- Estado vacío del grado -->
-            <div *ngIf="!item.sections.length" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-center">
-              <p class="text-xs font-semibold text-slate-500">Este grado no tiene secciones en {{ selectedYearLabel }}.</p>
+            <div *ngIf="!item.sections.length" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center">
+              <p class="text-xs font-semibold text-slate-500">Sin secciones en {{ selectedYearLabel }}.</p>
             </div>
 
             <!-- Acción crear sección -->
             <button
               (click)="openSectionModal(item.grade)"
-              class="mt-auto py-2.5 bg-slate-50 border border-slate-200 hover:border-cermat-blue-700 hover:text-cermat-blue-800 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all duration-200 active:scale-95 flex items-center justify-center gap-1.5">
+              class="py-2 bg-slate-50 border border-slate-200 hover:border-cermat-blue-700 hover:text-cermat-blue-800 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all duration-200 active:scale-95 flex items-center justify-center gap-1.5">
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Sección
             </button>
-          </article>
+          </div>
         </div>
       </div>
     </section>
+  </div>
+
+  <!-- Modal: nivel -->
+  <div *ngIf="showLevelModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="closeLevelModal()"></div>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 animate-slide-up overflow-hidden border border-slate-100">
+      <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800 tracking-tight">Nuevo Nivel</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Se registrara el primer grado de este nivel para crearlo.</p>
+        </div>
+        <button (click)="closeLevelModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200/50 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div *ngIf="!missingLevels.length" class="p-8 space-y-5">
+        <p class="text-sm text-slate-500">Los tres niveles (Inicial, Primaria, Secundaria) ya estan creados. Usa "Crear Grado" para agregar mas grados a un nivel existente.</p>
+        <button (click)="closeLevelModal()" class="w-full px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95">
+          Entendido
+        </button>
+      </div>
+
+      <form *ngIf="missingLevels.length" [formGroup]="levelForm" (ngSubmit)="saveLevel()" class="p-8 space-y-5">
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Nivel Educativo</label>
+          <select
+            formControlName="level"
+            class="w-full bg-slate-50 border text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            [ngClass]="isLevelFieldInvalid('level') ? 'border-red-400 bg-red-50' : 'border-slate-200'">
+            <option value="" disabled>Selecciona un nivel...</option>
+            <option *ngFor="let level of missingLevels" [value]="level.id">{{ level.name }}</option>
+          </select>
+          <p *ngIf="isLevelFieldInvalid('level')" class="text-[11px] text-red-500 font-semibold">Debes seleccionar un nivel.</p>
+        </div>
+
+        <div class="pt-2 flex gap-3">
+          <button
+            type="button"
+            (click)="closeLevelModal()"
+            class="flex-1 px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            [disabled]="levelForm.invalid || levelSubmitting"
+            class="flex-1 px-4 py-3.5 bg-cermat-blue-700 hover:bg-cermat-blue-800 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            <span *ngIf="levelSubmitting" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            Crear Nivel
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Modal: grado -->

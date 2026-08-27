@@ -246,6 +246,14 @@ export class AcademicService {
     return this.http.delete(`${this.apiUrl}/grade-levels/${id}`);
   }
 
+  getMissingStandardGrades(level: string): Observable<{ level: string; standard_total: number; existing_count: number; missing: Array<{ grade: number; name: string }> }> {
+    return this.http.get<any>(`${this.apiUrl}/grade-levels/standard/${level}/missing`);
+  }
+
+  generateStandardGrades(level: string): Observable<{ message: string; created: GradeLevel[] }> {
+    return this.http.post<any>(`${this.apiUrl}/grade-levels/standard/${level}/generate`, {});
+  }
+
   getSections(params?: any): Observable<any> {
     return this.http.get(`${this.apiUrl}/sections`, { params });
   }

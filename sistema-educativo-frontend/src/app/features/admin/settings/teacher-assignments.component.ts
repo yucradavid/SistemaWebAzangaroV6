@@ -79,7 +79,7 @@ import { AuthService } from '@core/services/auth.service';
                     class="flex items-center gap-2 text-sm font-semibold text-slate-700 border-2 border-slate-200 rounded-xl px-3 py-2 shadow-sm hover:border-slate-300 transition-colors">
               <svg class="w-4 h-4 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
               Grado
-              <span *ngIf="selectedGradeIds.length > 0" class="bg-cermat-blue-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ selectedGradeIds.length }}</span>
+              <span *ngIf="selectedGradeIds.length > 0" class="bg-cermat-blue-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ visibleSelectedGradeCount }}</span>
               <svg class="w-4 h-4 text-slate-400 transition-transform" [class.rotate-180]="openDropdown === 'grade'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
             </button>
             <div *ngIf="openDropdown === 'grade'" class="absolute z-20 mt-2 bg-white rounded-xl border border-slate-200 shadow-lg p-2 min-w-[200px] max-h-[280px] overflow-y-auto">
@@ -97,7 +97,7 @@ import { AuthService } from '@core/services/auth.service';
                     class="flex items-center gap-2 text-sm font-semibold text-slate-700 border-2 border-slate-200 rounded-xl px-3 py-2 shadow-sm hover:border-slate-300 transition-colors">
               <svg class="w-4 h-4 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M6 21V4a1 1 0 0 1 1-1h7l5 5v13"/><path d="M14 3v5h5"/></svg>
               Sección
-              <span *ngIf="selectedSectionLetters.length > 0" class="bg-cermat-blue-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ selectedSectionLetters.length }}</span>
+              <span *ngIf="selectedSectionLetters.length > 0" class="bg-cermat-blue-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ visibleSelectedSectionLetterCount }}</span>
               <svg class="w-4 h-4 text-slate-400 transition-transform" [class.rotate-180]="openDropdown === 'section'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
             </button>
             <div *ngIf="openDropdown === 'section'" class="absolute z-20 mt-2 bg-white rounded-xl border border-slate-200 shadow-lg p-2 min-w-[160px] max-h-[280px] overflow-y-auto">
@@ -1218,6 +1218,14 @@ export class TeacherAssignmentsComponent implements OnInit {
     }
   }
 
+  get visibleSelectedGradeCount(): number {
+    return this.selectedGradeIds.filter(id => this.filteredGradeOptions.some(g => g.id === id)).length;
+  }
+
+  get visibleSelectedSectionLetterCount(): number {
+    return this.selectedSectionLetters.filter(l => this.availableSectionLetters.includes(l)).length;
+  }
+
   hasActiveFilters(): boolean {
     return this.selectedLevels.length > 0 || this.selectedGradeIds.length > 0 ||
       this.selectedSectionLetters.length > 0 || this.selectedTeacherIds.length > 0 ||
@@ -1321,9 +1329,9 @@ export class TeacherAssignmentsComponent implements OnInit {
       ? this.gradeLevels.filter(g => this.selectedLevels.includes(g.level))
       : this.gradeLevels;
 
-    // Poda selecciones de grado que ya no son validas para los niveles elegidos,
-    // en vez de vaciar todo — preserva lo que el usuario ya marco y aun aplica.
-    this.selectedGradeIds = this.selectedGradeIds.filter(id => this.filteredGradeOptions.some(g => g.id === id));
+    // NO se podan selectedGradeIds: se preservan las selecciones previas del
+    // usuario aunque no sean visibles en el dropdown actual. La logica AND en
+    // assignmentMatchesFilters() se encarga de ignorar grados incompatibles.
   }
 
   private recomputeAvailableSectionLetters() {
@@ -1337,7 +1345,7 @@ export class TeacherAssignmentsComponent implements OnInit {
     const letters = new Set(scoped.map(s => s.section_letter).filter((l): l is string => !!l));
     this.availableSectionLetters = Array.from(letters).sort();
 
-    this.selectedSectionLetters = this.selectedSectionLetters.filter(l => this.availableSectionLetters.includes(l));
+    // NO se podan selectedSectionLetters: se preservan las selecciones previas.
   }
 
   // Solo se aplica dimming cuando algun filtro de nivel/grado/seccion esta activo;

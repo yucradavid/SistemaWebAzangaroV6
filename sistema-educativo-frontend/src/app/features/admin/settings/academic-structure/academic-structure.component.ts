@@ -38,6 +38,84 @@ interface LevelMeta {
     .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    ::ng-deep .ios-swal-popup {
+      border-radius: 20px !important;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.12), 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+      border: 1px solid rgba(255, 255, 255, 0.8) !important;
+      padding: 2rem !important;
+      backdrop-filter: blur(20px) !important;
+      background: rgba(255, 255, 255, 0.95) !important;
+    }
+    ::ng-deep .ios-swal-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif !important;
+      font-weight: 700 !important;
+      font-size: 1.25rem !important;
+      color: #1e293b !important;
+      letter-spacing: -0.01em !important;
+      margin-bottom: 0.5rem !important;
+    }
+    ::ng-deep .ios-swal-html {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif !important;
+      font-size: 0.875rem !important;
+      color: #64748b !important;
+      line-height: 1.6 !important;
+    }
+    ::ng-deep .ios-swal-confirm {
+      border-radius: 12px !important;
+      padding: 0.65rem 1.5rem !important;
+      font-weight: 600 !important;
+      font-size: 0.8125rem !important;
+      letter-spacing: 0.01em !important;
+      background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%) !important;
+      box-shadow: 0 4px 14px rgba(29, 78, 216, 0.35) !important;
+      transition: all 0.2s ease !important;
+      border: none !important;
+    }
+    ::ng-deep .ios-swal-confirm:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 20px rgba(29, 78, 216, 0.45) !important;
+    }
+    ::ng-deep .ios-swal-confirm:active {
+      transform: translateY(0) scale(0.98) !important;
+      box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3) !important;
+    }
+    ::ng-deep .ios-swal-cancel {
+      border-radius: 12px !important;
+      padding: 0.65rem 1.5rem !important;
+      font-weight: 600 !important;
+      font-size: 0.8125rem !important;
+      background: #f1f5f9 !important;
+      color: #475569 !important;
+      border: 1px solid #e2e8f0 !important;
+      transition: all 0.2s ease !important;
+    }
+    ::ng-deep .ios-swal-cancel:hover {
+      background: #e2e8f0 !important;
+      transform: translateY(-1px) !important;
+    }
+    ::ng-deep .ios-swal-cancel:active {
+      transform: translateY(0) scale(0.98) !important;
+    }
+    ::ng-deep .ios-swal-deny {
+      border-radius: 12px !important;
+      padding: 0.65rem 1.5rem !important;
+      font-weight: 600 !important;
+      font-size: 0.8125rem !important;
+      background: linear-gradient(180deg, #10b981 0%, #059669 100%) !important;
+      color: white !important;
+      box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35) !important;
+      transition: all 0.2s ease !important;
+      border: none !important;
+    }
+    ::ng-deep .ios-swal-deny:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 20px rgba(5, 150, 105, 0.45) !important;
+    }
+    ::ng-deep .ios-swal-deny:active {
+      transform: translateY(0) scale(0.98) !important;
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3) !important;
+    }
   `]
 })
 export class AcademicStructureComponent implements OnInit {
@@ -46,6 +124,13 @@ export class AcademicStructureComponent implements OnInit {
   selectedYearId = '';
   loading = false;
   sectionsLoading = false;
+  generatingMissingGrades: Record<string, boolean> = {};
+  generatingAllLevels = false;
+
+  // Modal de nivel
+  showLevelModal = false;
+  levelSubmitting = false;
+  levelForm: FormGroup;
 
   // Modal de grado
   showGradeModal = false;
@@ -90,10 +175,47 @@ export class AcademicStructureComponent implements OnInit {
 
   private readonly levelOrder: Record<string, number> = { inicial: 1, primaria: 2, secundaria: 3 };
 
+  // Límite máximo de grados por nivel
+  private readonly maxGradesByLevel: Record<string, number> = {
+    inicial: 3,
+    primaria: 6,
+    secundaria: 5,
+  };
+
+  // Nombre estandar del primer grado de cada nivel, usado por "Nuevo Nivel"
+  // para crear el primer grado de un nivel que todavia no existe.
+  private readonly firstGradeNameByLevel: Record<string, string> = {
+    inicial: '3 años',
+    primaria: '1er Grado de Primaria',
+    secundaria: '1er Grado de Secundaria',
+  };
+
+  // Estilos iOS para SweetAlert2
+  private readonly iosSwalStyles = {
+    customClass: {
+      popup: 'ios-swal-popup',
+      title: 'ios-swal-title',
+      htmlContainer: 'ios-swal-html',
+      confirmButton: 'ios-swal-confirm',
+      cancelButton: 'ios-swal-cancel',
+      denyButton: 'ios-swal-deny',
+    },
+    showClass: {
+      popup: 'animate__animated animate__fadeInDown',
+    },
+    hideClass: {
+      popup: 'animate__animated animate__fadeOutUp',
+    },
+  };
+
   constructor(
     private fb: FormBuilder,
     private academicService: AcademicService
   ) {
+    this.levelForm = this.fb.group({
+      level: ['', Validators.required],
+    });
+
     this.gradeForm = this.fb.group({
       level: ['primaria', Validators.required],
       name: ['', [Validators.required, Validators.maxLength(120)]],
@@ -144,7 +266,14 @@ export class AcademicStructureComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        Swal.fire('Error', err?.error?.message || 'No se pudo cargar la estructura academica.', 'error');
+        Swal.fire({
+          ...this.iosSwalStyles,
+          title: 'Error',
+          text: err?.error?.message || 'No se pudo cargar la estructura academica.',
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#1d4ed8',
+        });
       },
     });
   }
@@ -173,7 +302,14 @@ export class AcademicStructureComponent implements OnInit {
       error: (err) => {
         this.loading = false;
         this.sectionsLoading = false;
-        Swal.fire('Error', err?.error?.message || 'No se pudieron cargar las secciones.', 'error');
+        Swal.fire({
+          ...this.iosSwalStyles,
+          title: 'Error',
+          text: err?.error?.message || 'No se pudieron cargar las secciones.',
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#1d4ed8',
+        });
       },
     });
   }
@@ -240,6 +376,258 @@ export class AcademicStructureComponent implements OnInit {
     return this.levelLabel(level);
   }
 
+  get missingLevels(): Array<{ id: string; name: string }> {
+    const present = new Set(this.levelGroups.map((g) => g.levelName));
+    return Object.keys(this.levelOrder)
+      .filter((level) => !present.has(level))
+      .sort((left, right) => this.levelOrder[left] - this.levelOrder[right])
+      .map((level) => ({ id: level, name: this.levelLabel(level) }));
+  }
+
+  get allLevelsCreated(): boolean {
+    return this.missingLevels.length === 0;
+  }
+
+  getLevelGradesCount(levelName: string): number {
+    const group = this.levelGroups.find(g => g.levelName === levelName);
+    return group ? group.grades.length : 0;
+  }
+
+  isLevelAtMaxGrades(levelName: string): boolean {
+    const count = this.getLevelGradesCount(levelName);
+    const max = this.maxGradesByLevel[levelName];
+    return max !== undefined && count >= max;
+  }
+
+  getMaxGradesForLevel(levelName: string): number {
+    return this.maxGradesByLevel[levelName] ?? 0;
+  }
+
+  getLevelGradeLimitsTooltip(levelName: string): string {
+    const max = this.maxGradesByLevel[levelName];
+    if (!max) return '';
+    const current = this.getLevelGradesCount(levelName);
+    return `Nivel ${this.levelLabel(levelName)}: ${current}/${max} grados configurados.`;
+  }
+
+  openLevelModal(): void {
+    this.levelForm.reset({ level: this.missingLevels[0]?.id || '' });
+    this.levelForm.markAsPristine();
+    this.levelForm.markAsUntouched();
+    this.showLevelModal = true;
+  }
+
+  closeLevelModal(): void {
+    this.showLevelModal = false;
+    this.levelSubmitting = false;
+  }
+
+  saveLevel(): void {
+    if (this.levelForm.invalid) {
+      this.levelForm.markAllAsTouched();
+      return;
+    }
+
+    const level = String(this.levelForm.value.level || '').trim().toLowerCase();
+    this.levelSubmitting = true;
+
+    this.academicService.createGradeLevel({
+      level,
+      grade: 1,
+      name: this.firstGradeNameByLevel[level] || `1er Grado de ${this.levelLabel(level)}`,
+    }).subscribe({
+      next: () => {
+        this.levelSubmitting = false;
+        this.closeLevelModal();
+        this.loadData();
+        Swal.fire({
+          ...this.iosSwalStyles,
+          icon: 'success',
+          title: `Nivel ${this.levelLabel(level)} creado`,
+          text: 'Se registro el primer grado de este nivel. Usa "Crear Grado" para agregar el resto.',
+          toast: true,
+          position: 'top-end',
+          timer: 4000,
+          showConfirmButton: false,
+        });
+      },
+      error: (err) => {
+        this.levelSubmitting = false;
+        Swal.fire({
+          ...this.iosSwalStyles,
+          title: 'Error',
+          text: this.resolveErrorMessage(err, 'No se pudo crear el nivel.'),
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#1d4ed8',
+        });
+      },
+    });
+  }
+
+  isLevelFieldInvalid(field: string): boolean {
+    const ctrl = this.levelForm.get(field);
+    return !!(ctrl?.invalid && (ctrl.dirty || ctrl.touched));
+  }
+
+  /**
+   * Genera de una vez los 3 niveles estandar (usado desde el estado vacio
+   * global, cuando la BD todavia no tiene ningun grado). Idempotente por
+   * nivel: si alguno ya tiene grados, generateStandardGrades no duplica nada.
+   */
+  generateAllStandardLevels(): void {
+    this.generatingAllLevels = true;
+
+    const levels = Object.keys(this.levelOrder);
+    let pending = levels.length;
+    let totalCreated = 0;
+
+    levels.forEach((level) => {
+      this.academicService.generateStandardGrades(level).subscribe({
+        next: (res) => {
+          totalCreated += res.created?.length ?? 0;
+          pending--;
+          if (pending === 0) this.finishGenerateAllLevels(totalCreated);
+        },
+        error: () => {
+          pending--;
+          if (pending === 0) this.finishGenerateAllLevels(totalCreated);
+        },
+      });
+    });
+  }
+
+  private finishGenerateAllLevels(totalCreated: number): void {
+    this.generatingAllLevels = false;
+    this.loadData();
+    Swal.fire({
+      ...this.iosSwalStyles,
+      icon: 'success',
+      title: 'Estructura estandar generada',
+      text: `Se crearon ${totalCreated} grado(s) en los 3 niveles (Inicial, Primaria, Secundaria).`,
+      toast: true,
+      position: 'top-end',
+      timer: 4000,
+      showConfirmButton: false,
+    });
+  }
+
+  openCreateGradeOptions(group: LevelGroup): void {
+    if (this.isLevelAtMaxGrades(group.levelName)) {
+      Swal.fire({
+        ...this.iosSwalStyles,
+        title: 'Límite alcanzado',
+        text: `El nivel ${this.levelLabel(group.levelName)} ya tiene el máximo de ${this.getMaxGradesForLevel(group.levelName)} grados permitidos.`,
+        icon: 'info',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#1d4ed8',
+      });
+      return;
+    }
+
+    Swal.fire({
+      ...this.iosSwalStyles,
+      title: 'Crear grado',
+      text: '¿Cómo quieres crear el grado?',
+      icon: 'question',
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: 'Crear Niveles Automáticamente',
+      denyButtonText: 'Crear grado manualmente',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#1d4ed8',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.checkMissingGrades(group.levelName);
+      } else if (result.isDenied) {
+        this.openGradeModal(undefined, group.levelName);
+      }
+    });
+  }
+
+  checkMissingGrades(levelName: string): void {
+    this.generatingMissingGrades[levelName] = true;
+
+    this.academicService.getMissingStandardGrades(levelName).subscribe({
+      next: (res) => {
+        this.generatingMissingGrades[levelName] = false;
+
+        if (!res.missing.length) {
+          Swal.fire({
+            ...this.iosSwalStyles,
+            title: 'Todo completo',
+            text: `El nivel ${this.levelLabel(levelName)} ya tiene todos sus grados estandar.`,
+            icon: 'info',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#1d4ed8',
+          });
+          return;
+        }
+
+        const listHtml = res.missing
+          .map((m) => `<li class="text-left">Orden ${m.grade}: <strong>${m.name}</strong></li>`)
+          .join('');
+
+        Swal.fire({
+          ...this.iosSwalStyles,
+          title: `Crear ${res.missing.length} grado(s) faltante(s)`,
+          html: `<p class="text-sm text-slate-500 mb-3">Se creara lo siguiente en el nivel ${this.levelLabel(levelName)}:</p><ul class="list-disc pl-5 space-y-1">${listHtml}</ul>`,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Crear grados faltantes',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#1d4ed8',
+        }).then((result) => {
+          if (!result.isConfirmed) return;
+          this.runGenerateMissingGrades(levelName);
+        });
+      },
+      error: (err) => {
+        this.generatingMissingGrades[levelName] = false;
+        Swal.fire({
+          ...this.iosSwalStyles,
+          title: 'Error',
+          text: this.resolveErrorMessage(err, 'No se pudo verificar los grados faltantes.'),
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#1d4ed8',
+        });
+      },
+    });
+  }
+
+  private runGenerateMissingGrades(levelName: string): void {
+    this.generatingMissingGrades[levelName] = true;
+
+    this.academicService.generateStandardGrades(levelName).subscribe({
+      next: (res) => {
+        this.generatingMissingGrades[levelName] = false;
+        this.loadData();
+        Swal.fire({
+          ...this.iosSwalStyles,
+          icon: 'success',
+          title: 'Grados creados',
+          text: res.message,
+          toast: true,
+          position: 'top-end',
+          timer: 4000,
+          showConfirmButton: false,
+        });
+      },
+      error: (err) => {
+        this.generatingMissingGrades[levelName] = false;
+        Swal.fire({
+          ...this.iosSwalStyles,
+          title: 'Error',
+          text: this.resolveErrorMessage(err, 'No se pudo generar los grados faltantes.'),
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#1d4ed8',
+        });
+      },
+    });
+  }
+
   // ── Grados ─────────────────────────────────────────────────
 
   gradeRelatedCount(grade: GradeLevel): number {
@@ -256,7 +644,7 @@ export class AcademicStructureComponent implements OnInit {
       : 'No puedes eliminar este grado porque tiene secciones o cursos vinculados.';
   }
 
-  openGradeModal(grade?: GradeLevel): void {
+  openGradeModal(grade?: GradeLevel, presetLevel?: string): void {
     this.isEditingGrade = !!grade;
     this.currentGradeEditId = grade?.id ?? null;
     this.gradeServerError = null;
@@ -268,7 +656,7 @@ export class AcademicStructureComponent implements OnInit {
         grade: grade.grade,
       });
     } else {
-      this.gradeForm.reset({ level: 'primaria', name: '', grade: 1 });
+      this.gradeForm.reset({ level: presetLevel || 'primaria', name: '', grade: 1 });
     }
 
     this.gradeForm.markAsPristine();
@@ -311,6 +699,7 @@ export class AcademicStructureComponent implements OnInit {
         this.loadData();
 
         Swal.fire({
+          ...this.iosSwalStyles,
           icon: 'success',
           title: isUpdate ? 'Grado actualizado' : 'Grado registrado',
           toast: true,
@@ -324,9 +713,12 @@ export class AcademicStructureComponent implements OnInit {
 
         if (!this.handleGradeServerErrors(err)) {
           Swal.fire({
+            ...this.iosSwalStyles,
             icon: 'error',
             title: 'No se pudo guardar',
             text: this.resolveErrorMessage(err, 'Hubo un error al guardar el grado.'),
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#1d4ed8',
           });
         }
       },
@@ -335,11 +727,19 @@ export class AcademicStructureComponent implements OnInit {
 
   deleteGrade(grade: GradeLevel): void {
     if (!this.canDeleteGrade(grade)) {
-      Swal.fire('Accion no permitida', this.gradeDeleteTooltip(grade), 'info');
+      Swal.fire({
+        ...this.iosSwalStyles,
+        title: 'Accion no permitida',
+        text: this.gradeDeleteTooltip(grade),
+        icon: 'info',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#1d4ed8',
+      });
       return;
     }
 
     Swal.fire({
+      ...this.iosSwalStyles,
       title: '¿Eliminar grado?',
       text: 'Esta accion no se puede deshacer.',
       icon: 'warning',
@@ -356,6 +756,7 @@ export class AcademicStructureComponent implements OnInit {
       this.academicService.deleteGradeLevel(grade.id).subscribe({
         next: () => {
           Swal.fire({
+            ...this.iosSwalStyles,
             icon: 'success',
             title: 'Eliminado',
             toast: true,
@@ -366,7 +767,14 @@ export class AcademicStructureComponent implements OnInit {
           this.loadData();
         },
         error: (err) => {
-          Swal.fire('Error', this.resolveErrorMessage(err, 'No se pudo eliminar el grado.'), 'error');
+          Swal.fire({
+            ...this.iosSwalStyles,
+            title: 'Error',
+            text: this.resolveErrorMessage(err, 'No se pudo eliminar el grado.'),
+            icon: 'error',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#1d4ed8',
+          });
         },
       });
     });
@@ -449,7 +857,14 @@ export class AcademicStructureComponent implements OnInit {
     }
 
     if (!this.selectedYearId && !this.isEditingSection) {
-      Swal.fire('Error', 'Selecciona un año academico antes de registrar secciones.', 'error');
+      Swal.fire({
+        ...this.iosSwalStyles,
+        title: 'Error',
+        text: 'Selecciona un año academico antes de registrar secciones.',
+        icon: 'error',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#1d4ed8',
+      });
       return;
     }
 
@@ -476,6 +891,7 @@ export class AcademicStructureComponent implements OnInit {
         this.sectionSubmitting = false;
         this.closeSectionModal();
         Swal.fire({
+          ...this.iosSwalStyles,
           icon: 'success',
           title: isUpdate ? 'Seccion actualizada' : 'Seccion registrada',
           toast: true,
@@ -487,7 +903,14 @@ export class AcademicStructureComponent implements OnInit {
       },
       error: (err) => {
         this.sectionSubmitting = false;
-        Swal.fire('Error', this.resolveErrorMessage(err, 'Hubo un error al guardar la seccion.'), 'error');
+        Swal.fire({
+          ...this.iosSwalStyles,
+          title: 'Error',
+          text: this.resolveErrorMessage(err, 'Hubo un error al guardar la seccion.'),
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#1d4ed8',
+        });
       },
     });
   }
@@ -496,11 +919,19 @@ export class AcademicStructureComponent implements OnInit {
     event?.stopPropagation();
 
     if (!this.canDeleteSection(section)) {
-      Swal.fire('Accion no permitida', this.sectionDeleteTooltip(section), 'info');
+      Swal.fire({
+        ...this.iosSwalStyles,
+        title: 'Accion no permitida',
+        text: this.sectionDeleteTooltip(section),
+        icon: 'info',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#1d4ed8',
+      });
       return;
     }
 
     Swal.fire({
+      ...this.iosSwalStyles,
       title: '¿Eliminar seccion?',
       text: 'Esta accion no se puede deshacer.',
       icon: 'warning',
@@ -517,6 +948,7 @@ export class AcademicStructureComponent implements OnInit {
       this.academicService.deleteSection(section.id).subscribe({
         next: () => {
           Swal.fire({
+            ...this.iosSwalStyles,
             icon: 'success',
             title: 'Eliminada',
             toast: true,
@@ -527,7 +959,14 @@ export class AcademicStructureComponent implements OnInit {
           this.loadData();
         },
         error: (err) => {
-          Swal.fire('Error', err?.error?.message || 'No se pudo eliminar la seccion.', 'error');
+          Swal.fire({
+            ...this.iosSwalStyles,
+            title: 'Error',
+            text: err?.error?.message || 'No se pudo eliminar la seccion.',
+            icon: 'error',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#1d4ed8',
+          });
         },
       });
     });

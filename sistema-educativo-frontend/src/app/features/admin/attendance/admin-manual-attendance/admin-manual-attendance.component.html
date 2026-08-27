@@ -1,0 +1,357 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="relative z-10 flex items-center gap-4">
+      <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center border border-blue-100 shadow-sm shrink-0">
+        <i data-lucide="clipboard-check" class="w-7 h-7 text-blue-600"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Llamar Lista</h1>
+        <p class="text-slate-500 mt-1 font-medium text-sm sm:text-base">Control manual de asistencia por sección</p>
+      </div>
+    </div>
+    <div class="relative z-10 flex flex-wrap gap-3">
+      <button type="button" (click)="markFilteredStudentsPresent()" [disabled]="saving || filteredStudents.length === 0"
+        class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl transition border border-emerald-200 font-bold text-sm disabled:opacity-50">
+        <i data-lucide="check-check" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">Marcar filtrados presentes</span>
+        <span class="sm:hidden">Presentes</span>
+      </button>
+      <button type="button" (click)="toggleAutoRefresh()"
+        [ngClass]="isAutoRefreshEnabled ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-semibold text-xs">
+        <i [attr.data-lucide]="isAutoRefreshEnabled ? 'refresh-cw' : 'refresh-ccw'" [class.animate-spin]="isAutoRefreshEnabled" class="w-4 h-4"></i>
+        {{ isAutoRefreshEnabled ? 'En vivo' : 'Auto-refresco' }}
+      </button>
+      <!--
+        Los iconos de este boton se renderizan como SVG inline en vez de usar data-lucide + createIcons().
+        Motivo (bug corregido): createIcons() reemplaza el nodo <i> por un <svg> mediante
+        parentNode.replaceChild(), fuera del control de Angular. Cuando *ngIf alterna guardar/loader
+        sobre nodos data-lucide, Angular pierde la referencia real del nodo ya reemplazado y no logra
+        retirarlo del DOM al desactivarse: el icono anterior queda huerfano y visible (doble icono), y
+        si ocurre sobre el spinner, este se percibe como "infinito" porque el nodo giratorio nunca se
+        limpia aunque `saving` ya volvio a false. Con SVG inline, Angular crea/destruye el nodo
+        directamente y *ngIf funciona con normalidad: nunca coexisten ambos iconos.
+      -->
+      <button (click)="handleSaveAttendance()" [disabled]="saving || students.length === 0"
+        class="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white rounded-xl transition-all duration-300 shadow-lg shadow-blue-500/30 font-bold hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed">
+        <svg *ngIf="!saving" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true">
+          <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
+          <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/>
+          <path d="M7 3v4a1 1 0 0 0 1 1h7"/>
+        </svg>
+        <svg *ngIf="saving" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 animate-spin" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        {{ saving ? 'Guardando...' : 'Guardar' }}
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex items-center gap-3">
+    <i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i>
+    <p class="font-bold">{{ error }}</p>
+  </div>
+
+  <div *ngIf="success" class="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl flex items-center gap-3">
+    <i data-lucide="check-circle-2" class="w-5 h-5 shrink-0"></i>
+    <p class="font-bold">{{ success }}</p>
+  </div>
+
+  <!-- ══════════════ GRID 2 COLUMNAS ══════════════ -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- ── COLUMNA IZQUIERDA: Filtros + Métricas + Export ── -->
+    <aside class="lg:col-span-4 xl:col-span-3 space-y-6">
+
+      <!-- Filtros -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
+        <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2 mb-4">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-blue-600"></i>
+          Filtros
+        </h3>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide">Nivel</label>
+            <app-setting-filter-dropdown
+              [options]="levelOptions"
+              [selectedId]="filter.level"
+              placeholder="Selecciona un nivel"
+              (selectionChange)="onLevelChange($event)">
+            </app-setting-filter-dropdown>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide">Grado</label>
+            <app-setting-filter-dropdown
+              [options]="gradeOptions"
+              [selectedId]="filter.gradeLevelId"
+              placeholder="Selecciona un grado"
+              (selectionChange)="onGradeChange($event)">
+            </app-setting-filter-dropdown>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide">Sección</label>
+            <app-setting-filter-dropdown
+              [options]="sectionOptions"
+              [selectedId]="filter.sectionId"
+              placeholder="{{ loadingSections ? 'Cargando secciones...' : 'Selecciona una sección' }}"
+              (selectionChange)="onSectionChange($event)">
+            </app-setting-filter-dropdown>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide">Checkpoint</label>
+              <select [(ngModel)]="selectedCheckpoint" (change)="onCheckpointChange()"
+                class="w-full rounded-xl border-2 border-slate-200 p-2.5 font-medium text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300 text-sm">
+                <option value="entrada">Entrada</option>
+                <option value="salida">Salida</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide">Estado</label>
+              <select [(ngModel)]="statusFilter"
+                class="w-full rounded-xl border-2 border-slate-200 p-2.5 font-medium text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white cursor-pointer hover:border-slate-300 text-sm">
+                <option value="todos">Todos</option>
+                <option value="presente">Presente</option>
+                <option value="tarde">Tarde</option>
+                <option value="falta">Falta</option>
+                <option value="justificado">Justificado</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide">Buscar alumno</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-4 h-4"></i>
+              </div>
+              <input type="text" [(ngModel)]="searchTerm" placeholder="Código o nombre..."
+                class="w-full pl-10 pr-4 rounded-xl border-2 border-slate-200 p-2.5 font-medium text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white hover:border-slate-300 text-sm" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
+        <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2 mb-4">
+          <i data-lucide="activity" class="w-4 h-4 text-blue-600"></i>
+          Resumen
+        </h3>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Presentes</p>
+            <p class="mt-1 text-2xl font-black text-emerald-600">{{ presentCount }}</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">{{ students.length ? ((presentCount * 100 / students.length) | number:'1.0-0') : 0 }}%</p>
+          </div>
+          <div class="rounded-xl border border-amber-100 bg-amber-50/40 p-3">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tardanzas</p>
+            <p class="mt-1 text-2xl font-black text-amber-600">{{ lateCount }}</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">{{ students.length ? ((lateCount * 100 / students.length) | number:'1.0-0') : 0 }}%</p>
+          </div>
+          <div class="rounded-xl border border-rose-100 bg-rose-50/40 p-3">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Faltas</p>
+            <p class="mt-1 text-2xl font-black text-rose-600">{{ absentCount }}</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">{{ students.length ? ((absentCount * 100 / students.length) | number:'1.0-0') : 0 }}%</p>
+          </div>
+          <div class="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Justificados</p>
+            <p class="mt-1 text-2xl font-black text-indigo-600">{{ justifiedCount }}</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">{{ students.length ? ((justifiedCount * 100 / students.length) | number:'1.0-0') : 0 }}%</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exportación General CSV: aquí es donde vive el rango de fechas -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
+        <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2 mb-1">
+          <i data-lucide="file-down" class="w-4 h-4 text-emerald-600"></i>
+          Exportar Reporte General
+        </h3>
+        <p class="text-xs text-slate-400 mb-4">Este rango de fechas parametriza el CSV a descargar.</p>
+
+        <div class="grid grid-cols-4 gap-1.5 mb-3">
+          <button type="button" (click)="setExportRange('day')"
+            [ngClass]="exportRangePreset === 'day' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+            class="px-1 py-2 rounded-lg text-[11px] font-bold transition-all">Hoy</button>
+          <button type="button" (click)="setExportRange('week')"
+            [ngClass]="exportRangePreset === 'week' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+            class="px-1 py-2 rounded-lg text-[11px] font-bold transition-all">Semana</button>
+          <button type="button" (click)="setExportRange('month')"
+            [ngClass]="exportRangePreset === 'month' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+            class="px-1 py-2 rounded-lg text-[11px] font-bold transition-all">Mes</button>
+          <button type="button" (click)="setExportRange('all')"
+            [ngClass]="exportRangePreset === 'all' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+            class="px-1 py-2 rounded-lg text-[11px] font-bold transition-all">Todo</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 mb-4">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Inicio</label>
+            <input type="date" [(ngModel)]="exportDateFrom" (change)="onExportDateInputChange()"
+              class="w-full rounded-xl border-2 border-slate-200 p-2 text-xs font-medium text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Fin</label>
+            <input type="date" [(ngModel)]="exportDateTo" (change)="onExportDateInputChange()"
+              class="w-full rounded-xl border-2 border-slate-200 p-2 text-xs font-medium text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all outline-none bg-slate-50 focus:bg-white" />
+          </div>
+        </div>
+
+        <button type="button" (click)="exportGeneralCsv()" [disabled]="exportingCsv || !selectedSectionId"
+          class="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg *ngIf="!exportingCsv" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true">
+            <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/>
+            <path d="M14 2v5a1 1 0 0 0 1 1h5"/>
+            <path d="M12 18v-6"/>
+            <path d="m9 15 3 3 3-3"/>
+          </svg>
+          <svg *ngIf="exportingCsv" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 animate-spin" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+          {{ exportingCsv ? 'Exportando...' : 'Exportar Reporte General CSV' }}
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── COLUMNA DERECHA: Registro Diario ── -->
+    <section class="lg:col-span-8 xl:col-span-9 min-w-0">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden" *ngIf="students.length > 0">
+        <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
+              <i data-lucide="list-checks" class="w-5 h-5 text-blue-600"></i>
+              Registro diario
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">
+              {{ selectedCheckpoint === 'entrada' ? 'Entrada' : 'Salida' }} · {{ sectionLabel(selectedSection) }} · {{ selectedDate }}
+            </p>
+          </div>
+          <div class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 border border-blue-100 rounded-xl font-bold shadow-sm text-sm">
+            <i data-lucide="users" class="w-4 h-4 mr-2"></i>
+            {{ filteredStudents.length }} / {{ students.length }}
+          </div>
+        </div>
+
+        <div class="overflow-x-auto w-full">
+          <table class="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+              <tr class="bg-white border-b border-slate-100">
+                <th class="py-3 sm:py-4 px-4 font-bold text-slate-500 text-[10px] sm:text-xs uppercase tracking-wider w-10 text-center">#</th>
+                <th class="py-3 sm:py-4 px-4 font-bold text-slate-500 text-[10px] sm:text-xs uppercase tracking-wider">Estudiante</th>
+                <th class="py-3 sm:py-4 px-4 font-bold text-slate-500 text-[10px] sm:text-xs uppercase tracking-wider text-center">Estado</th>
+                <th class="py-3 sm:py-4 px-4 font-bold text-slate-500 text-[10px] sm:text-xs uppercase tracking-wider text-center w-28">Obs.</th>
+                <th class="py-3 sm:py-4 px-4 font-bold text-slate-500 text-[10px] sm:text-xs uppercase tracking-wider text-center w-16">Hist.</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <ng-container *ngFor="let student of filteredStudents; let i = index">
+                <tr class="hover:bg-slate-50/80 transition-colors group align-top">
+                  <td class="py-3 px-4 text-slate-400 font-bold text-center text-xs">{{ i + 1 }}</td>
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-9 h-9 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center shadow-sm shrink-0">
+                        <span class="text-blue-700 font-extrabold text-xs">
+                          {{ student.first_name[0] }}{{ student.last_name[0] }}
+                        </span>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="font-bold text-slate-900 leading-tight text-sm group-hover:text-blue-700 transition-colors truncate">
+                          {{ student.last_name }}, {{ student.first_name }}
+                        </p>
+                        <p class="text-[10px] font-semibold text-slate-400 mt-0.5">Cod: {{ student.student_code }}</p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td class="py-3 px-4">
+                    <div class="flex flex-col items-center gap-2">
+                      <div class="flex justify-center gap-1.5">
+                        <button type="button" (click)="updateAttendance(student.id, 'status', 'presente')"
+                          [ngClass]="recordFor(student.id).status === 'presente' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                          class="w-9 h-8 rounded-lg flex items-center justify-center font-bold text-xs transition-all duration-300"
+                          title="Presente">P</button>
+                        <button type="button" (click)="updateAttendance(student.id, 'status', 'tarde')"
+                          [ngClass]="recordFor(student.id).status === 'tarde' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                          class="w-9 h-8 rounded-lg flex items-center justify-center font-bold text-xs transition-all duration-300"
+                          title="Tarde">T</button>
+                        <button type="button" (click)="updateAttendance(student.id, 'status', 'falta')"
+                          [ngClass]="recordFor(student.id).status === 'falta' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                          class="w-9 h-8 rounded-lg flex items-center justify-center font-bold text-xs transition-all duration-300"
+                          title="Falta">F</button>
+                        <button type="button" (click)="updateAttendance(student.id, 'status', 'justificado')"
+                          [ngClass]="recordFor(student.id).status === 'justificado' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30 scale-110' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                          class="w-9 h-8 rounded-lg flex items-center justify-center font-bold text-xs transition-all duration-300"
+                          title="Justificado">J</button>
+                      </div>
+                      <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] sm:text-xs font-bold"
+                        [ngClass]="getStatusBadgeClass(recordFor(student.id).status)">
+                        {{ getStatusLabel(recordFor(student.id).status) }}
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- Observación: boton discreto + textarea desplegable -->
+                  <td class="py-3 px-4">
+                    <div class="flex flex-col items-center">
+                      <button type="button" (click)="toggleNote(student.id)"
+                        [ngClass]="recordFor(student.id).noteOpen
+                          ? 'bg-blue-100 text-blue-600'
+                          : (recordFor(student.id).justification ? 'bg-blue-50 text-blue-500 hover:bg-blue-100' : 'bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600')"
+                        class="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all"
+                        title="Añadir observación">
+                        <i data-lucide="message-square-text" class="w-4 h-4"></i>
+                        <span *ngIf="needsJustification(student.id) && !recordFor(student.id).justification"
+                          class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white animate-pulse"></span>
+                        <span *ngIf="recordFor(student.id).justification && !recordFor(student.id).noteOpen"
+                          class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white"></span>
+                      </button>
+                      <div *ngIf="recordFor(student.id).noteOpen" class="note-expand mt-2 w-44 sm:w-56 whitespace-normal">
+                        <textarea rows="2" placeholder="Añadir observación..."
+                          [value]="recordFor(student.id).justification"
+                          (input)="updateAttendance(student.id, 'justification', $any($event.target).value)"
+                          class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all outline-none font-medium text-slate-700 bg-slate-50 focus:bg-white placeholder:text-slate-400 placeholder:font-normal text-xs resize-none"></textarea>
+                        <p *ngIf="needsJustification(student.id)" class="text-[10px] text-amber-600 font-semibold mt-1">
+                          Requiere comentario
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Historial: modal SweetAlert2 iOS -->
+                  <td class="py-3 px-4">
+                    <div class="flex justify-center">
+                      <button type="button" (click)="openStudentHistory(student)"
+                        class="w-9 h-9 rounded-xl bg-slate-100 text-slate-400 hover:bg-blue-100 hover:text-blue-600 flex items-center justify-center transition-all"
+                        title="Historial del estudiante">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+              <tr *ngIf="filteredStudents.length === 0">
+                <td colspan="5" class="py-8 text-center text-slate-400 text-sm">No hay estudiantes que coincidan con el filtro</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div *ngIf="!loading && students.length === 0 && !error" class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-12 text-center">
+        <div class="w-16 h-16 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="users" class="w-8 h-8 text-slate-400"></i>
+        </div>
+        <p class="text-slate-500 font-medium">Selecciona nivel, grado y sección para ver a los alumnos</p>
+      </div>
+    </section>
+  </div>
+</div>

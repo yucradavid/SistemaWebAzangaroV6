@@ -17,6 +17,7 @@ class Student extends Model
     protected $fillable = [
         'user_id',
         'student_code',
+        'attendance_qr_code',
         'first_name',
         'last_name',
         'dni',
@@ -71,10 +72,20 @@ public function messages()
         return $this->hasMany(StudentCourseEnrollment::class);
     }
 
+    public function extracurricularActivities()
+    {
+        return $this->hasMany(StudentExtracurricularActivity::class);
+    }
+
 public function assignmentSubmissions()
 {
     return $this->hasMany(AssignmentSubmission::class, 'student_id');
 }
+
+    public function qrRegenerationLogs()
+    {
+        return $this->hasMany(QrRegenerationLog::class);
+    }
 
     public function getFullNameAttribute(): string
     {

@@ -443,6 +443,68 @@ export class AttendanceService {
     return this.http.post<AttendanceJustification>(`${this.apiUrl}/attendance-justifications/${id}/reject`, payload);
   }
 
+  exportDailyAttendanceCsv(params: {
+    date_from?: string;
+    date_to?: string;
+    section_id?: string;
+    grade_level_id?: string;
+    academic_year_id?: string;
+    student_id?: string;
+  }): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/attendance/daily/export`, {
+      params: this.buildParams(params),
+      responseType: 'blob',
+    });
+  }
+
+  // ── Schedule Config ──────────────────────────────────────
+  getScheduleConfig(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/attendance/schedule-config`);
+  }
+
+  updateScheduleConfig(shift: string, checkpointType: string, data: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/attendance/schedule-config/${shift}/${checkpointType}`, data);
+  }
+
+  // ── Shift Assignments ────────────────────────────────────
+  getSectionShifts(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/shift-assignments/sections`);
+  }
+
+  updateSectionShifts(data: { assignments: Array<{ section_id: string; shift: string | null }> }): Observable<any> {
+    return this.http.put(`${this.apiUrl}/shift-assignments/sections`, data);
+  }
+
+  getTeacherShifts(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/shift-assignments/teachers`);
+  }
+
+  updateTeacherShifts(data: { assignments: Array<{ teacher_id: string; shift: string }> }): Observable<any> {
+    return this.http.put(`${this.apiUrl}/shift-assignments/teachers`, data);
+  }
+
+  // ── Student QR ───────────────────────────────────────────
+  generateStudentQr(data: { student_ids?: string[]; section_id?: string; all?: boolean }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/students/qr/generate`, data);
+  }
+
+  regenerateQrPreview(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/students/qr/regenerate/preview`, data);
+  }
+
+  regenerateQr(data: { reason: string; student_ids?: string[]; section_id?: string; all?: boolean; confirm_all?: boolean }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/students/qr/regenerate`, data);
+  }
+
+  getStudentCarnet(studentId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/students/${studentId}/carnet`);
+  }
+
+  // ── Student Checkpoint ───────────────────────────────────
+  studentCheckpoint(data: { qr_code: string; checkpoint: string; date?: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/attendance/daily/student-checkpoint`, data);
+  }
+
   private buildParams(
     params?:
       | Record<string, string | number | boolean | null | undefined>
