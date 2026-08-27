@@ -8,25 +8,6 @@
     </div>
 
     <div class="container-cermat relative z-10 px-4">
-      <div class="flex flex-wrap gap-3 justify-center mb-12">
-        <a routerLink="/niveles/inicial"
-           routerLinkActive="!bg-cermat-blue-700 !text-white shadow-lg border-transparent"
-           [routerLinkActiveOptions]="{exact:true}"
-           class="px-6 py-3 rounded-xl font-semibold transition-all duration-300 bg-gray-100 hover:bg-gray-200 border border-slate-200 text-gray-700">
-          Inicial
-        </a>
-        <a routerLink="/niveles/primaria"
-           routerLinkActive="!bg-cermat-blue-700 !text-white shadow-lg border-transparent"
-           class="px-6 py-3 rounded-xl font-semibold transition-all duration-300 bg-gray-100 hover:bg-gray-200 border border-slate-200 text-gray-700">
-          Primaria
-        </a>
-        <a routerLink="/niveles/secundaria"
-           routerLinkActive="!bg-cermat-blue-700 !text-white shadow-lg border-transparent"
-           class="px-6 py-3 rounded-xl font-semibold transition-all duration-300 bg-gray-100 hover:bg-gray-200 border border-slate-200 text-gray-700">
-          Secundaria
-        </a>
-      </div>
-
       <div class="max-w-4xl mx-auto text-center flex flex-col items-center">
         <div class="text-7xl mb-8 transform hover:-translate-y-2 transition-transform duration-300 cursor-default drop-shadow-lg">
           📚
@@ -51,6 +32,28 @@
     
     <div class="absolute bottom-0 w-full h-2 bg-gradient-to-r from-blue-600 via-yellow-400 to-red-600"></div>
   </section>
+
+  <!-- Selector de nivel (fuera de la portada) -->
+  <div class="bg-white border-b border-slate-200 py-4">
+    <div class="max-w-7xl mx-auto px-6 flex flex-wrap gap-3 justify-center">
+      <a routerLink="/niveles/inicial"
+         routerLinkActive="!bg-cermat-blue-700 !text-white shadow-lg border-transparent"
+         [routerLinkActiveOptions]="{exact:true}"
+         class="px-6 py-3 rounded-xl font-semibold transition-all duration-300 bg-gray-100 hover:bg-gray-200 border border-slate-200 text-gray-700">
+        Inicial
+      </a>
+      <a routerLink="/niveles/primaria"
+         routerLinkActive="!bg-cermat-blue-700 !text-white shadow-lg border-transparent"
+         class="px-6 py-3 rounded-xl font-semibold transition-all duration-300 bg-gray-100 hover:bg-gray-200 border border-slate-200 text-gray-700">
+        Primaria
+      </a>
+      <a routerLink="/niveles/secundaria"
+         routerLinkActive="!bg-cermat-blue-700 !text-white shadow-lg border-transparent"
+         class="px-6 py-3 rounded-xl font-semibold transition-all duration-300 bg-gray-100 hover:bg-gray-200 border border-slate-200 text-gray-700">
+        Secundaria
+      </a>
+    </div>
+  </div>
 
   <section class="py-20 md:py-24 bg-white">
     <div class="container-cermat px-4">
