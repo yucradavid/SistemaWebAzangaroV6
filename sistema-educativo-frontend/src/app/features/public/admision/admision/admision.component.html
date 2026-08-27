@@ -1,21 +1,21 @@
 <div class="min-h-screen bg-gray-50">
-  <section class="relative bg-[#1E3A8A] text-white py-28 overflow-hidden">
+  <section class="relative bg-cermat-blue-700 text-white py-32 overflow-hidden">
     <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 20px 20px;"></div>
 
     <div class="container-cermat text-center relative z-10 px-4">
-      <span class="inline-block py-1 px-3 rounded-full bg-[#c0d8f0] text-[#1E3A8A] text-sm font-bold mb-6 uppercase tracking-wider shadow-lg">
+      <span class="inline-block py-1 px-3 rounded-full bg-cermat-blue-100 text-cermat-blue-700 text-sm font-bold mb-6 uppercase tracking-wider shadow-lg">
         Pre matricula abierta
       </span>
       <h1 class="text-4xl md:text-6xl font-bold mb-6">Proceso de Admision 2026</h1>
-      <p class="text-xl md:text-2xl text-[#dbeaf3] max-w-3xl mx-auto font-light">
+      <p class="text-xl md:text-2xl text-cermat-blue-100 max-w-3xl mx-auto font-light">
         Completa la solicitud del estudiante y deja la pre matricula lista para revision del area administrativa.
       </p>
     </div>
-    <div class="absolute bottom-0 w-full h-2 bg-gradient-to-r from-red-600 via-yellow-400 to-[#1E3A8A]"></div>
+    <div class="absolute bottom-0 w-full h-2 bg-gradient-to-r from-cermat-red-600 via-cermat-yellow-400 to-cermat-blue-700"></div>
   </section>
 
   <div class="container-cermat px-4 py-10 text-center">
-    <button type="button" (click)="openAdmissionForm()" aria-label="Completar solicitud" class="group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#16326f] px-6 py-3 text-lg font-bold text-white shadow-[0_16px_30px_rgba(30,58,138,0.35)] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_18px_35px_rgba(30,58,138,0.4)]">
+    <button type="button" (click)="openAdmissionForm()" aria-label="Completar solicitud" class="group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-cermat-blue-700 to-cermat-blue-800 px-6 py-3 text-lg font-bold text-white shadow-[0_16px_30px_rgba(25,51,117,0.35)] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_18px_35px_rgba(25,51,117,0.4)]">
       <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors duration-200 transform group-hover:scale-110">
         <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6M9 16h6M9 8h6M5 6h14v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z" />
@@ -33,8 +33,8 @@
   <section class="py-16">
     <div class="container-cermat px-4">
       <div class="text-center mb-16">
-        <h2 class="text-3xl md:text-4xl font-bold text-[#1E3A8A]">Pasos del Proceso</h2>
-        <div class="w-20 h-1 bg-red-600 mx-auto mt-4 rounded-full"></div>
+        <h2 class="text-3xl md:text-4xl font-bold text-cermat-blue-700">Pasos del Proceso</h2>
+        <div class="w-20 h-1 bg-cermat-red-600 mx-auto mt-4 rounded-full"></div>
       </div>
 
       <div class="max-w-4xl mx-auto relative">
@@ -43,12 +43,12 @@
         <div class="space-y-8">
           <div *ngFor="let step of admissionSteps" class="flex flex-col md:flex-row gap-6 items-start group relative">
             <div class="flex-shrink-0 z-10 mx-auto md:mx-0">
-              <div class="w-16 h-16 bg-[#1E3A8A] rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg border-4 border-white group-hover:bg-[#bee0f2] group-hover:text-[#1E3A8A] transition-colors duration-300">
+              <div class="w-16 h-16 bg-cermat-blue-700 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg border-4 border-white group-hover:bg-cermat-blue-100 group-hover:text-cermat-blue-700 transition-colors duration-300">
                 {{ step.step }}
               </div>
             </div>
 
-            <div class="flex-1 w-full bg-white rounded-2xl p-8 shadow-md hover:shadow-xl transition-all duration-300 border-l-4 border-[#1E3A8A] group-hover:border-[#1E3A8A]/70">
+            <div class="flex-1 w-full bg-white rounded-2xl p-8 shadow-md hover:shadow-xl transition-all duration-300 border-l-4 border-cermat-blue-700 group-hover:border-cermat-blue-700/70">
               <h3 class="text-xl font-bold text-gray-900 mb-2">{{ step.title }}</h3>
               <p class="text-gray-600 leading-relaxed">{{ step.description }}</p>
             </div>
@@ -58,13 +58,13 @@
     </div>
   </section>
 
-  <section class="py-16 md:py-24 bg-gradient-to-br from-slate-50 via-white to-[#e6eff8] pb-8">
+  <section class="py-16 md:py-24 bg-gradient-to-br from-slate-50 via-white to-cermat-blue-50 pb-8">
     <div class="container-cermat px-4">
       <div class="mb-10 rounded-[28px] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] ring-1 ring-slate-200 md:p-8">
           <div class="grid gap-5 md:grid-cols-4">
             <div *ngFor="let step of admissionSteps" class="group rounded-[24px] border border-slate-200 bg-slate-50 p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
               <div class="mb-5 flex items-center justify-between">
-                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[#1E3A8A] text-lg font-black text-white">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-cermat-blue-700 text-lg font-black text-white">
                   {{ step.step }}
                 </div>
                 <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -89,7 +89,7 @@
           <div class="relative w-full max-w-5xl overflow-hidden rounded-[30px] bg-[#dff1ee] shadow-[0_30px_80px_rgba(15,23,42,0.28)] ring-1 ring-slate-200" (click)="$event.stopPropagation()">
             <div class="grid min-h-[720px] md:grid-cols-[280px_1fr]">
               <aside class="relative overflow-hidden bg-gradient-to-b from-[#e7f7f7] via-[#dff3f1] to-[#d5ecf2] p-7 md:p-8">
-                <div class="mb-8 text-[42px] font-light tracking-[-0.06em] text-[#1E3A8A]">DNB</div>
+                <div class="mb-8 text-[42px] font-light tracking-[-0.06em] text-cermat-blue-700">DNB</div>
                 <h2 class="text-3xl font-semibold tracking-[-0.04em] text-slate-800">Pre matrícula</h2>
                 <p class="mt-2 text-sm text-slate-600">Completa la solicitud del estudiante con rapidez.</p>
 
@@ -102,9 +102,9 @@
                     { label: 'Complementario', step: 3 }
                   ]">
                     <div class="relative z-10 flex h-9 w-9 items-center justify-center rounded-full border text-sm font-bold transition-all"
-                         [class.bg-[#1E3A8A]]="currentStep() === item.step || currentStep() > item.step"
+                         [class.bg-cermat-blue-700]="currentStep() === item.step || currentStep() > item.step"
                          [class.text-white]="currentStep() === item.step || currentStep() > item.step"
-                         [class.border-[#1E3A8A]]="currentStep() === item.step || currentStep() > item.step"
+                         [class.border-cermat-blue-700]="currentStep() === item.step || currentStep() > item.step"
                          [class.bg-slate-200]="currentStep() < item.step"
                          [class.border-slate-300]="currentStep() < item.step"
                          [class.text-slate-500]="currentStep() < item.step">
@@ -134,7 +134,7 @@
                         {{ currentStep() === 1 ? 'Información básica' : currentStep() === 2 ? 'Datos del apoderado' : 'Información complementaria' }}
                       </h3>
                     </div>
-                  <span class="inline-flex items-center rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#17486e] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-sm">
+                  <span class="inline-flex items-center rounded-full bg-gradient-to-r from-cermat-blue-700 to-cermat-blue-800 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-sm">
                       Paso {{ currentStep() }} / {{ totalSteps }}
                     </span>
                   </div>
@@ -148,7 +148,7 @@
                     <div class="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Año académico *</label>
-                        <select formControlName="academic_year_id" [class.border-red-500]="isFieldInvalid('academic_year_id')" class="w-full rounded-xl border-2 border-[#1E3A8A]/30 bg-[#edf4fb] px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" required>
+                        <select formControlName="academic_year_id" [class.border-red-500]="isFieldInvalid('academic_year_id')" class="w-full rounded-xl border-2 border-cermat-blue-700/30 bg-cermat-blue-50 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" required>
                           <option value="" disabled>Selecciona el año académico</option>
                           <option *ngFor="let year of academicYears" [value]="year.id">{{ year.name || year.label || year.year }}</option>
                         </select>
@@ -156,7 +156,7 @@
 
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Grado al que postula *</label>
-                        <select formControlName="grade_level_id" [class.border-red-500]="isFieldInvalid('grade_level_id')" class="w-full rounded-xl border-2 border-[#1E3A8A]/30 bg-[#edf4fb] px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" required>
+                        <select formControlName="grade_level_id" [class.border-red-500]="isFieldInvalid('grade_level_id')" class="w-full rounded-xl border-2 border-cermat-blue-700/30 bg-cermat-blue-50 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" required>
                           <option value="" disabled>Selecciona el grado</option>
                           <option *ngFor="let grade of gradeLevels" [value]="grade.id">{{ grade.name || grade.label || grade.level }}</option>
                         </select>
@@ -166,38 +166,38 @@
                     <div class="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Nombres del estudiante *</label>
-                        <input type="text" formControlName="student_first_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('student_first_name')" />
+                        <input type="text" formControlName="student_first_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" [class.border-red-500]="isFieldInvalid('student_first_name')" />
                       </div>
 
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Apellidos del estudiante *</label>
-                        <input type="text" formControlName="student_last_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('student_last_name')" />
+                        <input type="text" formControlName="student_last_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" [class.border-red-500]="isFieldInvalid('student_last_name')" />
                       </div>
                     </div>
 
                     <div class="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Tipo de documento *</label>
-                        <select formControlName="student_document_type" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]">
+                        <select formControlName="student_document_type" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700">
                           <option *ngFor="let type of documentTypes" [value]="type.id">{{ type.label }}</option>
                         </select>
                       </div>
 
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Número de documento *</label>
-                        <input type="text" formControlName="student_document_number" (blur)="onStudentDniBlur(admissionForm.get('student_document_number')?.value)" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('student_document_number')" />
+                        <input type="text" formControlName="student_document_number" (blur)="onStudentDniBlur(admissionForm.get('student_document_number')?.value)" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" [class.border-red-500]="isFieldInvalid('student_document_number')" />
                       </div>
                     </div>
 
                     <div class="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Fecha de nacimiento *</label>
-                        <input type="date" formControlName="student_birth_date" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('student_birth_date')" />
+                        <input type="date" formControlName="student_birth_date" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" [class.border-red-500]="isFieldInvalid('student_birth_date')" />
                       </div>
 
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Género *</label>
-                        <select formControlName="student_gender" [class.border-red-500]="isFieldInvalid('student_gender')" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" required>
+                        <select formControlName="student_gender" [class.border-red-500]="isFieldInvalid('student_gender')" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" required>
                           <option value="" disabled>Selecciona género</option>
                           <option *ngFor="let gender of genders" [value]="gender.id">{{ gender.label }}</option>
                         </select>
@@ -206,11 +206,11 @@
 
                     <div>
                       <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Dirección del estudiante</label>
-                      <textarea formControlName="student_address" rows="3" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]"></textarea>
+                      <textarea formControlName="student_address" rows="3" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700"></textarea>
                     </div>
 
                     <div class="flex items-center justify-between gap-3">
-                    <button type="button" (click)="nextStep()" class="inline-flex items-center justify-center rounded-full bg-[#1E3A8A] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#154770]" *ngIf="currentStep() === 1">
+                    <button type="button" (click)="nextStep()" class="inline-flex items-center justify-center rounded-full bg-cermat-blue-700 px-6 py-3 text-sm font-bold text-white transition hover:bg-cermat-blue-800" *ngIf="currentStep() === 1">
                         Siguiente
                       </button>
                     </div>
@@ -225,56 +225,56 @@
                     <div class="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Nombres del apoderado *</label>
-                        <input type="text" formControlName="guardian_first_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_first_name')" />
+                        <input type="text" formControlName="guardian_first_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" [class.border-red-500]="isFieldInvalid('guardian_first_name')" />
                       </div>
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Apellidos del apoderado *</label>
-                        <input type="text" formControlName="guardian_last_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_last_name')" />
+                        <input type="text" formControlName="guardian_last_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" [class.border-red-500]="isFieldInvalid('guardian_last_name')" />
                       </div>
                     </div>
 
                     <div class="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Tipo de documento *</label>
-                        <select formControlName="guardian_document_type" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]">
+                        <select formControlName="guardian_document_type" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700">
                           <option *ngFor="let type of documentTypes" [value]="type.id">{{ type.label }}</option>
                         </select>
                       </div>
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Número de documento *</label>
-                        <input type="text" formControlName="guardian_document_number" (blur)="onGuardianDniBlur(admissionForm.get('guardian_document_number')?.value)" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_document_number')" />
+                        <input type="text" formControlName="guardian_document_number" (blur)="onGuardianDniBlur(admissionForm.get('guardian_document_number')?.value)" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" [class.border-red-500]="isFieldInvalid('guardian_document_number')" />
                       </div>
                     </div>
 
                     <div class="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Teléfono *</label>
-                        <input type="tel" formControlName="guardian_phone" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_phone')" />
+                        <input type="tel" formControlName="guardian_phone" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" [class.border-red-500]="isFieldInvalid('guardian_phone')" />
                       </div>
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Correo electrónico *</label>
-                        <input type="email" formControlName="guardian_email" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('guardian_email')" />
+                        <input type="email" formControlName="guardian_email" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" [class.border-red-500]="isFieldInvalid('guardian_email')" />
                       </div>
                     </div>
 
                     <div class="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Dirección</label>
-                        <textarea formControlName="guardian_address" rows="3" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]"></textarea>
+                        <textarea formControlName="guardian_address" rows="3" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700"></textarea>
                       </div>
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Parentesco *</label>
-                        <select formControlName="guardian_relationship" [class.border-red-500]="isFieldInvalid('guardian_relationship')" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]">
+                        <select formControlName="guardian_relationship" [class.border-red-500]="isFieldInvalid('guardian_relationship')" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700">
                           <option *ngFor="let relation of relationships" [value]="relation.id">{{ relation.label }}</option>
                         </select>
                       </div>
                     </div>
 
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                      <button type="button" (click)="previousStep()" class="inline-flex items-center justify-center rounded-full border border-[#1E3A8A] px-6 py-3 text-sm font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A]/10">
+                      <button type="button" (click)="previousStep()" class="inline-flex items-center justify-center rounded-full border border-cermat-blue-700 px-6 py-3 text-sm font-bold text-cermat-blue-700 transition hover:bg-cermat-blue-700/10">
                         Anterior
                       </button>
-                      <button type="button" (click)="nextStep()" class="inline-flex items-center justify-center rounded-full bg-[#1E3A8A] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#154770]">
+                      <button type="button" (click)="nextStep()" class="inline-flex items-center justify-center rounded-full bg-cermat-blue-700 px-6 py-3 text-sm font-bold text-white transition hover:bg-cermat-blue-800">
                         Siguiente
                       </button>
                     </div>
@@ -289,11 +289,11 @@
                     <div class="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Colegio anterior</label>
-                        <input type="text" formControlName="previous_school" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" />
+                        <input type="text" formControlName="previous_school" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" />
                       </div>
                       <div class="flex items-end gap-3">
                         <label class="flex items-center gap-2 text-sm font-bold uppercase text-gray-700">
-                          <input type="checkbox" formControlName="has_special_needs" class="h-4 w-4 text-[#1E3A8A] focus:ring-[#1E3A8A]" />
+                          <input type="checkbox" formControlName="has_special_needs" class="h-4 w-4 text-cermat-blue-700 focus:ring-cermat-blue-700" />
                           Tiene necesidades especiales
                         </label>
                       </div>
@@ -301,30 +301,30 @@
 
                     <div *ngIf="admissionForm.get('has_special_needs')?.value">
                       <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Describe las necesidades especiales</label>
-                      <textarea formControlName="special_needs_description" rows="3" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="!admissionForm.get('special_needs_description')?.value && admissionForm.get('has_special_needs')?.value"></textarea>
+                      <textarea formControlName="special_needs_description" rows="3" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" [class.border-red-500]="!admissionForm.get('special_needs_description')?.value && admissionForm.get('has_special_needs')?.value"></textarea>
                     </div>
 
                     <div class="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Contacto de emergencia</label>
-                        <input type="text" formControlName="emergency_contact_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" />
+                        <input type="text" formControlName="emergency_contact_name" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" />
                       </div>
                       <div>
                         <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Teléfono de emergencia</label>
-                        <input type="tel" formControlName="emergency_contact_phone" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]" [class.border-red-500]="isFieldInvalid('emergency_contact_phone')" />
+                        <input type="tel" formControlName="emergency_contact_phone" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700" [class.border-red-500]="isFieldInvalid('emergency_contact_phone')" />
                       </div>
                     </div>
 
                     <div>
                       <label class="mb-2 block text-sm font-bold uppercase text-gray-700">Notas adicionales</label>
-                      <textarea formControlName="notes" rows="4" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#1E3A8A]"></textarea>
+                      <textarea formControlName="notes" rows="4" class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-cermat-blue-700"></textarea>
                     </div>
 
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                      <button type="button" (click)="previousStep()" class="inline-flex items-center justify-center rounded-full border border-[#1E3A8A] px-6 py-3 text-sm font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A]/10">
+                      <button type="button" (click)="previousStep()" class="inline-flex items-center justify-center rounded-full border border-cermat-blue-700 px-6 py-3 text-sm font-bold text-cermat-blue-700 transition hover:bg-cermat-blue-700/10">
                         Anterior
                       </button>
-                      <button type="submit" class="inline-flex items-center justify-center rounded-full bg-[#1E3A8A] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#154770]">
+                      <button type="submit" class="inline-flex items-center justify-center rounded-full bg-cermat-blue-700 px-6 py-3 text-sm font-bold text-white transition hover:bg-cermat-blue-800">
                         Enviar solicitud
                       </button>
                     </div>

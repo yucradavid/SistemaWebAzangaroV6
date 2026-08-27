@@ -9,6 +9,7 @@ import { AcademicService } from '@core/services/academic.service';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { Charge, FinanceService, Payment } from '@core/services/finance.service';
 import { FinanceCashierService } from '@core/services/finance-cashier.service';
+import { ReceiptPrintService } from '@core/services/receipt-print.service';
 import { SettingFilterDropdownComponent } from '@shared/components/setting-filter-dropdown/setting-filter-dropdown.component';
 
 @Component({
@@ -152,12 +153,29 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
             </div>
           </div>
 
-          <div class="flex items-center gap-10 border-b border-slate-100 overflow-x-auto pb-px">
-            <button (click)="activeTab = 'charges'" [class]="activeTab === 'charges' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-400 hover:text-slate-600'" class="pb-4 text-xs font-semibold border-b-2 whitespace-nowrap px-1">
-              Cargos
-            </button>
-            <button (click)="activeTab = 'payments'" [class]="activeTab === 'payments' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-400 hover:text-slate-600'" class="pb-4 text-xs font-semibold border-b-2 whitespace-nowrap px-1">
-              Pagos y recibos
+          <div class="flex items-center justify-between border-b border-slate-100 overflow-x-auto pb-px">
+            <div class="flex items-center gap-10">
+              <button (click)="activeTab = 'charges'" [class]="activeTab === 'charges' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-400 hover:text-slate-600'" class="pb-4 text-xs font-semibold border-b-2 whitespace-nowrap px-1">
+                Cargos
+              </button>
+              <button (click)="activeTab = 'payments'" [class]="activeTab === 'payments' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-400 hover:text-slate-600'" class="pb-4 text-xs font-semibold border-b-2 whitespace-nowrap px-1">
+                Pagos y recibos
+              </button>
+            </div>
+            <!-- Indicador / toggle de impresora -->
+            <button
+              type="button"
+              (click)="togglePrinterMode()"
+              class="mb-2 flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all"
+              [class.bg-amber-50]="printerIsTicket"
+              [class.border-amber-200]="printerIsTicket"
+              [class.text-amber-700]="printerIsTicket"
+              [class.bg-slate-50]="!printerIsTicket"
+              [class.border-slate-200]="!printerIsTicket"
+              [class.text-slate-600]="!printerIsTicket"
+              title="Click para cambiar el modo de impresión">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              {{ printerIsTicket ? 'Ticketera (80mm)' : 'Hoja A4' }}
             </button>
           </div>
 
@@ -273,13 +291,22 @@ import { SettingFilterDropdownComponent } from '@shared/components/setting-filte
                           (click)="printReceipt(payment)"
                           [disabled]="!payment.receipt"
                           class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
-                          [class.bg-white]="!!payment.receipt"
-                          [class.border]="!!payment.receipt"
-                          [class.border-slate-200]="!!payment.receipt"
-                          [class.text-slate-700]="!!payment.receipt"
+                          [class.bg-blue-900]="!!payment.receipt"
+                          [class.text-white]="!!payment.receipt"
                           [class.bg-slate-100]="!payment.receipt"
-                          [class.text-slate-500]="!payment.receipt">
-                          Reimprimir
+                          [class.text-slate-500]="!payment.receipt"
+                          title="{{ printerIsTicket ? 'Imprimir ticket (80mm)' : 'Imprimir boleta A4' }}">
+                          <span class="flex items-center gap-1.5">
+                            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                            {{ printerIsTicket ? 'Ticket' : 'A4' }}
+                          </span>
+                        </button>
+                        <button
+                          *ngIf="!!payment.receipt"
+                          (click)="printReceiptForceA4(payment)"
+                          class="px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wide bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                          title="Imprimir boleta completa A4">
+                          A4
                         </button>
                         <button
                           (click)="voidPayment(payment)"
@@ -329,13 +356,19 @@ export class FinanceStudentComponent implements OnInit, OnDestroy {
     overdueCount: 0
   };
 
+  /** Preferencia de impresión: true = ticketera 80mm, false = A4 */
+  get printerIsTicket(): boolean {
+    return this.receiptPrint.hasTicketPrinter();
+  }
+
   private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
     private financeService: FinanceService,
     private academicService: AcademicService,
-    private financeCashier: FinanceCashierService
+    private financeCashier: FinanceCashierService,
+    private receiptPrint: ReceiptPrintService
   ) {
     this.searchForm = this.fb.group({
       q: ['']
@@ -596,14 +629,32 @@ export class FinanceStudentComponent implements OnInit, OnDestroy {
           if (payment.receipt) {
             Swal.fire({
               title: 'Pago registrado',
-              html: `Pago registrado correctamente.<br><br><strong>Recibo:</strong> ${payment.receipt.number || 'Generado'}`,
+              html: `
+                <div style="text-align:left;font-size:14px;line-height:1.8;">
+                  <p>✅ Pago registrado correctamente.</p>
+                  <p><strong>Recibo:</strong> ${payment.receipt.number || 'Generado'}</p>
+                  <p><strong>Monto:</strong> S/ ${Number(payment.amount || 0).toFixed(2)}</p>
+                  <p style="margin-top:10px;font-size:12px;color:#64748b;">
+                    Modo actual:
+                    <strong>${this.printerIsTicket ? 'Ticketera 80mm' : 'Hoja A4'}</strong>
+                  </p>
+                </div>
+              `,
               icon: 'success',
               showCancelButton: true,
-              confirmButtonText: 'Imprimir recibo',
-              cancelButtonText: 'Cerrar'
-            }).then((printResult) => {
-              if (printResult.isConfirmed) {
-                this.printReceipt(payment);
+              showDenyButton: !this.printerIsTicket,
+              confirmButtonText: this.printerIsTicket ? '🖨️ Imprimir ticket' : '🖨️ Imprimir A4',
+              denyButtonText: '🧾 Imprimir ticket',
+              cancelButtonText: 'Cerrar',
+              confirmButtonColor: '#1d4ed8',
+              denyButtonColor: '#d97706',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                // Imprime en el formato configurado (A4 o ticket)
+                this.receiptPrint.print(payment, this.selectedStudent);
+              } else if (result.isDenied) {
+                // Forzar ticket independientemente del modo configurado
+                this.receiptPrint.printTicket(payment, this.selectedStudent);
               }
             });
             return;
@@ -702,96 +753,32 @@ export class FinanceStudentComponent implements OnInit, OnDestroy {
       Swal.fire('Sin recibo', 'Este pago todavia no tiene un recibo asociado.', 'info');
       return;
     }
+    this.receiptPrint.print(payment, this.selectedStudent);
+  }
 
-    const studentName = this.selectedStudent
-      ? `${this.selectedStudent.first_name || ''} ${this.selectedStudent.last_name || ''}`.trim()
-      : this.getPaymentStudentName(payment);
-    const conceptName = payment.charge?.concept?.name || payment.charge?.notes || payment.notes || 'Pago';
-    const receiptNumber = payment.receipt.number || 'Sin numero';
-    const paidAt = payment.paid_at ? new Date(payment.paid_at).toLocaleString() : '-';
-    const issuedAt = payment.receipt.issued_at ? new Date(payment.receipt.issued_at).toLocaleString() : paidAt;
-    const popup = window.open('', '_blank', 'width=900,height=700');
-
-    if (!popup) {
-      Swal.fire('Bloqueado', 'El navegador bloqueo la ventana de impresion.', 'warning');
+  printReceiptForceA4(payment: Payment): void {
+    if (!payment.receipt) {
       return;
     }
+    this.receiptPrint.printA4(payment, this.selectedStudent);
+  }
 
-    popup.document.write(`
-      <html>
-        <head>
-          <title>Recibo ${receiptNumber}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 32px; color: #0f172a; }
-            .receipt { max-width: 720px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 20px; padding: 32px; }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 24px; }
-            .muted { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
-            .title { font-size: 28px; font-weight: 700; margin: 8px 0; color: #1e3a8a; }
-            .number { font-size: 18px; font-weight: 700; color: #b91c1c; }
-            .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
-            .card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; background: #f8fafc; }
-            .label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .14em; margin-bottom: 8px; }
-            .value { font-size: 15px; font-weight: 600; }
-            .amount { font-size: 32px; font-weight: 800; color: #047857; }
-            .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }
-          </style>
-        </head>
-        <body>
-          <div class="receipt">
-            <div class="header">
-              <div>
-                <div class="muted">Sistema educativo</div>
-                <div class="title">Recibo de pago</div>
-                <div class="muted">Comprobante generado desde cuenta corriente</div>
-              </div>
-              <div style="text-align:right">
-                <div class="muted">Numero de recibo</div>
-                <div class="number">${receiptNumber}</div>
-              </div>
-            </div>
-
-            <div class="grid">
-              <div class="card">
-                <div class="label">Alumno</div>
-                <div class="value">${studentName || 'No identificado'}</div>
-              </div>
-              <div class="card">
-                <div class="label">Metodo de pago</div>
-                <div class="value">${this.getMethodLabel(payment.method)}</div>
-              </div>
-              <div class="card">
-                <div class="label">Concepto</div>
-                <div class="value">${conceptName}</div>
-              </div>
-              <div class="card">
-                <div class="label">Referencia</div>
-                <div class="value">${payment.reference || '-'}</div>
-              </div>
-              <div class="card">
-                <div class="label">Fecha de pago</div>
-                <div class="value">${paidAt}</div>
-              </div>
-              <div class="card">
-                <div class="label">Fecha de emision</div>
-                <div class="value">${issuedAt}</div>
-              </div>
-            </div>
-
-            <div class="card" style="text-align:center; background:#ecfdf5; border-color:#a7f3d0;">
-              <div class="label">Monto pagado</div>
-              <div class="amount">S/ ${Number(payment.amount || 0).toFixed(2)}</div>
-            </div>
-
-            <div class="footer">
-              Observacion: ${payment.notes || payment.charge?.notes || 'Sin observacion adicional.'}
-            </div>
-          </div>
-        </body>
-      </html>
-    `);
-    popup.document.close();
-    popup.focus();
-    popup.print();
+  /**
+   * Alterna entre modo A4 y ticketera 80mm.
+   * El estado se persiste en localStorage para recordarlo entre sesiones.
+   */
+  togglePrinterMode(): void {
+    const next = !this.receiptPrint.hasTicketPrinter();
+    this.receiptPrint.setTicketPrinterPreference(next);
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: next ? 'Modo ticketera 80mm activado' : 'Modo hoja A4 activado',
+      showConfirmButton: false,
+      timer: 2000,
+      timerProgressBar: true
+    });
   }
 
   getStatusBadge(status: string): string {

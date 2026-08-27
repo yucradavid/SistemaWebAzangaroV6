@@ -27,8 +27,8 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #1E3A8A !important;
-  box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.12);
+  border-color: #193375 !important;
+  box-shadow: 0 0 0 4px rgba(25, 51, 117, 0.12);
 }
 
 @keyframes shake {
@@ -67,7 +67,7 @@ textarea:focus {
     position: absolute;
     inset: -6px;
     border-radius: 9999px;
-    background: radial-gradient(circle at center, rgba(30,58,138,0.08), transparent 40%);
+    background: radial-gradient(circle at center, rgba(25,51,117,0.08), transparent 40%);
     opacity: 0;
     transition: opacity 0.25s ease, transform 0.25s ease;
     transform: scale(0.95);

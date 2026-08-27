@@ -382,7 +382,7 @@ export class CommunicationsManagementComponent implements OnInit {
           icon: 'success',
           title: this.isEditing ? 'Actualizado' : 'Borrador Creado',
           text: 'El comunicado se ha guardado exitosamente.',
-          confirmButtonColor: '#1e3a8a',
+          confirmButtonColor: '#193375',
           toast: true,
           position: 'top-end',
           timer: 3000,
@@ -405,7 +405,7 @@ export class CommunicationsManagementComponent implements OnInit {
       text: 'El comunicado pasará a revisión por un administrador.',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#1e3a8a',
+      confirmButtonColor: '#193375',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Sí, enviar',
       cancelButtonText: 'Cancelar'

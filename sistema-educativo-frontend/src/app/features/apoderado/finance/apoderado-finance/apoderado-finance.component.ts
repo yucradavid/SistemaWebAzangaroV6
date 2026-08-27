@@ -9,6 +9,7 @@ import {
   StudentFinancialPayment,
   StudentFinancialSummaryResponse,
 } from '@core/services/report.service';
+import { ReceiptPrintService } from '@core/services/receipt-print.service';
 
 type FinanceTab = 'charges' | 'payments';
 type FinanceScope = 'active' | 'all';
@@ -42,6 +43,7 @@ interface FamilyStudentFinanceView {
 export class ApoderadoFinanceComponent implements OnInit {
   private authService = inject(AuthService);
   private reportService = inject(ReportService);
+  private receiptPrint = inject(ReceiptPrintService);
 
   students: AcademicContextStudent[] = [];
   charges: StudentFinancialCharge[] = [];
@@ -421,92 +423,38 @@ export class ApoderadoFinanceComponent implements OnInit {
       return;
     }
 
-    const popup = window.open('', '_blank', 'width=900,height=720');
-    if (!popup) {
-      return;
-    }
+    // Adaptar StudentFinancialPayment al shape que espera ReceiptPrintService
+    const adaptedPayment: any = {
+      id: payment.id,
+      amount: payment.receipt_total ?? payment.amount ?? 0,
+      method: payment.method || '',
+      reference: payment.reference || null,
+      paid_at: payment.paid_at || payment.created_at,
+      notes: payment.notes || null,
+      receipt: {
+        number: payment.receipt_number,
+        issued_at: payment.receipt_issued_at || payment.paid_at || payment.created_at,
+        total: payment.receipt_total ?? payment.amount ?? 0,
+      },
+      charge: payment.concept_name ? {
+        concept: { name: payment.concept_name },
+        notes: payment.notes || null,
+      } : null,
+    };
 
-    const studentName = this.selectedStudent?.full_name || 'Estudiante';
-    const concept = payment.concept_name || 'Pago';
-    const amount = Number(payment.receipt_total ?? payment.amount ?? 0).toFixed(2);
-    const issuedAt = this.formatDate(payment.receipt_issued_at || payment.paid_at || payment.created_at, true);
-    const paidAt = this.formatDate(payment.paid_at || payment.created_at, true);
+    const studentObj: import('@core/services/receipt-print.service').ReceiptStudent | null =
+      this.selectedStudent ? {
+        first_name: this.selectedStudent.full_name?.split(' ').slice(1).join(' ') || '',
+        last_name: this.selectedStudent.full_name?.split(' ')[0] || this.selectedStudent.full_name || '',
+        dni: (this.selectedStudent as any).dni || '',
+        student_code: (this.selectedStudent as any).student_code || '',
+        section: this.selectedStudent.section ? {
+          grade_level: this.selectedStudent.section.grade_level ?? undefined,
+          section_letter: this.selectedStudent.section.section_letter,
+        } : undefined,
+      } : null;
 
-    popup.document.write(`
-      <html>
-        <head>
-          <title>Recibo ${payment.receipt_number}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 32px; color: #0f172a; background: #f8fafc; }
-            .receipt { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 24px; padding: 32px; }
-            .header { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
-            .eyebrow { color: #0891b2; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .18em; }
-            .title { font-size: 30px; font-weight: 800; margin: 10px 0 0; }
-            .number { font-size: 20px; font-weight: 800; color: #0f172a; }
-            .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
-            .card { border: 1px solid #e2e8f0; border-radius: 18px; padding: 18px; background: #f8fafc; }
-            .label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .16em; margin-bottom: 8px; }
-            .value { font-size: 15px; font-weight: 600; }
-            .amount { text-align: center; padding: 22px; border-radius: 20px; background: #ecfdf5; border: 1px solid #a7f3d0; margin-top: 12px; }
-            .amount h2 { margin: 8px 0 0; font-size: 34px; color: #047857; }
-            .footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }
-          </style>
-        </head>
-        <body>
-          <div class="receipt">
-            <div class="header">
-              <div>
-                <div class="eyebrow">Comprobante financiero</div>
-                <div class="title">Recibo de pago</div>
-              </div>
-              <div style="text-align:right">
-                <div class="label">Numero</div>
-                <div class="number">${payment.receipt_number}</div>
-              </div>
-            </div>
-
-            <div class="grid">
-              <div class="card">
-                <div class="label">Estudiante</div>
-                <div class="value">${studentName}</div>
-              </div>
-              <div class="card">
-                <div class="label">Metodo</div>
-                <div class="value">${this.getMethodLabel(payment.method)}</div>
-              </div>
-              <div class="card">
-                <div class="label">Concepto</div>
-                <div class="value">${concept}</div>
-              </div>
-              <div class="card">
-                <div class="label">Referencia</div>
-                <div class="value">${payment.reference || '-'}</div>
-              </div>
-              <div class="card">
-                <div class="label">Fecha de pago</div>
-                <div class="value">${paidAt}</div>
-              </div>
-              <div class="card">
-                <div class="label">Fecha de emision</div>
-                <div class="value">${issuedAt}</div>
-              </div>
-            </div>
-
-            <div class="amount">
-              <div class="label">Monto acreditado</div>
-              <h2>S/ ${amount}</h2>
-            </div>
-
-            <div class="footer">
-              Observacion: ${payment.notes || 'Sin observaciones adicionales.'}
-            </div>
-          </div>
-        </body>
-      </html>
-    `);
-    popup.document.close();
-    popup.focus();
-    popup.print();
+    this.receiptPrint.print(adaptedPayment, studentObj);
   }
 
   private loadAcademicContext(): void {

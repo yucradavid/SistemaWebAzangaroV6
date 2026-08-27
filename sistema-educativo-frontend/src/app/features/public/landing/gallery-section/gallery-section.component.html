@@ -1,10 +1,10 @@
-﻿<section class="py-24 lg:py-32 bg-editorial-cream overflow-hidden">
-  <div class="container-editorial-wide">
+﻿<section class="py-16 lg:py-20 bg-editorial-cream overflow-hidden">
+  <div class="max-w-7xl mx-auto px-6">
 
     <!-- Header -->
-    <div class="mb-16" appScrollReveal="fadeUp">
-      <p class="label-editorial mb-4">Vida Escolar</p>
-      <div class="section-divider mb-6"></div>
+    <div class="mb-12" appScrollReveal="fadeUp">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-gold mb-4">Vida Escolar</p>
+      <div class="h-1 w-16 bg-editorial-gold mb-6"></div>
       <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-black text-editorial-navy leading-[0.95] tracking-tight">
         Momentos que<br/>
         <span class="text-editorial-gold">Inspiran</span>
@@ -33,35 +33,8 @@
 
         <!-- Caption siempre visible -->
         <div class="mt-3">
-          <span class="label-editorial text-editorial-gold text-[10px]">{{ img.category }}</span>
+          <span class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-gold text-[10px]">{{ img.category }}</span>
           <h3 class="text-sm font-semibold text-editorial-navy mt-0.5">{{ img.title }}</h3>
-        </div>
-      </div>
-    </div>
-
-    <!-- Auto-scroll row de imágenes -->
-    <div class="mt-16" appScrollReveal="fadeIn" [delay]="300">
-      <div class="gallery-scroll-track">
-        <div *ngFor="let img of galleryImages()" class="w-64 flex-shrink-0">
-          <div class="aspect-[4/3] overflow-hidden">
-            <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
-                 class="w-full h-full object-cover" />
-          </div>
-          <div class="mt-2">
-            <span class="text-[10px] font-semibold uppercase tracking-[0.15em] text-editorial-muted">{{ img.category }}</span>
-            <p class="text-xs text-editorial-slate mt-0.5">{{ img.title }}</p>
-          </div>
-        </div>
-        <!-- Duplicar para scroll infinito -->
-        <div *ngFor="let img of galleryImages()" class="w-64 flex-shrink-0" aria-hidden="true">
-          <div class="aspect-[4/3] overflow-hidden">
-            <img [src]="img.url" [alt]="img.title" loading="lazy" decoding="async"
-                 class="w-full h-full object-cover" />
-          </div>
-          <div class="mt-2">
-            <span class="text-[10px] font-semibold uppercase tracking-[0.15em] text-editorial-muted">{{ img.category }}</span>
-            <p class="text-xs text-editorial-slate mt-0.5">{{ img.title }}</p>
-          </div>
         </div>
       </div>
     </div>
@@ -108,7 +81,7 @@
     <ng-template pTemplate="captions" let-img>
       <div class="text-center mt-2">
         <h3 class="text-white font-bold">{{ img.title }}</h3>
-        <span class="label-editorial text-editorial-gold-light text-xs">{{ img.category }}</span>
+        <span class="text-xs font-semibold uppercase tracking-[0.2em] text-editorial-gold-light text-xs">{{ img.category }}</span>
       </div>
     </ng-template>
 

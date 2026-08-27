@@ -7,6 +7,7 @@ import Swal from 'sweetalert2';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { Charge, FinanceService, Payment } from '@core/services/finance.service';
 import { FinanceCashierService } from '@core/services/finance-cashier.service';
+import { ReceiptPrintService } from '@core/services/receipt-print.service';
 
 @Component({
   selector: 'app-finance-cash',
@@ -341,6 +342,7 @@ export class FinanceCashComponent implements OnInit {
   constructor(
     private financeService: FinanceService,
     private financeCashier: FinanceCashierService,
+    private receiptPrint: ReceiptPrintService,
     private router: Router
   ) {}
 
@@ -512,11 +514,38 @@ export class FinanceCashComponent implements OnInit {
         this.calculateStats();
         this.loadStudentCharges();
 
-        const receiptLabel = payment.receipt?.number
-          ? `Recibo generado: ${payment.receipt.number}`
-          : 'El pago fue registrado correctamente.';
+        if (payment.receipt) {
+          Swal.fire({
+            title: 'Pago registrado',
+            html: `
+              <div style="text-align:left;font-size:14px;line-height:1.8;">
+                <p>✅ Pago registrado correctamente.</p>
+                <p><strong>Recibo:</strong> ${payment.receipt.number}</p>
+                <p><strong>Monto:</strong> S/ ${Number(payment.amount || 0).toFixed(2)}</p>
+                <p style="font-size:12px;color:#64748b;">
+                  Modo: <strong>${this.receiptPrint.hasTicketPrinter() ? 'Ticketera 80mm' : 'Hoja A4'}</strong>
+                </p>
+              </div>
+            `,
+            icon: 'success',
+            showCancelButton: true,
+            showDenyButton: !this.receiptPrint.hasTicketPrinter(),
+            confirmButtonText: this.receiptPrint.hasTicketPrinter() ? '🖨️ Imprimir ticket' : '🖨️ Imprimir A4',
+            denyButtonText: '🧾 Ticket',
+            cancelButtonText: 'Cerrar',
+            confirmButtonColor: '#1d4ed8',
+            denyButtonColor: '#d97706',
+          }).then((result) => {
+            if (result.isConfirmed) {
+              this.receiptPrint.print(payment, this.selectedStudent);
+            } else if (result.isDenied) {
+              this.receiptPrint.printTicket(payment, this.selectedStudent);
+            }
+          });
+          return;
+        }
 
-        Swal.fire('Pago registrado', receiptLabel, 'success');
+        Swal.fire('Pago registrado', 'El pago fue registrado correctamente.', 'success');
       },
       error: () => {
         // El modal compartido ya muestra el error al usuario.
