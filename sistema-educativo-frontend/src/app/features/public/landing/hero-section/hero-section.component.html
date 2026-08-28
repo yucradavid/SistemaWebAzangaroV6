@@ -1,5 +1,8 @@
 <section class="relative min-h-screen flex items-center bg-editorial-navy overflow-hidden">
 
+  <!-- Fondo configurable: imagen subida desde el panel (pageKey 'home'); si no hay, queda fondo-home.jpg -->
+  <app-page-cover pageKey="home" class="absolute inset-0 z-[1]"></app-page-cover>
+
   <!-- Fondo: imagen de portada del prototipo original (estudiantes en clase) -->
   <div class="absolute inset-0">
     <img
@@ -7,11 +10,11 @@
       alt="" decoding="async" aria-hidden="true"
       class="absolute inset-0 w-full h-full object-cover" />
     <!-- Overlay institucional tricolor (azul oscuro → azul claro → rojo) -->
-    <div class="absolute inset-0 bg-gradient-to-br from-cermat-blue-900/95 via-cermat-blue-500/80 to-cermat-red-600/75"></div>
+    <div class="absolute inset-0 z-[2] bg-gradient-to-br from-cermat-blue-900/75 via-cermat-blue-500/60 to-cermat-red-600/55"></div>
   </div>
 
   <!-- Contenido principal -->
-  <div class="max-w-7xl mx-auto px-6 sm:px-8 relative z-10 py-20 lg:py-28">
+  <div class="max-w-7xl mx-auto px-6 sm:px-8 relative z-10 py-20 lg:py-28 [text-shadow:0_1px_2px_rgba(15,23,42,0.6),0_2px_8px_rgba(15,23,42,0.5),0_6px_20px_rgba(15,23,42,0.4)]">
     <div class="grid lg:grid-cols-12 gap-10 items-center">
 
       <!-- Columna izquierda: tipografía masiva -->
@@ -61,7 +64,7 @@
               class="w-full h-full object-cover" />
           </div>
           <!-- Bloque de acento superpuesto -->
-          <div class="absolute -bottom-4 -left-4 bg-cermat-red-600 px-6 py-4 rounded-xl shadow-xl">
+          <div class="absolute -bottom-4 -left-4 bg-cermat-red-600 px-6 py-4 rounded-xl shadow-xl [text-shadow:none]">
             <div class="text-2xl font-black text-white leading-none">{{ schoolInfo().students }}+</div>
             <div class="text-xs text-white/80 font-medium mt-1">Estudiantes Activos</div>
           </div>
