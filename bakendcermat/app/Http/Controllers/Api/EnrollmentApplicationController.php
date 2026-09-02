@@ -2,32 +2,39 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\InstallmentSplitException;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
-use App\Models\User;
-use Carbon\Carbon;
-
-use App\Models\Profile;
-use App\Models\EnrollmentApplication;
 use App\Models\AcademicYear;
-use App\Models\Guardian;
+use App\Models\Discount;
+use App\Models\DocumentType;
+use App\Models\EnrollmentApplication;
+use App\Models\EnrollmentApplicationDocument;
 use App\Models\GradeLevel;
+use App\Models\Guardian;
+use App\Models\Profile;
 use App\Models\Section;
 use App\Models\Student;
-use App\Models\DocumentType;
-use App\Models\EnrollmentApplicationDocument;
+use App\Models\User;
 use App\Services\AccountProvisioningService;
+use App\Services\ChargeIssuanceService;
+use App\Services\EnrollmentBillingService;
+use App\Services\InstallmentPlanCalculator;
 use App\Support\EnrollmentApplicationValueNormalizer;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 use RuntimeException;
 
 class EnrollmentApplicationController extends Controller
 {
     public function __construct(
-        private readonly AccountProvisioningService $accountProvisioningService
+        private readonly AccountProvisioningService $accountProvisioningService,
+        private readonly EnrollmentBillingService $billing,
+        private readonly ChargeIssuanceService $chargeIssuance,
+        private readonly InstallmentPlanCalculator $calculator
     ) {}
 
     public function publicOptions()
@@ -82,7 +89,7 @@ class EnrollmentApplicationController extends Controller
                 ->when($apiKey, function ($http, $apiKeyValue) {
                     return $http->withHeaders(['X-API-Key' => $apiKeyValue]);
                 }, $apiKey)
-                ->get(rtrim($baseUrl, '/') . '/consulta-dni', ['dni' => $dni]);
+                ->get(rtrim($baseUrl, '/').'/consulta-dni', ['dni' => $dni]);
 
             if (! $response->successful()) {
                 return response()->json([
@@ -114,7 +121,7 @@ class EnrollmentApplicationController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al consultar Reniec: ' . $e->getMessage(),
+                'message' => 'Error al consultar Reniec: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -162,7 +169,7 @@ class EnrollmentApplicationController extends Controller
     private function mapSiblings(Guardian $guardian)
     {
         return $guardian->students->map(function ($student) {
-            $name = trim(($student->first_name ?? '') . ' ' . ($student->last_name ?? ''));
+            $name = trim(($student->first_name ?? '').' '.($student->last_name ?? ''));
 
             return [
                 'name' => $name !== '' ? $name : 'Estudiante',
@@ -274,7 +281,7 @@ class EnrollmentApplicationController extends Controller
 
         return response()->json([
             'message' => 'Solicitud creada',
-            'data' => $app
+            'data' => $app,
         ], 201);
     }
 
@@ -343,7 +350,7 @@ class EnrollmentApplicationController extends Controller
 
         return response()->json([
             'message' => 'Solicitud actualizada',
-            'data' => $app
+            'data' => $app,
         ]);
     }
 
@@ -354,7 +361,7 @@ class EnrollmentApplicationController extends Controller
         $app->delete();
 
         return response()->json([
-            'message' => 'Solicitud eliminada'
+            'message' => 'Solicitud eliminada',
         ]);
     }
 
@@ -369,7 +376,7 @@ class EnrollmentApplicationController extends Controller
 
         if ($app->status !== 'pending') {
             return response()->json([
-                'message' => 'Solo se pueden aprobar solicitudes en estado pending.'
+                'message' => 'Solo se pueden aprobar solicitudes en estado pending.',
             ], 422);
         }
 
@@ -395,6 +402,8 @@ class EnrollmentApplicationController extends Controller
 
         $data = $request->validate([
             'section_id' => ['required', 'uuid', 'exists:sections,id'],
+            'payment_mode' => ['required', Rule::in(['contado', 'cuotas'])],
+            'installments_count' => ['nullable', 'integer', 'required_if:payment_mode,cuotas'],
         ]);
 
         $section = Section::query()->findOrFail($data['section_id']);
@@ -404,9 +413,26 @@ class EnrollmentApplicationController extends Controller
             || $section->grade_level_id !== $app->grade_level_id
         ) {
             return response()->json([
-                'message' => 'La seccion seleccionada no pertenece al mismo ano academico y grado de la solicitud.'
+                'message' => 'La seccion seleccionada no pertenece al mismo ano academico y grado de la solicitud.',
             ], 422);
         }
+
+        // La modalidad se valida ANTES de llamar a la funcion SQL: esa funcion
+        // hace su propio commit, asi que si la eleccion fuera imposible (p. ej.
+        // 8 cuotas cuando solo caben 4 en lo que resta del anio) la matricula
+        // quedaria aprobada y sin cargos. Fallar aqui la deja intacta.
+        $approvedAt = Carbon::now();
+        $academicYear = (int) AcademicYear::query()->where('id', $app->academic_year_id)->value('year');
+        $installmentsCount = $data['payment_mode'] === 'cuotas'
+            ? (int) $data['installments_count']
+            : null;
+
+        $this->billing->validateSelection(
+            $data['payment_mode'],
+            $installmentsCount,
+            $approvedAt,
+            $academicYear
+        );
 
         $user = $request->user();
 
@@ -423,24 +449,66 @@ class EnrollmentApplicationController extends Controller
         $profileId = $profile->id;
 
         $result = DB::selectOne(
-            "SELECT * FROM public.approve_enrollment_application(?, ?, ?)",
+            'SELECT * FROM public.approve_enrollment_application(?, ?, ?)',
             [$id, $data['section_id'], $profileId]
         );
 
         if (! $result) {
             return response()->json([
-                'message' => 'No se pudo aprobar la solicitud (la funcion SQL no retorno respuesta).'
+                'message' => 'No se pudo aprobar la solicitud (la funcion SQL no retorno respuesta).',
             ], 500);
         }
 
         if (property_exists($result, 'success') && ! $result->success) {
             return response()->json([
-                'message' => $result->message ?? 'No se pudo aprobar la solicitud.'
+                'message' => $result->message ?? 'No se pudo aprobar la solicitud.',
             ], 422);
         }
 
         // refrescar estado por si la funcion lo actualizo
         $app->refresh();
+
+        $studentId = property_exists($result, 'student_id') ? (string) $result->student_id : null;
+
+        // Persistir la decision en la solicitud: sin esto, el vinculo
+        // solicitud -> alumno solo existia en el retorno de la funcion SQL y se
+        // perdia, y la vista de "contado aprobado sin cobrar" tendria que unir
+        // por DNI.
+        $app->forceFill([
+            'student_id' => $studentId,
+            'payment_mode' => $data['payment_mode'],
+            'installments_count' => $installmentsCount,
+        ])->save();
+
+        // Generacion de cargos, en su propia transaccion. approve() no abre una
+        // transaccion que envuelva todo, asi que la llamada a la funcion SQL ya
+        // quedo confirmada por autocommit de sentencia: no se puede "deshacer"
+        // la matricula desde aqui. Por eso, si la generacion de cargos falla, se
+        // reporta y se deja la matricula aprobada; los cargos se emiten despues
+        // desde Finanzas -> Emision Masiva, en vez de dejar al alumno a medio
+        // crear. La eleccion de modalidad ya se valido mas arriba, justamente
+        // para que este camino sea raro.
+        $billing = null;
+        $billingError = null;
+
+        if ($studentId) {
+            try {
+                $student = Student::query()->findOrFail($studentId);
+
+                $billing = DB::transaction(fn () => $this->billing->generateForApproval(
+                    $student,
+                    $app->academic_year_id,
+                    $academicYear,
+                    $data['payment_mode'],
+                    $installmentsCount,
+                    $this->chargeIssuance->resolveActorUserId($user),
+                    $approvedAt
+                ));
+            } catch (\Throwable $exception) {
+                report($exception);
+                $billingError = $exception->getMessage();
+            }
+        }
 
         $credentials = null;
         $credentialsError = null;
@@ -458,14 +526,302 @@ class EnrollmentApplicationController extends Controller
 
         return response()->json([
             'message' => $credentialsError
-                ? (($result->message ?? 'Solicitud aprobada') . ' La matricula se registro, pero hubo un problema al generar las credenciales.')
+                ? (($result->message ?? 'Solicitud aprobada').' La matricula se registro, pero hubo un problema al generar las credenciales.')
                 : ($result->message ?? 'Solicitud aprobada'),
             'data' => [
                 'result' => $result,
                 'application' => $app,
                 'credentials' => $credentials,
                 'credentials_error' => $credentialsError,
-            ]
+                // Con esto el frontend puede mostrar el resumen y mandar a
+                // Finanzas -> Cuenta Corriente a cobrar.
+                'billing' => $billing,
+                'billing_error' => $billingError,
+                'student_id' => $studentId,
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/enrollment-applications/{id}/billing-preview
+     *
+     * Solo LECTURA: no crea cargos ni toca la solicitud. Devuelve, para la
+     * misma solicitud que se esta por aprobar, cuanto se le va a cobrar en
+     * cada modalidad disponible, para que el modal de aprobacion lo muestre
+     * ANTES de confirmar.
+     *
+     * El calculo NO se replica en el frontend a proposito: reusa exactamente
+     * los mismos servicios que despues generan los cargos de verdad
+     * (EnrollmentBillingService + InstallmentPlanCalculator + la regla de
+     * Discount::appliesTo), asi la vista previa no puede divergir del cobro
+     * real por un redondeo o por un dia de vencimiento distinto. Ademas es la
+     * unica forma de que el frontend conozca installment_options,
+     * pension_due_day y pension_first_due_month, que viven en system_settings
+     * y no estan expuestos por ningun otro endpoint.
+     */
+    public function billingPreview(string $id)
+    {
+        $app = EnrollmentApplication::findOrFail($id);
+
+        $referenceDate = Carbon::now();
+        $academicYear = (int) AcademicYear::query()->where('id', $app->academic_year_id)->value('year');
+
+        $installmentOptions = $this->billing->installmentOptions();
+
+        $payload = [
+            'academic_year_id' => $app->academic_year_id,
+            'academic_year' => $academicYear,
+            'reference_date' => $referenceDate->toDateString(),
+            'installment_options' => $installmentOptions,
+            'max_installments' => $this->billing->maxInstallmentsThatFit($referenceDate, $academicYear),
+            'first_scheduled_due_date' => $this->billing->firstScheduledDueDate($referenceDate, $academicYear)->toDateString(),
+        ];
+
+        // Sin conceptos activos bien configurados no hay nada que previsualizar,
+        // pero tampoco es un error del usuario: se devuelve 200 con el motivo
+        // para que el modal lo muestre y bloquee el boton, en vez de un 500.
+        try {
+            $matricula = $this->billing->resolveConcept('matricula');
+            $pension = $this->billing->resolveConcept('pension');
+        } catch (InstallmentSplitException $exception) {
+            return response()->json($payload + [
+                'concepts_error' => $exception->getMessage(),
+                'concepts' => null,
+                'auto_discount' => null,
+                'options' => [],
+            ]);
+        }
+
+        $discount = Discount::autoApplyForYear($app->academic_year_id, 'contado');
+
+        $payload['concepts_error'] = null;
+        $payload['concepts'] = [
+            'matricula' => ['name' => $matricula->name, 'amount' => round((float) $matricula->base_amount, 2)],
+            'pension' => ['name' => $pension->name, 'amount' => round((float) $pension->base_amount, 2)],
+        ];
+        $payload['auto_discount'] = $discount ? [
+            'id' => $discount->id,
+            'name' => $discount->name,
+            'type' => $discount->type,
+            'value' => (float) $discount->value,
+            'concepts' => $discount->feeConcepts->pluck('name')->values()->all(),
+        ] : null;
+
+        // CONTADO: matricula + pension anual completa, ambas venciendo hoy, y
+        // el descuento automatico de contado si el admin lo configuro.
+        $options = [
+            $this->buildPreviewOption('contado', 'contado', null, true, null, [
+                [
+                    'label' => 'Matricula',
+                    'type' => 'matricula',
+                    'concept_id' => $matricula->id,
+                    'due_date' => $referenceDate->toDateString(),
+                    'amount' => round((float) $matricula->base_amount, 2),
+                ],
+                [
+                    'label' => 'Pension anual completa',
+                    'type' => 'pension',
+                    'concept_id' => $pension->id,
+                    'due_date' => $referenceDate->toDateString(),
+                    'amount' => round((float) $pension->base_amount, 2),
+                ],
+            ], $discount, $referenceDate),
+        ];
+
+        // CUOTAS: una entrada por cada cantidad habilitada. Las que no caben en
+        // lo que resta del anio se devuelven con available=false y el mismo
+        // mensaje que daria approve(), en vez de ocultarlas: asi secretaria ve
+        // por que no puede elegir 8 cuotas en septiembre.
+        foreach ($installmentOptions as $count) {
+            try {
+                $this->billing->validateSelection('cuotas', $count, $referenceDate, $academicYear);
+                $montos = $this->calculator->split((float) $pension->base_amount, $count);
+            } catch (InstallmentSplitException $exception) {
+                $options[] = $this->buildPreviewOption(
+                    'cuotas-'.$count,
+                    'cuotas',
+                    $count,
+                    false,
+                    $exception->getMessage(),
+                    [],
+                    null,
+                    $referenceDate
+                );
+
+                continue;
+            }
+
+            $fechas = $this->billing->scheduledDueDates($referenceDate, $academicYear, $count);
+
+            $lines = [[
+                'label' => 'Matricula',
+                'type' => 'matricula',
+                'concept_id' => $matricula->id,
+                'due_date' => $referenceDate->toDateString(),
+                'amount' => round((float) $matricula->base_amount, 2),
+            ]];
+
+            foreach ($montos as $i => $monto) {
+                $numero = $i + 1;
+                $vence = $numero === 1 ? $referenceDate : $fechas[$i - 1];
+
+                $lines[] = [
+                    'label' => "Pension - cuota {$numero} de {$count}",
+                    'type' => 'pension',
+                    'concept_id' => $pension->id,
+                    'due_date' => $vence->toDateString(),
+                    'amount' => round($monto, 2),
+                ];
+            }
+
+            // El descuento automatico es exclusivo de contado: en cuotas se
+            // pasa null a proposito, igual que hace generateForApproval().
+            $options[] = $this->buildPreviewOption(
+                'cuotas-'.$count,
+                'cuotas',
+                $count,
+                true,
+                null,
+                $lines,
+                null,
+                $referenceDate
+            );
+        }
+
+        $payload['options'] = $options;
+
+        return response()->json($payload);
+    }
+
+    /**
+     * Arma una modalidad de la vista previa aplicando el descuento cargo por
+     * cargo con la MISMA regla del recalculo real (StudentDiscountService):
+     * porcentaje sobre el bruto, monto fijo sumado, tope en el monto del cargo,
+     * y Discount::appliesTo() decidiendo a que cargos alcanza.
+     */
+    private function buildPreviewOption(
+        string $key,
+        string $paymentMode,
+        ?int $installments,
+        bool $available,
+        ?string $unavailableReason,
+        array $lines,
+        ?Discount $discount,
+        Carbon $referenceDate
+    ): array {
+        $charges = [];
+        $gross = 0.0;
+        $discountTotal = 0.0;
+        $dueToday = 0.0;
+        $today = $referenceDate->toDateString();
+
+        foreach ($lines as $line) {
+            $amount = (float) $line['amount'];
+            $lineDiscount = 0.0;
+
+            if ($discount && $discount->appliesTo($line['type'], $line['concept_id'])) {
+                $lineDiscount = $discount->type === 'porcentaje'
+                    ? round($amount * (float) $discount->value / 100, 2)
+                    : (float) $discount->value;
+
+                $lineDiscount = min($amount, $lineDiscount);
+            }
+
+            $final = round($amount - $lineDiscount, 2);
+            $gross += $amount;
+            $discountTotal += $lineDiscount;
+
+            if ($line['due_date'] <= $today) {
+                $dueToday += $final;
+            }
+
+            $charges[] = [
+                'label' => $line['label'],
+                'type' => $line['type'],
+                'due_date' => $line['due_date'],
+                'amount' => round($amount, 2),
+                'discount_amount' => round($lineDiscount, 2),
+                'final_amount' => $final,
+            ];
+        }
+
+        return [
+            'key' => $key,
+            'payment_mode' => $paymentMode,
+            'installments_count' => $installments,
+            'available' => $available,
+            'unavailable_reason' => $unavailableReason,
+            'charges' => $charges,
+            'gross_total' => round($gross, 2),
+            'discount_total' => round($discountTotal, 2),
+            'total' => round($gross - $discountTotal, 2),
+            'due_today' => round($dueToday, 2),
+        ];
+    }
+
+    /**
+     * GET /api/enrollment-applications/pending-cash-collection
+     *
+     * Matriculas aprobadas con pago AL CONTADO cuyos cargos todavia no fueron
+     * cobrados: secretaria las aprobo, pero nadie confirmo el pago real en
+     * Finanzas. Es la lista de seguimiento del punto 6 del flujo.
+     *
+     * "No cobrado" = tiene al menos un cargo vigente (no anulado) del anio en
+     * estado pendiente o pagado_parcial. Un alumno con todo pagado desaparece
+     * solo de la lista, sin necesidad de marcarlo a mano.
+     */
+    public function pendingCashCollection(Request $request)
+    {
+        $academicYearId = $request->input('academic_year_id')
+            ?? AcademicYear::query()->where('is_active', true)->value('id');
+
+        $applications = EnrollmentApplication::query()
+            ->with(['gradeLevel', 'student.section.gradeLevel'])
+            ->where('status', 'approved')
+            ->where('payment_mode', 'contado')
+            ->when($academicYearId, fn ($q) => $q->where('academic_year_id', $academicYearId))
+            ->whereNotNull('student_id')
+            ->whereHas('student.charges', function ($q) use ($academicYearId) {
+                $q->whereNull('voided_at')
+                    ->whereIn('status', ['pendiente', 'pagado_parcial'])
+                    ->when($academicYearId, fn ($sub) => $sub->where('academic_year_id', $academicYearId));
+            })
+            ->orderByDesc('reviewed_at')
+            ->get();
+
+        $data = $applications->map(function (EnrollmentApplication $app) use ($academicYearId) {
+            $charges = $app->student
+                ? $app->student->charges()
+                    ->whereNull('voided_at')
+                    ->when($academicYearId, fn ($q) => $q->where('academic_year_id', $academicYearId))
+                    ->orderBy('due_date')
+                    ->get()
+                : collect();
+
+            $pendientes = $charges->whereIn('status', ['pendiente', 'pagado_parcial']);
+
+            return [
+                'application_id' => $app->id,
+                'student_id' => $app->student_id,
+                'student_name' => trim($app->student_first_name.' '.$app->student_last_name),
+                'student_code' => $app->student?->student_code,
+                'grade_level' => $app->gradeLevel?->name,
+                'section' => $app->student?->section?->section_letter,
+                'guardian_name' => trim($app->guardian_first_name.' '.$app->guardian_last_name),
+                'guardian_phone' => $app->guardian_phone,
+                'approved_at' => optional($app->reviewed_at)->toDateTimeString(),
+                'charges_count' => $pendientes->count(),
+                'total_due' => round((float) $pendientes->sum('final_amount') - (float) $pendientes->sum('paid_amount'), 2),
+                'total_charged' => round((float) $charges->sum('final_amount'), 2),
+                'total_paid' => round((float) $charges->sum('paid_amount'), 2),
+            ];
+        })->values();
+
+        return response()->json([
+            'academic_year_id' => $academicYearId,
+            'count' => $data->count(),
+            'total_due' => round((float) $data->sum('total_due'), 2),
+            'data' => $data,
         ]);
     }
 
@@ -476,7 +832,7 @@ class EnrollmentApplicationController extends Controller
 
         if ($app->status !== 'approved') {
             return response()->json([
-                'message' => 'Solo se pueden generar credenciales para solicitudes aprobadas.'
+                'message' => 'Solo se pueden generar credenciales para solicitudes aprobadas.',
             ], 422);
         }
 
@@ -499,7 +855,7 @@ class EnrollmentApplicationController extends Controller
 
         if ($app->status !== 'pending') {
             return response()->json([
-                'message' => 'Solo se pueden rechazar solicitudes en estado pending.'
+                'message' => 'Solo se pueden rechazar solicitudes en estado pending.',
             ], 422);
         }
 
@@ -530,7 +886,7 @@ class EnrollmentApplicationController extends Controller
 
         return response()->json([
             'message' => 'Solicitud rechazada',
-            'data' => $app
+            'data' => $app,
         ]);
     }
 

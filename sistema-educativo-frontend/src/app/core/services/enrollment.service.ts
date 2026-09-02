@@ -89,6 +89,81 @@ export interface EnrollmentProvisionCredentials {
   guardian: ProvisionedAccountCredential;
 }
 
+export type EnrollmentPaymentMode = 'contado' | 'cuotas';
+
+export interface EnrollmentBillingPreviewCharge {
+  label: string;
+  type: 'matricula' | 'pension';
+  due_date: string;
+  amount: number;
+  discount_amount: number;
+  final_amount: number;
+}
+
+/**
+ * Una modalidad posible para la matricula que se esta por aprobar. Las que no
+ * caben en lo que resta del anio academico llegan con available=false y el
+ * motivo ya redactado por el backend (no se arma ningun mensaje aca).
+ */
+export interface EnrollmentBillingPreviewOption {
+  key: string;
+  payment_mode: EnrollmentPaymentMode;
+  installments_count: number | null;
+  available: boolean;
+  unavailable_reason: string | null;
+  charges: EnrollmentBillingPreviewCharge[];
+  gross_total: number;
+  discount_total: number;
+  total: number;
+  due_today: number;
+}
+
+export interface EnrollmentBillingPreview {
+  academic_year_id: string;
+  academic_year: number;
+  reference_date: string;
+  installment_options: number[];
+  max_installments: number;
+  first_scheduled_due_date: string;
+  concepts_error: string | null;
+  concepts: {
+    matricula: { name: string; amount: number };
+    pension: { name: string; amount: number };
+  } | null;
+  auto_discount: {
+    id: string;
+    name: string;
+    type: 'porcentaje' | 'monto_fijo';
+    value: number;
+    concepts: string[];
+  } | null;
+  options: EnrollmentBillingPreviewOption[];
+}
+
+/** Fila de la vista "Contado pendiente de cobro". */
+export interface PendingCashCollectionRow {
+  application_id: string;
+  student_id: string;
+  student_name: string;
+  student_code: string | null;
+  grade_level: string | null;
+  section: string | null;
+  guardian_name: string;
+  guardian_phone: string | null;
+  approved_at: string | null;
+  charges_count: number;
+  total_due: number;
+  total_charged: number;
+  total_paid: number;
+}
+
+export interface PendingCashCollectionResponse {
+  academic_year_id: string | null;
+  count: number;
+  total_due: number;
+  data: PendingCashCollectionRow[];
+}
+
 export interface PublicEnrollmentApplicationPayload {
   student_first_name: string;
   student_last_name: string;
@@ -157,8 +232,36 @@ export class EnrollmentService {
     return this.http.get<EnrollmentApplication>(`${this.apiUrl}/${id}`);
   }
 
-  approveApplication(id: string, sectionId: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/${id}/approve`, { section_id: sectionId });
+  /**
+   * Cuanto se le va a cobrar al alumno en cada modalidad. Solo lectura: se
+   * consulta al abrir el modal de aprobacion, antes de confirmar nada.
+   */
+  getBillingPreview(id: string): Observable<EnrollmentBillingPreview> {
+    return this.http.get<EnrollmentBillingPreview>(`${this.apiUrl}/${id}/billing-preview`);
+  }
+
+  approveApplication(
+    id: string,
+    sectionId: string,
+    paymentMode: EnrollmentPaymentMode,
+    installmentsCount?: number | null
+  ): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${id}/approve`, {
+      section_id: sectionId,
+      payment_mode: paymentMode,
+      // Solo viaja en modalidad cuotas: el backend lo valida con required_if.
+      installments_count: paymentMode === 'cuotas' ? installmentsCount : null,
+    });
+  }
+
+  /** Matriculas aprobadas al contado cuyo cargo todavia no fue cobrado. */
+  getPendingCashCollection(academicYearId?: string | null): Observable<PendingCashCollectionResponse> {
+    let params = new HttpParams();
+    if (academicYearId) {
+      params = params.set('academic_year_id', academicYearId);
+    }
+
+    return this.http.get<PendingCashCollectionResponse>(`${this.apiUrl}/pending-cash-collection`, { params });
   }
 
   provisionAccounts(id: string): Observable<any> {

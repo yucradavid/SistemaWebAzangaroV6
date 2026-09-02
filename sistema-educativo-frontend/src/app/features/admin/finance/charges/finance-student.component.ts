@@ -2,6 +2,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, forkJoin } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import Swal from 'sweetalert2';
@@ -363,12 +364,18 @@ export class FinanceStudentComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
+  // Alumno que otro modulo pidio preseleccionar (?student_id=...), por ejemplo
+  // al aprobar una matricula al contado que queda lista para cobrar.
+  private pendingStudentId: string | null = null;
+
   constructor(
     private fb: FormBuilder,
     private financeService: FinanceService,
     private academicService: AcademicService,
     private financeCashier: FinanceCashierService,
-    private receiptPrint: ReceiptPrintService
+    private receiptPrint: ReceiptPrintService,
+    private route: ActivatedRoute,
+    private router: Router
   ) {
     this.searchForm = this.fb.group({
       q: ['']
@@ -376,6 +383,7 @@ export class FinanceStudentComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.pendingStudentId = this.route.snapshot.queryParamMap.get('student_id');
     this.loadAcademicYears();
 
     this.searchForm.get('q')?.valueChanges
@@ -486,6 +494,7 @@ export class FinanceStudentComponent implements OnInit, OnDestroy {
         next: (response) => {
           this.chargedStudents = this.financeService.unwrapItems(response);
           this.loadingStudentDirectory = false;
+          this.applyPendingStudentSelection();
         },
         error: () => {
           this.chargedStudents = [];
@@ -493,6 +502,77 @@ export class FinanceStudentComponent implements OnInit, OnDestroy {
           Swal.fire('Error', 'No se pudo cargar la lista de alumnos con cargos.', 'error');
         }
       });
+  }
+
+  /**
+   * Selecciona el alumno que llego por ?student_id=. Primero se busca en el
+   * directorio ya cargado (el caso normal, y viene con seccion y grado); si no
+   * esta ahi, se resuelve por id y se reconsulta por su codigo para traerlo
+   * completo, en vez de mostrar la ficha a medias.
+   */
+  private applyPendingStudentSelection(): void {
+    const id = this.pendingStudentId;
+
+    if (!id) {
+      return;
+    }
+
+    this.pendingStudentId = null;
+    this.clearStudentIdFromUrl();
+
+    const alreadyListed = this.chargedStudents.find((student: any) => student.id === id);
+
+    if (alreadyListed) {
+      this.selectStudent(alreadyListed);
+      return;
+    }
+
+    this.financeService.getStudent(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (student) => {
+          if (!student?.id) {
+            return;
+          }
+
+          const code = student.student_code || student.dni;
+
+          if (!code) {
+            this.selectStudent(student);
+            return;
+          }
+
+          this.financeService.searchStudents(String(code), {
+            academic_year_id: this.selectedAcademicYearId || undefined,
+            include_voided: false,
+            per_page: 20
+          })
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (response) => {
+                const match = this.financeService.unwrapItems(response)
+                  .find((item: any) => item.id === id);
+
+                this.selectStudent(match || student);
+              },
+              error: () => this.selectStudent(student)
+            });
+        },
+        error: () => {
+          Swal.fire('Aviso', 'No se pudo abrir la cuenta del alumno indicado. Buscalo manualmente.', 'info');
+        }
+      });
+  }
+
+  // El parametro ya cumplio su funcion: se saca de la URL para que al cambiar
+  // de alumno o recargar no vuelva a forzar la misma seleccion.
+  private clearStudentIdFromUrl(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { student_id: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
   }
 
   loadAccount(): void {

@@ -1,14 +1,24 @@
 //src/app/features/admin/admissions/enrollment-approvals/enrollment-approvals.component.ts
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import Swal from 'sweetalert2';
 import { BackButtonComponent } from '@shared/components/back-button/back-button.component';
 import { forkJoin, Observable } from 'rxjs';
-import { EnrollmentApplication, EnrollmentProvisionCredentials, EnrollmentService } from '@core/services/enrollment.service';
+import {
+  EnrollmentApplication,
+  EnrollmentBillingPreview,
+  EnrollmentBillingPreviewOption,
+  EnrollmentPaymentMode,
+  EnrollmentProvisionCredentials,
+  EnrollmentService,
+} from '@core/services/enrollment.service';
 import { AcademicService, GradeLevel, Section } from '@core/services/academic.service';
 import { ApplicationDocumentChecklistItem, ApplicationDocumentsStatus, DocumentService } from '@core/services/document.service';
+import { PendingCashCollectionComponent } from '../pending-cash-collection/pending-cash-collection.component';
+
+type AdmissionsView = 'solicitudes' | 'contado';
 
 type AcademicYearOption = {
   id: string;
@@ -19,7 +29,7 @@ type AcademicYearOption = {
 @Component({
   selector: 'app-enrollment-approvals',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, BackButtonComponent],
+  imports: [CommonModule, RouterModule, FormsModule, BackButtonComponent, PendingCashCollectionComponent],
   templateUrl: './enrollment-approvals.component.html',
   styles: [`
     .animate-fade-in { animation: fadeIn 0.3s ease-out; }
@@ -30,6 +40,13 @@ export class EnrollmentApprovalsComponent implements OnInit {
   private readonly enrollmentService = inject(EnrollmentService);
   private readonly academicService = inject(AcademicService);
   private readonly documentService = inject(DocumentService);
+  private readonly router = inject(Router);
+
+  // Pestañas del módulo. La de contado se instancia recién al abrirla, para no
+  // pegarle al endpoint de seguimiento en cada entrada a Matrículas.
+  activeView: AdmissionsView = 'solicitudes';
+  openedCashView = false;
+  pendingCashCount = 0;
 
   applications: EnrollmentApplication[] = [];
   allSections: Section[] = [];
@@ -43,6 +60,14 @@ export class EnrollmentApprovalsComponent implements OnInit {
   showApproveModal = false;
   selectedApp: EnrollmentApplication | null = null;
   selectedSectionId = '';
+
+  // Modalidad de pago elegida en el modal de aprobacion. Arranca en contado,
+  // que es el caso mas comun en secretaria y el unico siempre disponible.
+  selectedPaymentMode: EnrollmentPaymentMode = 'contado';
+  selectedInstallments: number | null = null;
+  billingPreview: EnrollmentBillingPreview | null = null;
+  loadingBillingPreview = false;
+  billingPreviewError = '';
 
   showDetailModal = false;
   detailApplication: EnrollmentApplication | null = null;
@@ -66,6 +91,22 @@ export class EnrollmentApprovalsComponent implements OnInit {
     this.loadSections();
     this.loadGradeLevels();
     this.loadAcademicYears();
+  }
+
+  setView(view: AdmissionsView): void {
+    this.activeView = view;
+
+    if (view === 'contado') {
+      this.openedCashView = true;
+    }
+  }
+
+  viewTabClass(view: AdmissionsView): string {
+    const base = 'px-5 py-2.5 rounded-2xl text-sm font-bold transition-all duration-200 flex items-center border active:scale-95';
+
+    return this.activeView === view
+      ? base + ' bg-blue-600 text-white border-blue-600 shadow-md'
+      : base + ' bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-700';
   }
 
   get visibleApplications(): EnrollmentApplication[] {
@@ -286,8 +327,13 @@ export class EnrollmentApprovalsComponent implements OnInit {
   onApproveClick(app: EnrollmentApplication): void {
     this.selectedApp = app;
     this.selectedSectionId = '';
+    this.selectedPaymentMode = 'contado';
+    this.selectedInstallments = null;
+    this.billingPreview = null;
+    this.billingPreviewError = '';
     this.showApproveModal = true;
     this.syncFilteredSections();
+    this.loadBillingPreview(app.id);
   }
 
   closeApproveModal(): void {
@@ -295,6 +341,96 @@ export class EnrollmentApprovalsComponent implements OnInit {
     this.selectedApp = null;
     this.selectedSectionId = '';
     this.filteredSections = [];
+    this.billingPreview = null;
+    this.billingPreviewError = '';
+    this.loadingBillingPreview = false;
+  }
+
+  // Los montos, fechas y descuentos los calcula el backend con los mismos
+  // servicios que despues generan los cargos: aca no se replica ninguna
+  // formula, solo se muestra lo que llega.
+  private loadBillingPreview(applicationId: string): void {
+    this.loadingBillingPreview = true;
+
+    this.enrollmentService.getBillingPreview(applicationId).subscribe({
+      next: (preview) => {
+        this.billingPreview = preview;
+        this.loadingBillingPreview = false;
+        this.billingPreviewError = preview.concepts_error || '';
+        this.selectedInstallments = this.firstAvailableInstallments();
+      },
+      error: (err) => {
+        console.error(err);
+        this.loadingBillingPreview = false;
+        this.billingPreviewError = err?.error?.message
+          || 'No se pudo calcular la vista previa de los cargos.';
+      }
+    });
+  }
+
+  // Primera cantidad de cuotas que si cabe en lo que resta del anio, para no
+  // dejar preseleccionada una opcion que el backend va a rechazar.
+  private firstAvailableInstallments(): number | null {
+    const option = (this.billingPreview?.options || [])
+      .find((item) => item.payment_mode === 'cuotas' && item.available);
+
+    return option?.installments_count ?? null;
+  }
+
+  get installmentOptions(): EnrollmentBillingPreviewOption[] {
+    return (this.billingPreview?.options || []).filter((item) => item.payment_mode === 'cuotas');
+  }
+
+  get hasAvailableInstallments(): boolean {
+    return this.installmentOptions.some((item) => item.available);
+  }
+
+  /** Por que no se puede pagar en cuotas (todas las opciones vienen bloqueadas). */
+  get noInstallmentsReason(): string {
+    const reason = this.installmentOptions
+      .map((item) => item.unavailable_reason)
+      .find((value) => !!value);
+
+    return reason || 'No hay cantidades de cuotas disponibles para esta fecha.';
+  }
+
+  /** La modalidad que el usuario tiene elegida ahora mismo en el modal. */
+  get selectedBillingOption(): EnrollmentBillingPreviewOption | null {
+    const options = this.billingPreview?.options || [];
+
+    if (this.selectedPaymentMode === 'contado') {
+      return options.find((item) => item.payment_mode === 'contado') || null;
+    }
+
+    return options.find((item) =>
+      item.payment_mode === 'cuotas' && item.installments_count === this.selectedInstallments) || null;
+  }
+
+  get canConfirmApproval(): boolean {
+    if (!this.selectedSectionId || this.isBusy(this.selectedApp?.id)) {
+      return false;
+    }
+
+    // Sin vista previa valida no se deja confirmar: si los conceptos del
+    // catalogo estan mal configurados, el backend aprobaria la matricula y se
+    // quedaria sin cargos.
+    return this.selectedBillingOption?.available === true;
+  }
+
+  onPaymentModeChange(mode: EnrollmentPaymentMode): void {
+    this.selectedPaymentMode = mode;
+
+    if (mode === 'cuotas' && this.selectedInstallments === null) {
+      this.selectedInstallments = this.firstAvailableInstallments();
+    }
+  }
+
+  onInstallmentsChange(count: number): void {
+    this.selectedInstallments = count;
+  }
+
+  installmentOptionLabel(option: EnrollmentBillingPreviewOption): string {
+    return `${option.installments_count} cuotas`;
   }
 
   toggleDocumentsChecklist(): void {
@@ -424,56 +560,124 @@ export class EnrollmentApprovalsComponent implements OnInit {
   }
 
   approve(): void {
-    if (!this.selectedApp || !this.selectedSectionId) return;
+    if (!this.selectedApp || !this.canConfirmApproval) return;
+
+    const paymentMode = this.selectedPaymentMode;
+    const installments = paymentMode === 'cuotas' ? this.selectedInstallments : null;
 
     this.processingApplicationId = this.selectedApp.id;
     this.processingAction = 'approve';
 
-    this.enrollmentService.approveApplication(this.selectedApp.id, this.selectedSectionId).subscribe({
-      next: (response) => {
-        const message = response?.message || 'Solicitud aprobada.';
-        const credentials = response?.data?.credentials as EnrollmentProvisionCredentials | null | undefined;
-        const credentialsError = response?.data?.credentials_error as string | null | undefined;
+    this.enrollmentService
+      .approveApplication(this.selectedApp.id, this.selectedSectionId, paymentMode, installments)
+      .subscribe({
+        next: (response) => {
+          const message = response?.message || 'Solicitud aprobada.';
+          const credentials = response?.data?.credentials as EnrollmentProvisionCredentials | null | undefined;
+          const credentialsError = response?.data?.credentials_error as string | null | undefined;
+          const billingError = response?.data?.billing_error as string | null | undefined;
+          const studentId = (response?.data?.student_id as string | null | undefined) || null;
 
-        this.processingApplicationId = null;
-        this.processingAction = null;
-        const app = this.selectedApp;
-        this.closeApproveModal();
-        this.loadApplications();
+          this.processingApplicationId = null;
+          this.processingAction = null;
+          const app = this.selectedApp;
+          this.closeApproveModal();
+          this.loadApplications();
 
-        if (credentials && app) {
-          this.showCredentialsModal(credentials, message, app);
-          return;
-        }
+          // Los cargos se generan en su propia transaccion: la matricula puede
+          // quedar aprobada y la emision fallar. Si pasa, se avisa con el
+          // motivo real y NO se manda a cobrar algo que no existe.
+          if (billingError) {
+            void Swal.fire({
+              icon: 'warning',
+              title: 'Matricula aprobada, sin cargos generados',
+              text: `${message} No se pudieron generar los cargos: ${billingError} Emitelos desde Finanzas -> Emision Masiva.`,
+              confirmButtonText: 'Entendido',
+            });
+            return;
+          }
 
-        if (credentialsError) {
+          const afterNotice = () => this.goToCollectIfCash(paymentMode, studentId);
+
+          if (credentials && app) {
+            this.showCredentialsModal(credentials, message, app, afterNotice);
+            return;
+          }
+
+          if (credentialsError) {
+            void Swal.fire({
+              icon: 'warning',
+              title: 'Matricula aprobada',
+              text: `${message} ${credentialsError}`.trim(),
+              confirmButtonText: 'Entendido',
+            }).then(afterNotice);
+            return;
+          }
+
           void Swal.fire({
-            icon: 'warning',
-            title: 'Matricula aprobada',
-            text: `${message} ${credentialsError}`.trim(),
-            confirmButtonText: 'Entendido',
-          });
-          return;
-        }
+            icon: 'success',
+            title: 'Solicitud aprobada',
+            text: message,
+            confirmButtonText: 'Aceptar',
+          }).then(afterNotice);
+        },
+        error: (err) => {
+          console.error(err);
+          this.processingApplicationId = null;
+          this.processingAction = null;
 
-        void Swal.fire({
-          icon: 'success',
-          title: 'Solicitud aprobada',
-          text: message,
-          confirmButtonText: 'Aceptar',
-        });
-      },
-      error: (err) => {
-        console.error(err);
-        this.processingApplicationId = null;
-        this.processingAction = null;
-        void Swal.fire({
-          icon: 'error',
-          title: 'No se pudo aprobar',
-          text: err?.error?.message || 'Error al aprobar la solicitud.',
-          confirmButtonText: 'Cerrar',
-        });
+          void Swal.fire({
+            icon: 'error',
+            title: 'No se pudo aprobar',
+            // El backend ya redacta el motivo exacto (cuotas que no caben en el
+            // anio, conceptos duplicados, seccion de otro grado): se muestra tal
+            // cual en vez de un texto generico.
+            text: this.extractBackendMessage(err, 'Error al aprobar la solicitud.'),
+            confirmButtonText: 'Cerrar',
+          });
+
+          // El modal sigue abierto con lo ya elegido: se refresca la vista
+          // previa para que secretaria corrija la modalidad sin empezar de cero.
+          if (this.selectedApp) {
+            this.loadBillingPreview(this.selectedApp.id);
+          }
+        }
+      });
+  }
+
+  /**
+   * Mensaje real del backend. Un 422 de Laravel trae {message, errors}; para
+   * los errores de modalidad el detalle util esta en errors.installments_count
+   * / errors.payment_mode, no siempre en message.
+   */
+  private extractBackendMessage(err: any, fallback: string): string {
+    const errors = err?.error?.errors;
+
+    if (errors && typeof errors === 'object') {
+      const firstField = Object.keys(errors)[0];
+      const firstMessage = Array.isArray(errors[firstField]) ? errors[firstField][0] : null;
+
+      if (firstMessage) {
+        return String(firstMessage);
       }
+    }
+
+    return err?.error?.message || fallback;
+  }
+
+  /**
+   * Punto 1.4 del flujo: aprobada al contado, el cargo ya existe y solo falta
+   * que secretaria confirme el pago, asi que se la lleva directo a Finanzas ->
+   * Cuenta Corriente con el alumno ya seleccionado. En cuotas no se redirige:
+   * ahi el cobro es un calendario, no un cobro inmediato.
+   */
+  private goToCollectIfCash(paymentMode: EnrollmentPaymentMode, studentId: string | null): void {
+    if (paymentMode !== 'contado' || !studentId) {
+      return;
+    }
+
+    void this.router.navigate(['/app/finance/account'], {
+      queryParams: { tab: 'student', student_id: studentId },
     });
   }
 
@@ -546,7 +750,12 @@ export class EnrollmentApprovalsComponent implements OnInit {
       .trim();
   }
 
-  private showCredentialsModal(credentials: EnrollmentProvisionCredentials, message: string, app: EnrollmentApplication): void {
+  private showCredentialsModal(
+    credentials: EnrollmentProvisionCredentials,
+    message: string,
+    app: EnrollmentApplication,
+    onClosed?: () => void
+  ): void {
     const studentPassword = credentials.student.generated ? (credentials.student.password || '') : 'Ya existia una cuenta previa';
     const guardianPassword = credentials.guardian.generated ? (credentials.guardian.password || '') : 'Ya existia una cuenta previa';
 
@@ -577,6 +786,10 @@ export class EnrollmentApprovalsComponent implements OnInit {
       if (result.isDenied) {
         this.shareCredentialsViaWhatsapp(app, credentials);
       }
+
+      // El envio por WhatsApp abre otra pestana, asi que se puede continuar
+      // igual (redirigir a cobrar) sin interrumpirlo.
+      onClosed?.();
     });
   }
 

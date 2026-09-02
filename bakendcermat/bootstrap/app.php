@@ -36,6 +36,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('periods:auto-close')
             ->dailyAt('00:01')
             ->appendOutputTo(storage_path('logs/auto-close-periods.log'));
+
+        // Avisa a los apoderados las cuotas que vencen en N dias
+        // (system_settings.charge_due_reminder_days). A las 07:00 para que el
+        // aviso llegue a primera hora y no de madrugada.
+        $schedule->command('charges:notify-upcoming')
+            ->dailyAt('07:00')
+            ->appendOutputTo(storage_path('logs/notify-upcoming-charges.log'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

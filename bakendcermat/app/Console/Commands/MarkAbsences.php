@@ -4,21 +4,24 @@ namespace App\Console\Commands;
 
 use App\Models\AttendanceDailyRecord;
 use App\Models\AttendanceScheduleConfig;
-use App\Models\Guardian;
-use App\Models\Message;
-use App\Models\MessageRecipient;
-use App\Models\Notification;
 use App\Models\Section;
 use App\Models\Student;
+use App\Services\GuardianNoticeService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class MarkAbsences extends Command
 {
     protected $signature = 'attendance:mark-absences {--date= : Fecha en formato Y-m-d (default: hoy)}';
 
     protected $description = 'Marca falta a estudiantes que no registraron checkpoint de entrada en su turno';
+
+    public function __construct(
+        private readonly GuardianNoticeService $guardianNotices
+    ) {
+        parent::__construct();
+    }
 
     public function handle(): int
     {
@@ -38,6 +41,7 @@ class MarkAbsences extends Command
 
             if (Carbon::now()->lessThan($windowEnd)) {
                 $this->line("  Turno {$config->shift}: ventana de entrada aun abierta (hasta {$config->window_end}). Saltando.");
+
                 continue;
             }
 
@@ -87,7 +91,7 @@ class MarkAbsences extends Command
 
         foreach ($studentsNeedingAbsence as $studentId) {
             $student = Student::with(['section.gradeLevel'])->find($studentId);
-            if (!$student || $student->status !== 'active') {
+            if (! $student || $student->status !== 'active') {
                 continue;
             }
 
@@ -112,58 +116,28 @@ class MarkAbsences extends Command
         return $marked;
     }
 
+    /**
+     * El aviso vive en GuardianNoticeService, compartido con el
+     * checkpoint QR de tardanzas: los dos creaban el mismo Message y los dos
+     * lo creaban mal (sender_role='system', sender_id=null).
+     */
     private function notifyGuardianAbsence(Student $student, Section $section, string $date): void
     {
-        $guardians = Guardian::query()
-            ->whereHas('students', fn ($q) => $q->where('students.id', $student->id))
-            ->get();
-
-        if ($guardians->isEmpty()) {
-            return;
-        }
-
         $gradeLevel = $section->gradeLevel;
-        $gradeLabel = $gradeLevel ? $gradeLevel->level . ' ' . $gradeLevel->grade : '-';
+        $gradeLabel = $gradeLevel ? $gradeLevel->level.' '.$gradeLevel->grade : '-';
 
-        $title = 'Falta registrada';
-        $message = sprintf(
-            'El estudiante %s marco falta el %s en %s - Seccion %s. No registro asistencia.',
-            $student->full_name,
-            $date,
-            $gradeLabel,
-            $section->section_letter
+        $this->guardianNotices->notifyGuardians(
+            $student,
+            'Falta registrada',
+            sprintf(
+                'El estudiante %s marco falta el %s en %s - Seccion %s. No registro asistencia.',
+                $student->full_name,
+                $date,
+                $gradeLabel,
+                $section->section_letter
+            ),
+            'asistencia',
+            'asistencia_tardanza'
         );
-
-        foreach ($guardians as $guardian) {
-            if (!$guardian->user_id) {
-                continue;
-            }
-
-            Notification::create([
-                'user_id' => $guardian->user_id,
-                'type' => 'asistencia_tardanza',
-                'title' => $title,
-                'message' => $message,
-                'status' => 'no_leida',
-                'related_entity_type' => 'student',
-                'related_entity_id' => $student->id,
-            ]);
-
-            $msg = Message::create([
-                'student_id' => $student->id,
-                'sender_role' => 'system',
-                'sender_id' => null,
-                'content' => $message,
-                'is_read' => false,
-                'category' => 'asistencia',
-                'title' => $title,
-            ]);
-
-            MessageRecipient::create([
-                'message_id' => $msg->id,
-                'recipient_type' => 'guardian',
-                'recipient_user_id' => $guardian->user_id,
-            ]);
-        }
     }
 }

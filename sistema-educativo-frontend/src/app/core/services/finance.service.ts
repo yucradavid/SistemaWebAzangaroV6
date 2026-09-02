@@ -59,6 +59,22 @@ export interface Discount {
   is_active: boolean;
   description?: string | null;
   concept?: FeeConcept;
+
+  // Anio al que esta atado el descuento. null = descuento generico de siempre
+  // (asi quedan los ya creados, como el de hermanos).
+  academic_year_id?: string | null;
+  academic_year?: { id: string; year: number } | null;
+
+  // 'contado' = lo aplica solo el flujo de aprobacion de matricula.
+  // null = descuento manual que el admin asigna por alumno (sin cambios).
+  auto_apply_on?: 'contado' | null;
+
+  // Lista EXPLICITA de conceptos afectados. Si viene con elementos, manda
+  // sobre el scope; vacia = el descuento se resuelve por scope como siempre.
+  fee_concepts?: FeeConcept[];
+
+  // Solo de escritura: lo que se manda al backend para reemplazar la lista.
+  fee_concept_ids?: string[];
 }
 
 export interface StudentDiscount {
@@ -381,6 +397,15 @@ export class FinanceService {
     return this.http.get<PaginatedResponse<any>>(`${this.apiUrl}/students`, {
       params: this.buildParams({ q: query, per_page: 20, ...extraFilters })
     });
+  }
+
+  /**
+   * Un alumno por id. Se usa para preseleccionarlo cuando se llega a Cuenta
+   * Corriente desde otro modulo (?student_id=...) y no aparece en la primera
+   * pagina del directorio de alumnos con cargos.
+   */
+  getStudent(id: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/students/${id}`);
   }
 
   voidCharge(id: string, reason: string): Observable<any> {

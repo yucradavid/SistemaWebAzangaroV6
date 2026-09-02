@@ -8,10 +8,15 @@ use App\Http\Requests\UpdateStudentDiscountRequest;
 use App\Models\Charge;
 use App\Models\Student;
 use App\Models\StudentDiscount;
+use App\Services\StudentDiscountService;
 use Illuminate\Http\Request;
 
 class StudentDiscountController extends Controller
 {
+    public function __construct(
+        private readonly StudentDiscountService $studentDiscounts
+    ) {}
+
     public function index(Request $request)
     {
         $q = StudentDiscount::with(['student', 'discount', 'academicYear', 'assignedBy']);
@@ -42,7 +47,7 @@ class StudentDiscountController extends Controller
 
         if ($exists) {
             return response()->json([
-                'message' => 'Ese descuento ya fue asignado al estudiante en ese año académico.'
+                'message' => 'Ese descuento ya fue asignado al estudiante en ese año académico.',
             ], 422);
         }
 
@@ -56,74 +61,12 @@ class StudentDiscountController extends Controller
         // apliquen (no solo el recien asignado). El flujo de generacion masiva
         // (batchStore) ya no aplica descuentos, por lo que esta es la unica via
         // de asignacion.
-        $this->recalculateDiscountsForStudent($studentDiscount->student_id, $studentDiscount->academic_year_id);
+        $this->studentDiscounts->recalculateFor($studentDiscount->student_id, $studentDiscount->academic_year_id);
 
         return response()->json(
             $studentDiscount->load(['student', 'discount', 'academicYear', 'assignedBy']),
             201
         );
-    }
-
-    /**
-     * Recalcula discount_amount / final_amount de los cargos pendientes de un
-     * estudiante sumando TODOS sus descuentos activos que apliquen segun el
-     * scope de cada cargo:
-     *  - todos       => aplica a cualquier cargo
-     *  - pension     => solo cargos type = pension
-     *  - matricula   => solo cargos type = matricula
-     *  - especifico  => solo el cargo del concepto especifico del descuento
-     *
-     * Los descuentos de tipo porcentaje se suman entre si (ej. 10% + 20% = 30%)
-     * y se calculan sobre el monto bruto del cargo; los de monto_fijo se suman
-     * en soles. El descuento total nunca supera el monto del cargo.
-     */
-    private function recalculateDiscountsForStudent(string $studentId, string $academicYearId): void
-    {
-        $activeDiscounts = StudentDiscount::where('student_id', $studentId)
-            ->where('academic_year_id', $academicYearId)
-            ->whereHas('discount', fn ($q) => $q->where('is_active', true))
-            ->with('discount')
-            ->get();
-
-        $charges = Charge::where('student_id', $studentId)
-            ->where('academic_year_id', $academicYearId)
-            ->where('status', 'pendiente')
-            ->whereNull('voided_at')
-            ->get();
-
-        foreach ($charges as $charge) {
-            $applicable = $activeDiscounts->filter(function (StudentDiscount $sd) use ($charge) {
-                $discount = $sd->discount;
-
-                if (!$discount) {
-                    return false;
-                }
-
-                return match ($discount->scope) {
-                    'todos' => true,
-                    'pension', 'matricula' => $discount->scope === $charge->type,
-                    'especifico' => $discount->specific_concept_id === $charge->concept_id,
-                    default => false,
-                };
-            });
-
-            $percentSum = (float) $applicable
-                ->filter(fn (StudentDiscount $sd) => $sd->discount->type === 'porcentaje')
-                ->sum(fn (StudentDiscount $sd) => (float) $sd->discount->value);
-
-            $fixedSum = (float) $applicable
-                ->filter(fn (StudentDiscount $sd) => $sd->discount->type === 'monto_fijo')
-                ->sum(fn (StudentDiscount $sd) => (float) $sd->discount->value);
-
-            $amount = (float) $charge->amount;
-            $discountFromPercent = round($amount * $percentSum / 100, 2);
-            $totalDiscount = min($amount, $discountFromPercent + $fixedSum);
-
-            $charge->update([
-                'discount_amount' => $totalDiscount,
-                'final_amount' => max(0, $amount - $totalDiscount),
-            ]);
-        }
     }
 
     public function show(StudentDiscount $studentDiscount)
@@ -134,7 +77,7 @@ class StudentDiscountController extends Controller
     public function update(UpdateStudentDiscountRequest $request, StudentDiscount $studentDiscount)
     {
         $studentDiscount->update($request->validated());
-        $this->recalculateDiscountsForStudent($studentDiscount->student_id, $studentDiscount->academic_year_id);
+        $this->studentDiscounts->recalculateFor($studentDiscount->student_id, $studentDiscount->academic_year_id);
 
         return $studentDiscount->load(['student', 'discount', 'academicYear', 'assignedBy']);
     }
@@ -149,7 +92,7 @@ class StudentDiscountController extends Controller
         // Recalcular sin el descuento eliminado: si quedan otros descuentos
         // activos se reaplican solo ellos; si no queda ninguno, los cargos
         // vuelven a discount_amount = 0.
-        $this->recalculateDiscountsForStudent($studentId, $academicYearId);
+        $this->studentDiscounts->recalculateFor($studentId, $academicYearId);
 
         return response()->noContent();
     }

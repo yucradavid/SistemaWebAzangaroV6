@@ -8,19 +8,23 @@ use App\Http\Requests\UpdateChargeRequest;
 use App\Models\Charge;
 use App\Models\FinancialPlan;
 use App\Models\Student;
+use App\Services\ChargeIssuanceService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class ChargeController extends Controller
 {
+    public function __construct(
+        private readonly ChargeIssuanceService $chargeIssuance
+    ) {}
+
     public function index(Request $request)
     {
         $q = Charge::with(['student.section.gradeLevel', 'concept', 'payments']);
         $perPage = max(1, min((int) $request->integer('per_page', 50), 1000));
 
-        if (!$request->boolean('include_voided')) {
+        if (! $request->boolean('include_voided')) {
             $q->whereNull('voided_at');
         }
 
@@ -57,14 +61,14 @@ class ChargeController extends Controller
         $data['status'] = $data['status'] ?? 'pendiente';
         $data['discount_amount'] = $data['discount_amount'] ?? 0;
         $data['paid_amount'] = $data['paid_amount'] ?? 0;
-        $actorId = $this->resolveActorUserId($request);
+        $actorId = $this->chargeIssuance->resolveActorUserId($request->user());
 
-        if (Schema::hasColumn('charges', 'created_by')) {
+        if ($this->chargeIssuance->supportsCreatedBy()) {
             $data['created_by'] = $actorId;
         }
 
         try {
-            $charge = Charge::create($this->buildChargeInsert($data));
+            $charge = $this->chargeIssuance->create($data);
         } catch (QueryException $e) {
             if ($e->getCode() === '23505') {
                 return response()->json([
@@ -100,7 +104,7 @@ class ChargeController extends Controller
         }
 
         if (array_key_exists('notes', $data)) {
-            $this->fillChargeNoteFields($update, $data['notes']);
+            $this->chargeIssuance->fillChargeNoteFields($update, $data['notes']);
         }
 
         try {
@@ -259,7 +263,8 @@ class ChargeController extends Controller
             : 'otro';
 
         $createdCount = 0;
-        $actorId = $this->resolveActorUserId($request);
+        $actorId = $this->chargeIssuance->resolveActorUserId($request->user());
+        $issuance = $this->chargeIssuance;
 
         DB::transaction(function () use (
             $students,
@@ -267,31 +272,16 @@ class ChargeController extends Controller
             $academicYearId,
             $chargeType,
             $actorId,
+            $issuance,
             &$createdCount
         ) {
             foreach ($students as $student) {
                 foreach ($plan->installments as $installment) {
                     $note = "Generado automaticamente - {$plan->name} - Cuota #{$installment->installment_number}";
 
-                    // La duplicidad se define por la obligacion real (mismo
-                    // concepto y fecha de vencimiento para el mismo alumno),
-                    // no por el texto de notes: dos corridas pueden generar
-                    // el mismo cargo con notas distintas (ej. nombre de plan
-                    // cambiado) y notes no debe permitir que se dupliquen. Se
-                    // excluyen los cargos anulados porque uno anulado ya no
-                    // representa una obligacion vigente y debe poder
-                    // regenerarse.
-                    $exists = Charge::where('student_id', $student->id)
-                        ->where('academic_year_id', $academicYearId)
-                        ->where('concept_id', $plan->concept_id)
-                        ->whereDate('due_date', $installment->due_date)
-                        ->whereNull('voided_at')
-                        ->exists();
-
-                    if ($exists) {
-                        continue;
-                    }
-
+                    // El criterio de duplicidad y la construccion del cargo
+                    // viven en ChargeIssuanceService, compartidos con el flujo
+                    // de aprobacion de matricula (ver issueIfAbsent).
                     $amount = (float) $installment->amount;
 
                     // Descuento siempre en 0 al generar cargos masivos.
@@ -313,19 +303,12 @@ class ChargeController extends Controller
                         'notes' => $note,
                     ];
 
-                    if (Schema::hasColumn('charges', 'created_by')) {
+                    if ($issuance->supportsCreatedBy()) {
                         $payload['created_by'] = $actorId;
                     }
 
-                    try {
-                        Charge::create($this->buildChargeInsert($payload));
+                    if ($issuance->issueIfAbsent($payload)) {
                         $createdCount++;
-                    } catch (QueryException $e) {
-                        if ($e->getCode() === '23505') {
-                            continue;
-                        }
-
-                        throw $e;
                     }
                 }
             }
@@ -381,7 +364,7 @@ class ChargeController extends Controller
         $charge->update([
             'paid_amount' => 0,
             'voided_at' => now(),
-            'voided_by' => $this->resolveActorUserId($request),
+            'voided_by' => $this->chargeIssuance->resolveActorUserId($request->user()),
             'void_reason' => $data['reason'],
         ]);
 
@@ -389,97 +372,5 @@ class ChargeController extends Controller
             'message' => 'Cargo anulado correctamente.',
             'data' => $charge->fresh()->load(['student.section.gradeLevel', 'concept', 'payments']),
         ]);
-    }
-
-    private function buildChargeInsert(array $data): array
-    {
-        $amount = (float) ($data['amount'] ?? 0);
-        $discountAmount = min((float) ($data['discount_amount'] ?? 0), $amount);
-        $payload = [
-            'student_id' => $data['student_id'],
-            'academic_year_id' => $data['academic_year_id'],
-            'concept_id' => $data['concept_id'] ?? null,
-            'type' => $data['type'],
-            'status' => $data['status'] ?? 'pendiente',
-            'amount' => $amount,
-            'due_date' => $data['due_date'] ?? null,
-            'created_by' => $data['created_by'] ?? null,
-        ];
-
-        $this->fillChargeNoteFields($payload, $data['notes'] ?? null);
-
-        if (Schema::hasColumn('charges', 'discount_amount')) {
-            $payload['discount_amount'] = $discountAmount;
-        } else {
-            $payload['discount'] = $discountAmount;
-        }
-
-        if (Schema::hasColumn('charges', 'paid_amount')) {
-            $payload['paid_amount'] = (float) ($data['paid_amount'] ?? 0);
-        }
-
-        if (Schema::hasColumn('charges', 'final_amount')) {
-            $payload['final_amount'] = max(0, $amount - $discountAmount);
-        }
-
-        return $payload;
-    }
-
-    private function fillChargeNoteFields(array &$payload, ?string $notes): void
-    {
-        $noteValue = filled($notes) ? trim($notes) : 'Cargo financiero';
-
-        if (Schema::hasColumn('charges', 'notes')) {
-            $payload['notes'] = $noteValue;
-        }
-
-        if (Schema::hasColumn('charges', 'description')) {
-            $payload['description'] = $noteValue;
-        }
-    }
-
-    private function resolveActorUserId(Request $request): ?string
-    {
-        $authUser = $request->user();
-
-        if (!$authUser) {
-            return null;
-        }
-
-        // charges.created_by (y voided_by) referencian public.users.id. El usuario
-        // autenticado por Sanctum ES la fila de public.users, por lo que su clave
-        // primaria es el valor correcto. NO se debe usar el id de auth.users: vive en
-        // otro espacio de ids y provoca violacion de FK (charges_created_by_fkey).
-        $candidateIds = array_values(array_filter([
-            $authUser->getKey(),
-            $authUser->id ?? null,
-            $authUser->profile?->user_id ?? null,
-        ]));
-
-        foreach ($candidateIds as $candidateId) {
-            $candidateId = (string) $candidateId;
-
-            if ($candidateId !== '' && DB::table('users')->where('id', $candidateId)->exists()) {
-                return $candidateId;
-            }
-        }
-
-        // Fallback: ubicar al usuario en public.users por correo.
-        $emailCandidates = array_values(array_filter([
-            $authUser->email ?? null,
-            $authUser->profile?->email ?? null,
-        ]));
-
-        foreach ($emailCandidates as $email) {
-            $publicUserId = DB::table('users')
-                ->whereRaw('lower(email) = ?', [strtolower((string) $email)])
-                ->value('id');
-
-            if ($publicUserId) {
-                return (string) $publicUserId;
-            }
-        }
-
-        return null;
     }
 }

@@ -22,6 +22,10 @@ class UpdateDiscountRequest extends FormRequest
             'specific_concept_id' => ['nullable', 'uuid', 'exists:fee_concepts,id'],
             'description' => ['nullable', 'string'],
             'is_active' => ['sometimes', 'boolean'],
+            'academic_year_id' => ['nullable', 'uuid', 'exists:academic_years,id', 'required_with:auto_apply_on'],
+            'auto_apply_on' => ['nullable', Rule::in(['contado'])],
+            'fee_concept_ids' => ['nullable', 'array'],
+            'fee_concept_ids.*' => ['uuid', 'exists:fee_concepts,id'],
         ];
     }
 }

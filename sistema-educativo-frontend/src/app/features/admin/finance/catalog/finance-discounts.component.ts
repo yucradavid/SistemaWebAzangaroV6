@@ -118,7 +118,24 @@ interface StudentDiscountGroup {
               <tr *ngFor="let discount of discounts" class="group hover:bg-slate-50/50 transition-colors">
                 <td class="py-5 px-8">
                   <div class="space-y-1">
-                    <div class="text-sm font-semibold text-slate-800">{{ discount.name }}</div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-sm font-semibold text-slate-800">{{ discount.name }}</span>
+                      <span
+                        *ngIf="discount.auto_apply_on === 'contado'"
+                        class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold rounded-md uppercase tracking-tight">
+                        Automatico al contado
+                      </span>
+                      <span
+                        *ngIf="!discount.auto_apply_on"
+                        class="px-2 py-0.5 bg-slate-50 text-slate-500 border border-slate-200 text-[9px] font-bold rounded-md uppercase tracking-tight">
+                        Manual
+                      </span>
+                      <span
+                        *ngIf="discount.academic_year?.year"
+                        class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 text-[9px] font-bold rounded-md uppercase tracking-tight">
+                        {{ discount.academic_year?.year }}
+                      </span>
+                    </div>
                     <div class="text-[11px] text-slate-400">{{ discount.description || 'Sin descripcion adicional' }}</div>
                   </div>
                 </td>
@@ -133,8 +150,18 @@ interface StudentDiscountGroup {
                   </span>
                 </td>
                 <td class="py-5 px-6">
-                  <div class="text-sm font-medium text-slate-700">{{ getScopeLabel(discount) }}</div>
-                  <div *ngIf="discount.scope === 'especifico'" class="text-[11px] text-slate-400">{{ discount.concept?.name || 'Concepto no cargado' }}</div>
+                  <!-- La lista explicita de conceptos manda sobre el scope, asi
+                       que cuando existe se muestra ella y no el alcance. -->
+                  <ng-container *ngIf="discount.fee_concepts?.length; else porScope">
+                    <div class="text-sm font-medium text-slate-700">Conceptos especificos</div>
+                    <div class="text-[11px] text-slate-400">
+                      {{ conceptNames(discount) }}
+                    </div>
+                  </ng-container>
+                  <ng-template #porScope>
+                    <div class="text-sm font-medium text-slate-700">{{ getScopeLabel(discount) }}</div>
+                    <div *ngIf="discount.scope === 'especifico'" class="text-[11px] text-slate-400">{{ discount.concept?.name || 'Concepto no cargado' }}</div>
+                  </ng-template>
                 </td>
                 <td class="py-5 px-6 text-center">
                   <span
@@ -411,8 +438,83 @@ interface StudentDiscountGroup {
               </div>
 
               <div class="md:col-span-2 space-y-2">
+                <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Anio academico</label>
+                <select formControlName="academic_year_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
+                  <option [ngValue]="null">Sin anio (aplica siempre)</option>
+                  <option *ngFor="let year of academicYears" [ngValue]="year.id">{{ year.year }}</option>
+                </select>
+                <p class="text-[11px] text-slate-400 pl-1">
+                  Atarlo a un anio permite cambiar el porcentaje cada anio sin tocar el historico.
+                </p>
+              </div>
+
+              <div class="md:col-span-2 space-y-2">
                 <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Descripcion</label>
                 <textarea formControlName="description" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all" placeholder="Explica si aplica por beca, convenio, hermanos, puntualidad u otro criterio."></textarea>
+              </div>
+            </div>
+
+            <!-- Aplicacion automatica al pago al contado -->
+            <div class="rounded-2xl border p-5 space-y-4 transition-colors"
+                 [ngClass]="autoApplyEnabled
+                   ? 'border-emerald-200 bg-emerald-50/50'
+                   : 'border-slate-100 bg-slate-50/70'">
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  [checked]="autoApplyEnabled"
+                  (change)="onAutoApplyToggle($any($event.target).checked)"
+                  class="mt-0.5 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer">
+                <span>
+                  <span class="block text-sm font-bold text-slate-800">Aplicar automaticamente al pago al contado</span>
+                  <span class="block text-[11px] text-slate-500 mt-0.5">
+                    El flujo de aprobacion de matricula lo aplica solo cuando secretaria elige la modalidad contado.
+                    Si lo dejas apagado, el descuento se sigue asignando a mano por alumno, como hasta ahora.
+                  </span>
+                </span>
+              </label>
+
+              <div *ngIf="autoApplyEnabled" class="space-y-3 pt-1">
+                <div *ngIf="!discountForm.get('academic_year_id')?.value"
+                     class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-700">
+                  Un descuento automatico debe estar atado a un anio academico. Selecciona uno arriba.
+                </div>
+
+                <div *ngIf="autoApplyConflict as conflicto"
+                     class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-semibold text-red-700">
+                  Ya existe un descuento de contado activo para ese anio: «{{ conflicto.name }}». Desactivalo antes de crear otro.
+                </div>
+
+                <div>
+                  <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">
+                    Conceptos a los que se aplica
+                  </p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label
+                      *ngFor="let concept of concepts"
+                      class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 cursor-pointer transition-colors"
+                      [ngClass]="isConceptSelected(concept.id)
+                        ? 'border-emerald-300 bg-white'
+                        : 'border-slate-200 bg-white/60'">
+                      <input
+                        type="checkbox"
+                        [checked]="isConceptSelected(concept.id)"
+                        (change)="toggleConcept(concept.id)"
+                        class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer">
+                      <span class="text-xs font-semibold text-slate-700">{{ concept.name }}</span>
+                      <span class="ml-auto text-[10px] font-bold uppercase tracking-tight text-slate-400">{{ concept.type }}</span>
+                    </label>
+                  </div>
+
+                  <p class="text-[11px] text-slate-500 mt-2">
+                    <ng-container *ngIf="selectedConceptIds.length > 0">
+                      Solo se descontaran esos {{ selectedConceptIds.length }} conceptos; el alcance de arriba se ignora.
+                    </ng-container>
+                    <ng-container *ngIf="selectedConceptIds.length === 0">
+                      Sin conceptos marcados, el descuento se resuelve por el alcance de arriba ({{ getDraftScopeLabel() }}).
+                    </ng-container>
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -505,6 +607,12 @@ export class FinanceDiscountsComponent implements OnInit, OnDestroy {
   studentSearchTerm = '';
   studentResults: any[] = [];
   selectedAssignmentStudent: any = null;
+
+  // Estado del bloque de aplicacion automatica al contado. Vive fuera del
+  // FormGroup porque no son columnas sueltas: auto_apply_on se manda como
+  // 'contado' | null y la lista de conceptos como un array aparte.
+  autoApplyEnabled = false;
+  selectedConceptIds: string[] = [];
   private searchDebounce?: ReturnType<typeof setTimeout>;
   private studentSearchDebounce?: ReturnType<typeof setTimeout>;
 
@@ -519,6 +627,7 @@ export class FinanceDiscountsComponent implements OnInit, OnDestroy {
       value: [0, [Validators.required, Validators.min(0)]],
       scope: ['todos', Validators.required],
       specific_concept_id: [null],
+      academic_year_id: [null],
       description: [''],
       is_active: [true]
     });
@@ -609,12 +718,15 @@ export class FinanceDiscountsComponent implements OnInit, OnDestroy {
     this.showModal = true;
     this.isEditing = false;
     this.currentId = null;
+    this.autoApplyEnabled = false;
+    this.selectedConceptIds = [];
     this.discountForm.reset({
       name: '',
       type: 'porcentaje',
       value: 0,
       scope: 'todos',
       specific_concept_id: null,
+      academic_year_id: null,
       description: '',
       is_active: true
     });
@@ -624,15 +736,76 @@ export class FinanceDiscountsComponent implements OnInit, OnDestroy {
     this.showModal = true;
     this.isEditing = true;
     this.currentId = discount.id;
+    this.autoApplyEnabled = discount.auto_apply_on === 'contado';
+    this.selectedConceptIds = (discount.fee_concepts || []).map((concept) => concept.id);
     this.discountForm.patchValue({
       name: discount.name,
       type: discount.type,
       value: discount.value,
       scope: discount.scope,
       specific_concept_id: discount.specific_concept_id ?? null,
+      academic_year_id: discount.academic_year_id ?? null,
       description: discount.description || '',
       is_active: discount.is_active
     });
+  }
+
+  onAutoApplyToggle(enabled: boolean): void {
+    this.autoApplyEnabled = enabled;
+
+    if (!enabled) {
+      // Apagarlo devuelve el descuento a manual: sin lista explicita vuelve a
+      // resolverse por scope, que es el comportamiento de siempre.
+      this.selectedConceptIds = [];
+      return;
+    }
+
+    // Un descuento automatico SIEMPRE va atado a un anio (lo exige el backend
+    // y una restriccion CHECK): se propone el activo para no dejarlo vacio.
+    if (!this.discountForm.get('academic_year_id')?.value) {
+      const activeYear = this.academicYears.find((year: any) => year.is_active);
+
+      if (activeYear) {
+        this.discountForm.patchValue({ academic_year_id: activeYear.id });
+      }
+    }
+  }
+
+  isConceptSelected(conceptId: string): boolean {
+    return this.selectedConceptIds.includes(conceptId);
+  }
+
+  toggleConcept(conceptId: string): void {
+    this.selectedConceptIds = this.isConceptSelected(conceptId)
+      ? this.selectedConceptIds.filter((id) => id !== conceptId)
+      : [...this.selectedConceptIds, conceptId];
+  }
+
+  conceptNames(discount: Discount): string {
+    return (discount.fee_concepts || []).map((concept) => concept.name).join(', ');
+  }
+
+  /**
+   * Otro descuento de contado ya activo para el mismo anio. Existe un indice
+   * unico parcial en la base que lo impide; se avisa antes de guardar para no
+   * mostrarle al admin un error crudo de Postgres.
+   */
+  get autoApplyConflict(): Discount | null {
+    if (!this.autoApplyEnabled || !this.discountForm.get('is_active')?.value) {
+      return null;
+    }
+
+    const yearId = this.discountForm.get('academic_year_id')?.value;
+
+    if (!yearId) {
+      return null;
+    }
+
+    return this.discounts.find((discount) =>
+      discount.id !== this.currentId
+      && discount.is_active
+      && discount.auto_apply_on === 'contado'
+      && discount.academic_year_id === yearId) || null;
   }
 
   closeModal(): void {
@@ -666,6 +839,23 @@ export class FinanceDiscountsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const academicYearId = this.discountForm.get('academic_year_id')?.value || null;
+
+    if (this.autoApplyEnabled && !academicYearId) {
+      Swal.fire('Atencion', 'Un descuento automatico de contado debe estar atado a un anio academico.', 'warning');
+      return;
+    }
+
+    const conflicto = this.autoApplyConflict;
+    if (conflicto) {
+      Swal.fire(
+        'Atencion',
+        `Ya existe un descuento de contado activo para ese anio: "${conflicto.name}". Desactivalo antes de crear otro.`,
+        'warning'
+      );
+      return;
+    }
+
     const data = {
       ...this.discountForm.getRawValue(),
       name,
@@ -673,7 +863,12 @@ export class FinanceDiscountsComponent implements OnInit, OnDestroy {
       description: String(this.discountForm.get('description')?.value || '').trim() || null,
       specific_concept_id: this.discountForm.get('scope')?.value === 'especifico'
         ? this.discountForm.get('specific_concept_id')?.value
-        : null
+        : null,
+      academic_year_id: academicYearId,
+      auto_apply_on: this.autoApplyEnabled ? 'contado' : null,
+      // Siempre se manda: una lista vacia limpia los conceptos y devuelve el
+      // descuento a resolverse por scope. Omitirla dejaria los viejos pegados.
+      fee_concept_ids: this.autoApplyEnabled ? this.selectedConceptIds : []
     };
 
     this.saving = true;
@@ -691,7 +886,15 @@ export class FinanceDiscountsComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.saving = false;
-        Swal.fire('Error', error?.error?.message || 'No se pudo guardar el descuento.', 'error');
+
+        // El indice unico parcial de la base (un solo descuento automatico
+        // activo por anio) llega como un error crudo de Postgres: se traduce.
+        const raw = String(error?.error?.message || '');
+        const mensaje = raw.includes('discounts_unique_active_auto_apply')
+          ? 'Ya existe otro descuento de contado activo para ese anio academico. Desactivalo antes de guardar este.'
+          : (raw || 'No se pudo guardar el descuento.');
+
+        Swal.fire('Error', mensaje, 'error');
       }
     });
   }

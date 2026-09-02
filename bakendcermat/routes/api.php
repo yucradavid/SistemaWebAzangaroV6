@@ -283,7 +283,13 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('role:admin,director,coordinator,secretary,administrative,teacher');
 
     Route::middleware('role:admin,director,coordinator,secretary')->group(function () {
+        // Debe declararse ANTES del apiResource: si no, 'pending-cash-collection'
+        // se interpreta como el {id} de la ruta show.
+        Route::get('enrollment-applications/pending-cash-collection', [EnrollmentApplicationController::class, 'pendingCashCollection']);
         Route::apiResource('enrollment-applications', EnrollmentApplicationController::class);
+        // Vista previa de cargos por modalidad (solo lectura, no crea nada):
+        // es lo que el modal de aprobacion muestra antes de confirmar.
+        Route::get('enrollment-applications/{id}/billing-preview', [EnrollmentApplicationController::class, 'billingPreview']);
         Route::post('enrollment-applications/{id}/approve', [EnrollmentApplicationController::class, 'approve']);
         Route::post('enrollment-applications/{id}/provision-accounts', [EnrollmentApplicationController::class, 'provisionAccounts']);
         Route::post('enrollment-applications/{id}/reject', [EnrollmentApplicationController::class, 'reject']);

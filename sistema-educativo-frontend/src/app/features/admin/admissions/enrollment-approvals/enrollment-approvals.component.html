@@ -9,6 +9,38 @@
     </div>
   </div>
 
+  <!-- Pestañas del módulo -->
+  <div class="flex flex-wrap gap-2">
+    <button
+      type="button"
+      (click)="setView('solicitudes')"
+      [class]="viewTabClass('solicitudes')">
+      Solicitudes
+    </button>
+    <button
+      type="button"
+      (click)="setView('contado')"
+      [class]="viewTabClass('contado')">
+      Contado por cobrar
+      <span *ngIf="pendingCashCount > 0"
+            class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold"
+            [class.bg-white]="activeView === 'contado'"
+            [class.text-blue-700]="activeView === 'contado'"
+            [class.bg-amber-100]="activeView !== 'contado'"
+            [class.text-amber-800]="activeView !== 'contado'">
+        {{ pendingCashCount }}
+      </span>
+    </button>
+  </div>
+
+  <!-- Contado pendiente de cobro: se instancia solo al abrir la pestaña. -->
+  <app-pending-cash-collection
+    *ngIf="openedCashView"
+    [hidden]="activeView !== 'contado'"
+    (countChange)="pendingCashCount = $event"></app-pending-cash-collection>
+
+  <ng-container *ngIf="activeView === 'solicitudes'">
+
   <div *ngIf="errorMessage" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
     {{ errorMessage }}
   </div>
@@ -175,6 +207,8 @@
       <p class="text-slate-500 text-xs max-w-xs mx-auto">No se encontraron solicitudes con los filtros seleccionados.</p>
     </div>
   </div>
+
+  </ng-container>
 </div>
 
 <!-- Modal Detalle -->
@@ -421,9 +455,9 @@
 
 <!-- Modal Aprobación -->
 <div *ngIf="showApproveModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs text-slate-700">
-  <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
     <h3 class="text-lg font-bold text-slate-900 tracking-tight mb-1">Aprobar Pre-Matrícula</h3>
-    <p class="text-slate-500 text-xs font-medium mb-4">Asigna una sección del mismo año académico y grado solicitado.</p>
+    <p class="text-slate-500 text-xs font-medium mb-4">Asigna una sección y define cómo se cobrará la matrícula.</p>
 
     <div *ngIf="selectedApp" class="mb-4 rounded-xl bg-slate-50 border border-slate-200 p-3.5 text-xs text-slate-600">
       <div class="font-bold text-slate-900 text-sm">
@@ -447,11 +481,131 @@
       </p>
     </div>
 
+    <!-- Modalidad de pago -->
+    <div class="space-y-2 mb-4">
+      <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Modalidad de pago</label>
+
+      <div class="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          (click)="onPaymentModeChange('contado')"
+          class="rounded-xl border px-3 py-3 text-left transition-all"
+          [class.border-blue-500]="selectedPaymentMode === 'contado'"
+          [class.bg-blue-50]="selectedPaymentMode === 'contado'"
+          [class.border-slate-200]="selectedPaymentMode !== 'contado'"
+          [class.bg-slate-50]="selectedPaymentMode !== 'contado'">
+          <span class="block text-xs font-bold text-slate-900">Pago al contado</span>
+          <span class="block text-[10px] text-slate-500 mt-0.5">Matrícula + pensión anual, todo hoy</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="onPaymentModeChange('cuotas')"
+          [disabled]="!hasAvailableInstallments"
+          class="rounded-xl border px-3 py-3 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          [class.border-blue-500]="selectedPaymentMode === 'cuotas'"
+          [class.bg-blue-50]="selectedPaymentMode === 'cuotas'"
+          [class.border-slate-200]="selectedPaymentMode !== 'cuotas'"
+          [class.bg-slate-50]="selectedPaymentMode !== 'cuotas'">
+          <span class="block text-xs font-bold text-slate-900">Pago en cuotas</span>
+          <span class="block text-[10px] text-slate-500 mt-0.5">Primera cuota hoy, el resto mensual</span>
+        </button>
+      </div>
+
+      <p *ngIf="billingPreview && !hasAvailableInstallments" class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+        {{ noInstallmentsReason }}
+      </p>
+    </div>
+
+    <!-- Cantidad de cuotas -->
+    <div *ngIf="selectedPaymentMode === 'cuotas' && hasAvailableInstallments" class="space-y-2 mb-4">
+      <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cantidad de cuotas</label>
+
+      <div class="flex flex-wrap gap-2">
+        <button
+          *ngFor="let option of installmentOptions"
+          type="button"
+          (click)="onInstallmentsChange(option.installments_count!)"
+          [disabled]="!option.available"
+          [title]="option.unavailable_reason || ''"
+          class="px-4 py-2 rounded-xl border text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:line-through"
+          [class.border-blue-500]="option.available && selectedInstallments === option.installments_count"
+          [class.bg-blue-600]="option.available && selectedInstallments === option.installments_count"
+          [class.text-white]="option.available && selectedInstallments === option.installments_count"
+          [class.border-slate-200]="!option.available || selectedInstallments !== option.installments_count"
+          [class.text-slate-700]="!option.available || selectedInstallments !== option.installments_count">
+          {{ option.installments_count }}
+        </button>
+      </div>
+
+      <p *ngIf="selectedBillingOption && !selectedBillingOption.available" class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+        {{ selectedBillingOption.unavailable_reason }}
+      </p>
+    </div>
+
+    <!-- Vista previa del cálculo, antes de confirmar -->
+    <div *ngIf="loadingBillingPreview" class="mb-5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-xs text-slate-500 text-center">
+      Calculando los cargos...
+    </div>
+
+    <div *ngIf="billingPreviewError" class="mb-5 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-xs text-red-700">
+      {{ billingPreviewError }}
+    </div>
+
+    <div *ngIf="!loadingBillingPreview && !billingPreviewError && selectedBillingOption?.available"
+         class="mb-5 rounded-xl border border-slate-200 overflow-hidden">
+      <div class="bg-slate-50 border-b border-slate-200 px-3 py-2 flex items-center justify-between">
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cargos que se generarán</span>
+        <span class="text-[10px] font-semibold text-slate-400">{{ selectedBillingOption?.charges?.length }} cargos</span>
+      </div>
+
+      <table class="w-full text-xs">
+        <tbody>
+          <tr *ngFor="let charge of selectedBillingOption?.charges" class="border-b border-slate-100 last:border-0">
+            <td class="px-3 py-2">
+              <div class="font-semibold text-slate-800">{{ charge.label }}</div>
+              <div class="text-[10px] text-slate-400">Vence {{ charge.due_date | date:'dd/MM/yyyy' }}</div>
+            </td>
+            <td class="px-3 py-2 text-right whitespace-nowrap">
+              <div class="font-bold text-slate-900">S/ {{ charge.final_amount | number:'1.2-2' }}</div>
+              <div *ngIf="charge.discount_amount > 0" class="text-[10px] text-emerald-600 font-semibold">
+                antes S/ {{ charge.amount | number:'1.2-2' }}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="bg-slate-50 border-t border-slate-200 px-3 py-2.5 space-y-1">
+        <div class="flex justify-between text-[11px] text-slate-500">
+          <span>Subtotal</span>
+          <span>S/ {{ selectedBillingOption?.gross_total | number:'1.2-2' }}</span>
+        </div>
+        <div *ngIf="(selectedBillingOption?.discount_total || 0) > 0" class="flex justify-between text-[11px] text-emerald-600 font-semibold">
+          <span>Descuento {{ billingPreview?.auto_discount?.name }}</span>
+          <span>- S/ {{ selectedBillingOption?.discount_total | number:'1.2-2' }}</span>
+        </div>
+        <div class="flex justify-between text-sm font-bold text-slate-900 pt-1 border-t border-slate-200">
+          <span>Total del año</span>
+          <span>S/ {{ selectedBillingOption?.total | number:'1.2-2' }}</span>
+        </div>
+        <div class="flex justify-between text-[11px] text-blue-700 font-semibold">
+          <span>A cobrar hoy</span>
+          <span>S/ {{ selectedBillingOption?.due_today | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div *ngIf="selectedPaymentMode === 'cuotas' && billingPreview?.auto_discount"
+           class="px-3 py-2 text-[10px] text-slate-500 bg-white border-t border-slate-100">
+        El descuento «{{ billingPreview?.auto_discount?.name }}» solo aplica al pago al contado.
+      </div>
+    </div>
+
     <div class="flex gap-2">
       <button (click)="closeApproveModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all">
         Cancelar
       </button>
-      <button (click)="approve()" [disabled]="!selectedSectionId || isBusy(selectedApp?.id)" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-all shadow-xs disabled:opacity-50">
+      <button (click)="approve()" [disabled]="!canConfirmApproval" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-all shadow-xs disabled:opacity-50">
         {{ processingAction === 'approve' ? 'Aprobando...' : 'Confirmar' }}
       </button>
     </div>

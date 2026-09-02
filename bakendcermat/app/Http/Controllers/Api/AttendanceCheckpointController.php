@@ -5,22 +5,22 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceDailyRecord;
 use App\Models\AttendanceScheduleConfig;
-use App\Models\Guardian;
-use App\Models\Message;
-use App\Models\MessageRecipient;
-use App\Models\Notification;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentExtracurricularActivity;
 use App\Models\SystemSetting;
+use App\Services\GuardianNoticeService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AttendanceCheckpointController extends Controller
 {
+    public function __construct(
+        private readonly GuardianNoticeService $guardianNotices
+    ) {}
+
     public function studentCheckpoint(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -34,7 +34,7 @@ class AttendanceCheckpointController extends Controller
             ->orWhere('student_code', $validated['qr_code'])
             ->first();
 
-        if (!$student) {
+        if (! $student) {
             throw ValidationException::withMessages([
                 'qr_code' => 'No se encontro un estudiante con este codigo.',
             ]);
@@ -47,14 +47,14 @@ class AttendanceCheckpointController extends Controller
         }
 
         $section = $student->section;
-        if (!$section) {
+        if (! $section) {
             throw ValidationException::withMessages([
                 'student' => 'El estudiante no tiene seccion asignada.',
             ]);
         }
 
         $shift = $section->shift;
-        if (!$shift) {
+        if (! $shift) {
             throw ValidationException::withMessages([
                 'section' => 'La seccion del estudiante no tiene turno asignado.',
             ]);
@@ -69,7 +69,7 @@ class AttendanceCheckpointController extends Controller
             ->where('is_active', true)
             ->first();
 
-        if (!$config) {
+        if (! $config) {
             throw ValidationException::withMessages([
                 'config' => "No hay configuracion de horario para turno {$shift}, checkpoint {$checkpoint}.",
             ]);
@@ -199,65 +199,35 @@ class AttendanceCheckpointController extends Controller
         return $dailyRecord;
     }
 
+    /**
+     * El aviso vive en GuardianNoticeService, compartido con el comando
+     * attendance:mark-absences: los dos creaban el mismo Message y los dos lo
+     * creaban mal (sender_role='system', sender_id=null, que violan el CHECK y
+     * el NOT NULL de messages).
+     */
     private function notifyGuardianTardiness(
         Student $student,
         Section $section,
         string $checkpoint,
         string $date
     ): void {
-        $guardians = Guardian::query()
-            ->whereHas('students', fn ($q) => $q->where('students.id', $student->id))
-            ->get();
-
-        if ($guardians->isEmpty()) {
-            return;
-        }
-
         $gradeLevel = $section->gradeLevel;
-        $gradeLabel = $gradeLevel ? $gradeLevel->level . ' ' . $gradeLevel->grade : '-';
-        $sectionLabel = $section->section_letter;
+        $gradeLabel = $gradeLevel ? $gradeLevel->level.' '.$gradeLevel->grade : '-';
 
-        $title = 'Tardanza registrada';
-        $message = sprintf(
-            'El estudiante %s registro %s tardia el %s en %s %s - Seccion %s.',
-            $student->full_name,
-            $checkpoint,
-            $date,
-            $gradeLabel,
-            $gradeLevel?->name ?? '',
-            $sectionLabel
+        $this->guardianNotices->notifyGuardians(
+            $student,
+            'Tardanza registrada',
+            sprintf(
+                'El estudiante %s registro %s tardia el %s en %s %s - Seccion %s.',
+                $student->full_name,
+                $checkpoint,
+                $date,
+                $gradeLabel,
+                $gradeLevel?->name ?? '',
+                $section->section_letter
+            ),
+            'asistencia',
+            'asistencia_tardanza'
         );
-
-        foreach ($guardians as $guardian) {
-            if (!$guardian->user_id) {
-                continue;
-            }
-
-            Notification::create([
-                'user_id' => $guardian->user_id,
-                'type' => 'asistencia_tardanza',
-                'title' => $title,
-                'message' => $message,
-                'status' => 'no_leida',
-                'related_entity_type' => 'student',
-                'related_entity_id' => $student->id,
-            ]);
-
-            $msg = Message::create([
-                'student_id' => $student->id,
-                'sender_role' => 'system',
-                'sender_id' => null,
-                'content' => $message,
-                'is_read' => false,
-                'category' => 'asistencia',
-                'title' => $title,
-            ]);
-
-            MessageRecipient::create([
-                'message_id' => $msg->id,
-                'recipient_type' => 'guardian',
-                'recipient_user_id' => $guardian->user_id,
-            ]);
-        }
     }
 }
